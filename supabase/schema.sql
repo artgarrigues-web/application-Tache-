@@ -1,0 +1,52 @@
+-- =====================================================================
+-- Agenda de tâches : création de la table et des règles de sécurité.
+-- À exécuter UNE fois dans Supabase : menu "SQL Editor" → "New query"
+-- → coller tout ce fichier → "Run".
+-- =====================================================================
+
+-- 1. La table des tâches -------------------------------------------------
+create table if not exists public.taches (
+  id          uuid primary key default gen_random_uuid(),
+  -- Propriétaire de la tâche. "default auth.uid()" : Supabase remplit
+  -- automatiquement ce champ avec l'identifiant de l'utilisateur connecté.
+  user_id     uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  titre       text not null check (char_length(titre) between 1 and 120),
+  description text not null default '',
+  date        date not null,
+  heure       time,                                   -- null = pas d'heure
+  categorie   text not null default 'perso'   check (categorie in ('perso', 'travail', 'projets')),
+  priorite    text not null default 'moyenne' check (priorite in ('haute', 'moyenne', 'basse')),
+  faite       boolean not null default false,
+  cree_le     timestamptz not null default now()
+);
+
+-- Index : accélère la requête la plus fréquente ("mes tâches, triées par date").
+create index if not exists taches_user_date_idx on public.taches (user_id, date);
+
+-- 2. Sécurité au niveau des lignes (Row Level Security, RLS) -------------
+-- La clé publique de Supabase est visible dans le code du site : n'importe
+-- qui peut donc envoyer des requêtes à la base. RLS est ce qui empêche un
+-- visiteur de lire ou modifier les tâches des autres : chaque requête ne
+-- "voit" que les lignes dont user_id = l'utilisateur connecté.
+alter table public.taches enable row level security;
+
+drop policy if exists "Lire ses propres tâches" on public.taches;
+create policy "Lire ses propres tâches" on public.taches
+  for select to authenticated
+  using ((select auth.uid()) = user_id);
+
+drop policy if exists "Créer ses propres tâches" on public.taches;
+create policy "Créer ses propres tâches" on public.taches
+  for insert to authenticated
+  with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Modifier ses propres tâches" on public.taches;
+create policy "Modifier ses propres tâches" on public.taches
+  for update to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Supprimer ses propres tâches" on public.taches;
+create policy "Supprimer ses propres tâches" on public.taches
+  for delete to authenticated
+  using ((select auth.uid()) = user_id);

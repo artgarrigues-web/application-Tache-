@@ -1,0 +1,286 @@
+/* =====================================================================
+   Mon agenda de tâches — mise en forme
+   Les couleurs sont définies une seule fois sous forme de "variables CSS"
+   (--nom) : on les change ici et toute l'application suit. Un second jeu
+   de valeurs s'applique automatiquement si le système est en mode sombre.
+   ===================================================================== */
+
+:root {
+  color-scheme: light dark;          /* adapte aussi les champs natifs (calendrier, etc.) */
+  --fond: #f4f6fb;
+  --surface: #ffffff;
+  --surface-2: #eef1f7;
+  --texte: #1d2433;
+  --texte-doux: #5d6678;
+  --bord: #dde2ec;
+  --accent: #3b5bdb;
+  --accent-texte: #ffffff;
+  --perso: #9c36b5;
+  --travail: #1c7ed6;
+  --projets: #2f9e44;
+  --haute: #e03131;
+  --moyenne: #e8590c;
+  --basse: #868e96;
+  --ombre: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --rayon: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #12151c;
+    --surface: #1b2029;
+    --surface-2: #252b36;
+    --texte: #e7eaf0;
+    --texte-doux: #9aa3b2;
+    --bord: #313848;
+    --accent: #748ffc;
+    --accent-texte: #0b1020;
+    --perso: #da77f2;
+    --travail: #4dabf7;
+    --projets: #69db7c;
+    --haute: #ff6b6b;
+    --moyenne: #ffa94d;
+    --basse: #adb5bd;
+    --ombre: none;
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--fond);
+  color: var(--texte);
+  line-height: 1.4;
+}
+
+.page { max-width: 1240px; margin: 0 auto; padding: 16px; }
+
+/* ---------- Boutons ---------- */
+.btn {
+  font: inherit;
+  border: 1px solid var(--bord);
+  background: var(--surface);
+  color: var(--texte);
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.btn:hover { background: var(--surface-2); }
+.btn-principal { background: var(--accent); color: var(--accent-texte); border-color: transparent; font-weight: 600; }
+.btn-principal:hover { background: var(--accent); filter: brightness(1.1); }
+.btn-danger { color: var(--haute); border-color: var(--haute); }
+.btn-icone {
+  border: none; background: transparent; cursor: pointer;
+  padding: 4px; border-radius: 6px; font-size: 0.95rem; line-height: 1; opacity: 0.55;
+}
+.btn-icone:hover { opacity: 1; background: var(--surface-2); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- En-tête ---------- */
+.entete { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 16px; }
+.entete h1 { margin: 0; font-size: 1.5rem; flex: 1 1 auto; }
+.compteurs { display: flex; flex-wrap: wrap; gap: 8px; }
+.compteur {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--surface); border: 1px solid var(--bord); border-radius: var(--rayon);
+  padding: 6px 12px; font-size: 0.9rem; color: var(--texte-doux);
+}
+.compteur .nombre { font-size: 1.25rem; font-weight: 700; color: var(--texte); font-variant-numeric: tabular-nums; }
+.compteur.alerte .nombre { color: var(--haute); }
+.progression { width: 70px; height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.progression > span { display: block; height: 100%; background: var(--projets); transition: width 0.3s; }
+
+/* ---------- Barre d'outils ---------- */
+.barre-outils { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 12px; }
+.navigation { display: flex; gap: 6px; }
+.barre-outils h2 { margin: 0; font-size: 1.15rem; font-weight: 600; flex: 1 1 auto; }
+.onglets { display: inline-flex; background: var(--surface); border: 1px solid var(--bord); border-radius: 8px; padding: 3px; }
+.onglets button {
+  font: inherit; border: none; background: none; color: var(--texte-doux);
+  padding: 5px 12px; border-radius: 6px; cursor: pointer;
+}
+.onglets button.actif { background: var(--accent); color: var(--accent-texte); }
+
+/* ---------- Filtres et champs ---------- */
+.filtres { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.filtres input, .filtres select,
+.formulaire input, .formulaire select, .formulaire textarea {
+  font: inherit; color: var(--texte); background: var(--surface);
+  border: 1px solid var(--bord); border-radius: 8px; padding: 7px 10px;
+}
+.filtres input[type="search"] { flex: 1 1 220px; }
+.filtres select { flex: 0 1 auto; }
+
+/* ---------- Carte d'une tâche ---------- */
+.cat-perso { --couleur-cat: var(--perso); }
+.cat-travail { --couleur-cat: var(--travail); }
+.cat-projets { --couleur-cat: var(--projets); }
+
+.tache {
+  display: flex; align-items: flex-start; gap: 8px;
+  background: var(--surface); border: 1px solid var(--bord);
+  border-left: 4px solid var(--couleur-cat);   /* la couleur de gauche = la catégorie */
+  border-radius: 8px; padding: 8px 10px; box-shadow: var(--ombre);
+}
+.tache input[type="checkbox"] {
+  width: 18px; height: 18px; margin: 1px 0 0; flex: none;
+  accent-color: var(--couleur-cat); cursor: pointer;
+}
+.tache-corps { flex: 1; min-width: 0; cursor: pointer; }
+.tache-titre { font-weight: 600; overflow-wrap: anywhere; }
+.tache-heure { color: var(--texte-doux); font-weight: 500; font-variant-numeric: tabular-nums; margin-right: 6px; }
+.point-prio { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.point-haute { background: var(--haute); }
+.point-moyenne { background: var(--moyenne); }
+.point-basse { background: var(--basse); }
+.tache-description { margin: 4px 0 0; font-size: 0.9rem; color: var(--texte-doux); white-space: pre-wrap; overflow-wrap: anywhere; }
+.tache-meta { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.badge { font-size: 0.72rem; padding: 1px 7px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.badge-date { color: var(--texte-doux); }
+.badge-cat { color: var(--couleur-cat); }
+.badge-prio-haute { color: var(--haute); }
+.badge-prio-moyenne { color: var(--moyenne); }
+.badge-prio-basse { color: var(--basse); }
+.badge-retard { background: var(--haute); color: #fff; border-color: transparent; }
+.tache-actions { display: flex; gap: 2px; flex: none; }
+
+.tache.faite { opacity: 0.55; }
+.tache.faite .tache-titre { text-decoration: line-through; }
+.tache.retard { border-top-color: var(--haute); border-right-color: var(--haute); border-bottom-color: var(--haute); }
+
+.liste-taches { display: flex; flex-direction: column; gap: 6px; }
+.vide { margin: 4px 0; color: var(--texte-doux); font-style: italic; }
+
+.btn-ajouter {
+  font: inherit; color: var(--texte-doux); background: transparent; cursor: pointer;
+  border: 1px dashed var(--bord); border-radius: 8px; padding: 6px;
+}
+.btn-ajouter:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ---------- Vue Jour ---------- */
+.jour-unique { max-width: 760px; display: flex; flex-direction: column; gap: 10px; }
+
+/* ---------- Vue Semaine ---------- */
+.grille-semaine { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.colonne-jour {
+  display: flex; flex-direction: column; gap: 6px; min-height: 260px;
+  background: var(--surface-2); border-radius: var(--rayon); padding: 6px;
+}
+.colonne-jour .liste-taches { flex: 1; }
+.colonne-jour.aujourdhui { outline: 2px solid var(--accent); }
+.entete-jour {
+  font: inherit; color: var(--texte); background: none; border: none; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; padding: 4px; border-radius: 6px;
+}
+.entete-jour:hover { background: var(--surface); }
+.nom-jour { font-size: 0.8rem; color: var(--texte-doux); }
+.num-jour { font-size: 1.2rem; font-weight: 700; }
+.aujourdhui .num-jour { color: var(--accent); }
+/* Les colonnes sont étroites : on n'y garde que l'essentiel. Un clic ouvre le détail. */
+.vue-semaine .tache { padding: 6px 7px; gap: 6px; }
+.vue-semaine .tache-description,
+.vue-semaine .tache-meta,
+.vue-semaine .tache-actions { display: none; }
+.vue-semaine .tache-titre { font-size: 0.88rem; }
+
+/* ---------- Vue Mois ---------- */
+.grille-mois { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.nom-colonne { text-align: center; font-size: 0.8rem; color: var(--texte-doux); padding: 4px 0; }
+.case-mois {
+  display: flex; flex-direction: column; gap: 3px; min-width: 0; min-height: 112px;
+  background: var(--surface); border: 1px solid var(--bord); border-radius: 8px; padding: 4px;
+}
+.case-mois.hors-mois { opacity: 0.45; }
+.case-mois.aujourdhui { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.haut-case { display: flex; justify-content: space-between; align-items: center; }
+.num-case {
+  font: inherit; font-weight: 600; font-size: 0.85rem; color: var(--texte);
+  background: none; border: none; cursor: pointer; min-width: 24px; height: 24px; border-radius: 999px;
+}
+.num-case:hover { background: var(--surface-2); }
+.aujourdhui .num-case { background: var(--accent); color: var(--accent-texte); }
+.compte-case { display: none; font-size: 0.7rem; background: var(--surface-2); border-radius: 999px; padding: 0 6px; }
+.tache.compacte { padding: 2px 5px; gap: 4px; align-items: center; border-left-width: 3px; box-shadow: none; font-size: 0.78rem; }
+.tache.compacte input[type="checkbox"] { width: 13px; height: 13px; margin: 0; }
+.tache.compacte .tache-titre { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tache.compacte .point-prio { width: 6px; height: 6px; margin-right: 4px; }
+.lien-plus { font: inherit; font-size: 0.75rem; color: var(--accent); background: none; border: none; cursor: pointer; text-align: left; padding: 0 2px; }
+.btn-ajouter-mini {
+  margin-top: auto; align-self: flex-end;
+  font: inherit; font-size: 0.85rem; line-height: 1; color: var(--texte-doux);
+  background: none; border: 1px dashed var(--bord); border-radius: 6px; padding: 2px 7px; cursor: pointer;
+}
+/* Sur ordinateur (souris), le "+" n'apparaît qu'au survol pour alléger la grille. */
+@media (hover: hover) {
+  .btn-ajouter-mini { opacity: 0; }
+  .case-mois:hover .btn-ajouter-mini, .btn-ajouter-mini:focus-visible { opacity: 1; }
+}
+
+/* ---------- Vue Liste ---------- */
+.liste-complete { max-width: 820px; }
+.groupe-date h3 { margin: 18px 0 8px; font-size: 0.95rem; color: var(--texte-doux); }
+.groupe-date:first-child h3 { margin-top: 0; }
+.groupe-date.aujourdhui h3 { color: var(--accent); }
+
+/* ---------- Fenêtre de dialogue ---------- */
+dialog {
+  border: none; border-radius: 14px; padding: 0;
+  width: min(520px, calc(100vw - 32px));
+  background: var(--surface); color: var(--texte);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+dialog::backdrop { background: rgba(10, 15, 25, 0.5); }
+.formulaire { display: flex; flex-direction: column; gap: 12px; padding: 20px; }
+.formulaire h2 { margin: 0 0 4px; font-size: 1.2rem; }
+.champ { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.champ label { font-size: 0.85rem; font-weight: 500; color: var(--texte-doux); }
+.formulaire textarea { resize: vertical; }
+.ligne-champs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.boutons-dialogue { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+#btn-supprimer-dialogue { margin-right: auto; }
+
+/* ---------- Pied de page ---------- */
+.pied { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 28px; font-size: 0.85rem; color: var(--texte-doux); }
+.pied .aide { margin-left: auto; }
+kbd { font: inherit; font-size: 0.8rem; border: 1px solid var(--bord); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--surface); }
+
+/* ---------- Petits écrans (téléphone) ---------- */
+@media (max-width: 800px) {
+  .grille-semaine { grid-template-columns: 1fr; }        /* les jours s'empilent */
+  .colonne-jour { min-height: 0; }
+  .entete-jour { flex-direction: row; gap: 8px; justify-content: flex-start; }
+  .vue-semaine .tache-meta { display: flex; }
+}
+@media (max-width: 640px) {
+  .case-mois { min-height: 56px; }
+  .case-mois .liste-taches, .case-mois .lien-plus, .case-mois .btn-ajouter-mini { display: none; }
+  .compte-case { display: inline-block; }                /* on n'affiche qu'un nombre par jour */
+  .ligne-champs { grid-template-columns: 1fr; }
+  .pied .aide { display: none; }
+  .onglets { width: 100%; }
+  .onglets button { flex: 1; }
+}
+
+/* ---------- Ajouts version Next.js / Supabase ---------- */
+.ecran-centre { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.carte-connexion {
+  width: min(400px, 100%); background: var(--surface); border: 1px solid var(--bord);
+  border-radius: 14px; padding: 24px; box-shadow: var(--ombre);
+}
+.carte-connexion h1 { margin: 0; font-size: 1.4rem; }
+.carte-connexion h2 { margin: 0 0 4px; font-size: 1.05rem; color: var(--texte-doux); font-weight: 500; }
+.carte-connexion code { font-size: 0.85em; }
+.lien { font: inherit; font-size: 0.85rem; color: var(--accent); background: none; border: none; cursor: pointer; padding: 0; }
+.lien:hover { text-decoration: underline; }
+.message-erreur { margin: 0; color: var(--haute); font-size: 0.9rem; }
+.message-info { margin: 0; color: var(--projets); font-size: 0.9rem; }
+.bandeau-erreur {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  margin-bottom: 12px; padding: 8px 12px; border-radius: 8px;
+  border: 1px solid var(--haute); color: var(--haute); background: var(--surface);
+}
+.utilisateur { display: flex; gap: 10px; align-items: center; width: 100%; justify-content: flex-end; }
+button:disabled { opacity: 0.6; cursor: wait; }
