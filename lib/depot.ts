@@ -7,7 +7,7 @@
    - application (TypeScript) : camelCase (creeLe, dureeMinutes), heure "14:00" ou "".  */
 
 import { supabase } from "./supabase";
-import type { Categorie, DonneesTache, Priorite, Tache } from "./types";
+import type { Categorie, DonneesTache, Groupe, Priorite, Tache } from "./types";
 
 const TABLE = "taches";
 
@@ -23,6 +23,7 @@ interface Ligne {
   materiel: string | null;
   categorie: Categorie;
   priorite: Priorite;
+  groupe: Groupe | null;
   faite: boolean;
   cree_le: string;
 }
@@ -39,6 +40,7 @@ function depuisLigne(l: Ligne): Tache {
     materiel: l.materiel ?? "",
     categorie: l.categorie,
     priorite: l.priorite,
+    groupe: l.groupe ?? null,
     faite: l.faite,
     creeLe: l.cree_le,
   };
@@ -55,6 +57,7 @@ function versLigne(d: DonneesTache) {
     materiel: d.materiel,
     categorie: d.categorie,
     priorite: d.priorite,
+    groupe: d.groupe,
   };
 }
 

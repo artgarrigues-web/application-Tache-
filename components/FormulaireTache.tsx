@@ -8,8 +8,8 @@
    et chaque frappe met cet état à jour via onChange.                         */
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { listeMateriel } from "@/lib/taches";
-import type { Categorie, DonneesTache, Priorite, Tache } from "@/lib/types";
+import { groupesAutomatiques, listeMateriel } from "@/lib/taches";
+import { GROUPES, type Categorie, type DonneesTache, type Groupe, type Priorite, type Tache } from "@/lib/types";
 
 interface Props {
   tache: Tache | null;                  // null = nouvelle tâche
@@ -28,12 +28,12 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
       ? {
           titre: tache.titre, description: tache.description, date: tache.date, heure: tache.heure,
           dureeMinutes: tache.dureeMinutes, lieu: tache.lieu, materiel: tache.materiel,
-          categorie: tache.categorie, priorite: tache.priorite,
+          categorie: tache.categorie, priorite: tache.priorite, groupe: tache.groupe,
         }
       : {
           titre: "", description: "", date: dateParDefaut, heure: "",
           dureeMinutes: null, lieu: "", materiel: "",
-          categorie: categorieParDefaut, priorite: "moyenne",
+          categorie: categorieParDefaut, priorite: "moyenne", groupe: null,
         },
   );
 
@@ -46,6 +46,12 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
     const total = (heures || 0) * 60 + (minutes || 0);
     changer("dureeMinutes", total > 0 ? total : null);
   }
+
+  // Aperçu de ce que donnerait le mode "Automatique" avec les valeurs saisies en ce moment.
+  const auto = groupesAutomatiques(valeurs);
+  const texteAuto = auto.length
+    ? auto.map((id) => GROUPES.find((g) => g.id === id)!.libelle).join(" + ")
+    : "aucun groupe";
 
   useEffect(() => {
     const d = dialogue.current;
@@ -157,6 +163,15 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
               <option value="basse">Basse</option>
             </select>
           </div>
+        </div>
+
+        <div className="champ">
+          <label htmlFor="champ-groupe">Groupe <span className="indice">(onglet Tri)</span></label>
+          <select id="champ-groupe" value={valeurs.groupe ?? ""}
+            onChange={(e) => changer("groupe", (e.target.value || null) as Groupe | null)}>
+            <option value="">Automatique (actuellement : {texteAuto})</option>
+            {GROUPES.map((g) => <option key={g.id} value={g.id}>{g.icone} {g.libelle}</option>)}
+          </select>
         </div>
 
         <div className="boutons-dialogue">

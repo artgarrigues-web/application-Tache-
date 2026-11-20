@@ -37,6 +37,7 @@ export function validerTaches(donnees: unknown): Tache[] | null {
       materiel: typeof t.materiel === "string" ? t.materiel.slice(0, 2000) : "",
       categorie: (typeof t.categorie === "string" && t.categorie in CATEGORIES ? t.categorie : "perso") as Categorie,
       priorite: (typeof t.priorite === "string" && t.priorite in PRIORITES ? t.priorite : "moyenne") as Priorite,
+      groupe: (typeof t.groupe === "string" && GROUPES.some((g) => g.id === t.groupe) ? t.groupe : null) as Groupe | null,
       faite: Boolean(t.faite),
       creeLe: typeof t.creeLe === "string" ? t.creeLe : new Date().toISOString(),
     }));
@@ -125,6 +126,13 @@ export function lienCarte(lieu: string): string {
    Comparer des dates "AAAA-MM-JJ" comme du texte marche car l'ordre alphabétique = l'ordre chronologique. */
 export function groupesDe(tache: Tache): Groupe[] {
   if (tache.faite) return [];
+  // Choix manuel (formulaire) : il remplace complètement le calcul automatique.
+  if (tache.groupe) return [tache.groupe];
+  return groupesAutomatiques(tache);
+}
+
+// Le calcul automatique seul (sert aussi à l'aperçu « Automatique → … » du formulaire).
+export function groupesAutomatiques(tache: Pick<Tache, "date" | "priorite" | "dureeMinutes">): Groupe[] {
   const limiteUrgence = versISO(ajouterJours(aujourdhui(), JOURS_URGENCE));
   const groupes: Groupe[] = [];
   if (tache.date <= limiteUrgence) groupes.push("urgent");

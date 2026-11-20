@@ -130,6 +130,7 @@ Ces trois groupes ne sont **pas stockés** dans la base : ils sont **calculés**
 - 🔥 **Urgent** : tâche non faite dont la date est aujourd'hui, demain, ou passée (seuil `JOURS_URGENCE` dans `lib/types.ts`).
 - ⭐ **Important** : priorité « haute ».
 - ⚡ **Rapide** : durée estimée ≤ 30 min (seuil `DUREE_RAPIDE_MAX`).
+Le champ **Groupe** du formulaire permet de forcer un groupe à la main (colonne `groupe` en base) : il remplace alors complètement le calcul automatique. « Automatique » (valeur `null`) garde les règles ci-dessus.
 Une tâche peut appartenir à plusieurs groupes (badges sur la carte). Dans la vue Tri, elle n'est rangée qu'une fois, dans le premier groupe qui s'applique (Urgent > Important > Rapide). Les tâches déjà faites n'apparaissent pas dans cette vue.
 
 ## 4. Limites, en toute honnêteté

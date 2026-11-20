@@ -18,6 +18,7 @@ export interface Tache {
   materiel: string;  // un élément par ligne, "" si rien
   categorie: Categorie;
   priorite: Priorite;
+  groupe: Groupe | null; // groupe choisi à la main dans le formulaire, null = automatique
   faite: boolean;
   creeLe: string;    // date ISO complète
 }

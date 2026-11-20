@@ -135,6 +135,7 @@ export function VueTri({ liste, actions }: Props) {
       <p className="aide-tri">
         Seules les tâches <strong>à faire</strong> sont affichées. Une tâche qui entre dans plusieurs groupes
         est rangée dans le premier (Urgent, puis Important, puis Rapide) ; ses badges montrent tous ses groupes.
+        Un groupe choisi à la main dans le formulaire (champ « Groupe ») remplace ces règles automatiques.
       </p>
       <div className="grille-tri">
         {GROUPES.map((g) => (

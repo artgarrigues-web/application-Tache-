@@ -60,3 +60,8 @@ alter table public.taches
   add column if not exists duree_minutes integer check (duree_minutes is null or (duree_minutes > 0 and duree_minutes <= 10080)),
   add column if not exists materiel text not null default '' check (char_length(materiel) <= 2000),
   add column if not exists lieu text not null default '' check (char_length(lieu) <= 200);
+
+-- 4. Mise à jour du 21/11/2026 (groupe choisi à la main) -----------------
+-- null = groupe calculé automatiquement par l'application.
+alter table public.taches
+  add column if not exists groupe text check (groupe is null or groupe in ('urgent', 'important', 'rapide'));

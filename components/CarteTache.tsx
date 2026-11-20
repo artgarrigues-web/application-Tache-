@@ -73,7 +73,7 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false 
             )}
             <div className="tache-meta">
               {GROUPES.filter((g) => groupes.includes(g.id)).map((g) => (
-                <span key={g.id} className={`badge badge-groupe groupe-${g.id}`} title={g.regle}>{g.icone} {g.libelle}</span>
+                <span key={g.id} className={`badge badge-groupe groupe-${g.id}`} title={tache.groupe ? "Groupe choisi à la main" : g.regle}>{g.icone} {g.libelle}</span>
               ))}
               {avecDate && (
                 <span className="badge badge-date">
