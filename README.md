@@ -1,6 +1,6 @@
 # 📅 Mon agenda de tâches (Next.js + Supabase)
 
-Application web pour organiser ses tâches personnelles et professionnelles sous forme d'agenda (jour, semaine, mois, liste). Elle permet d'ajouter, modifier, supprimer et cocher des tâches, affiche le nombre de tâches restantes et propose catégories, priorités, recherche et filtres. Les tâches sont stockées dans **Supabase**, chacun a son compte, et le site s'héberge sur **Vercel**.
+Application web pour organiser ses tâches personnelles et professionnelles sous forme d'agenda (jour, semaine, mois, liste). Elle permet d'ajouter, modifier, supprimer et cocher des tâches, affiche le nombre de tâches restantes et propose catégories, priorités, recherche et filtres. Chaque tâche peut aussi avoir une **durée estimée** (avec l'heure de fin calculée et le temps total prévu par jour), un **lieu** (cliquable vers Google Maps) et une **liste de matériel**. Les tâches sont stockées dans **Supabase**, chacun a son compte, et le site s'héberge sur **Vercel**.
 
 ---
 

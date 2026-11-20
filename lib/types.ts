@@ -13,6 +13,9 @@ export interface Tache {
   description: string;
   date: string;      // "AAAA-MM-JJ"
   heure: string;     // "HH:MM" ou "" si pas d'heure
+  dureeMinutes: number | null; // durée estimée en minutes, null si non renseignée
+  lieu: string;      // "" si non renseigné
+  materiel: string;  // un élément par ligne, "" si rien
   categorie: Categorie;
   priorite: Priorite;
   faite: boolean;

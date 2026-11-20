@@ -284,3 +284,15 @@ kbd { font: inherit; font-size: 0.8rem; border: 1px solid var(--bord); border-bo
 }
 .utilisateur { display: flex; gap: 10px; align-items: center; width: 100%; justify-content: flex-end; }
 button:disabled { opacity: 0.6; cursor: wait; }
+
+/* ---------- Durée, lieu, matériel ---------- */
+.tache-materiel { margin: 4px 0 0; font-size: 0.85rem; color: var(--texte-doux); overflow-wrap: anywhere; }
+.badge-info { color: var(--texte-doux); text-decoration: none; }
+a.badge-lieu:hover { color: var(--accent); }
+.duree-champs { display: flex; align-items: center; gap: 6px; }
+.duree-champs input { width: 4.5em; min-width: 0; }
+.duree-champs span { color: var(--texte-doux); font-size: 0.9rem; }
+.indice { font-weight: 400; opacity: 0.8; }
+.charge-jour { margin: 0; color: var(--texte-doux); font-size: 0.9rem; }
+.charge-colonne { font-size: 0.7rem; color: var(--texte-doux); margin-top: 2px; }
+@media (max-width: 800px) { .charge-colonne { margin-top: 0; } }

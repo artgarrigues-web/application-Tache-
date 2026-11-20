@@ -32,6 +32,9 @@ export function validerTaches(donnees: unknown): Tache[] | null {
       description: typeof t.description === "string" ? t.description : "",
       date: t.date as string,
       heure: typeof t.heure === "string" && /^\d{2}:\d{2}$/.test(t.heure) ? t.heure : "",
+      dureeMinutes: typeof t.dureeMinutes === "number" && t.dureeMinutes > 0 ? Math.round(t.dureeMinutes) : null,
+      lieu: typeof t.lieu === "string" ? t.lieu.slice(0, 200) : "",
+      materiel: typeof t.materiel === "string" ? t.materiel.slice(0, 2000) : "",
       categorie: (typeof t.categorie === "string" && t.categorie in CATEGORIES ? t.categorie : "perso") as Categorie,
       priorite: (typeof t.priorite === "string" && t.priorite in PRIORITES ? t.priorite : "moyenne") as Priorite,
       faite: Boolean(t.faite),
@@ -54,7 +57,7 @@ export function passeLesFiltres(tache: Tache, f: Filtres): boolean {
   if (f.statut === "afaire" && tache.faite) return false;
   if (f.statut === "faites" && !tache.faite) return false;
   if (f.statut === "retard" && !estEnRetard(tache)) return false;
-  if (f.recherche && !normaliser(`${tache.titre} ${tache.description}`).includes(normaliser(f.recherche))) return false;
+  if (f.recherche && !normaliser(`${tache.titre} ${tache.description} ${tache.lieu} ${tache.materiel}`).includes(normaliser(f.recherche))) return false;
   return true;
 }
 
@@ -76,4 +79,40 @@ export function grouperParDate(liste: Tache[]): Map<string, Tache[]> {
     else groupes.set(t.date, [t]);
   }
   return groupes;
+}
+
+/* ---------- Durée, lieu, matériel ---------- */
+
+// 90 → "1 h 30", 45 → "45 min", 120 → "2 h"
+export function formaterDuree(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} min`;
+  return m === 0 ? `${h} h` : `${h} h ${String(m).padStart(2, "0")}`;
+}
+
+// Heure de fin à partir de l'heure de début et de la durée : ("14:00", 90) → "15:30".
+// Si la tâche se termine un autre jour, on l'indique : ("23:00", 120) → "01:00 (+1 j)".
+export function heureFin(heure: string, dureeMinutes: number): string {
+  const [h, m] = heure.split(":").map(Number);
+  const total = h * 60 + m + dureeMinutes;
+  const jours = Math.floor(total / 1440);           // 1440 minutes dans une journée
+  const reste = total % 1440;
+  const texte = `${String(Math.floor(reste / 60)).padStart(2, "0")}:${String(reste % 60).padStart(2, "0")}`;
+  return jours > 0 ? `${texte} (+${jours} j)` : texte;
+}
+
+// Le matériel est saisi à raison d'un élément par ligne ; on renvoie la liste nettoyée.
+export function listeMateriel(materiel: string): string[] {
+  return materiel.split("\n").map((l) => l.trim()).filter(Boolean);
+}
+
+// Temps total prévu pour une liste de tâches (celles qui ne sont pas encore faites).
+export function chargeRestante(taches: Tache[]): number {
+  return taches.reduce((somme, t) => somme + (!t.faite && t.dureeMinutes ? t.dureeMinutes : 0), 0);
+}
+
+// Lien de recherche Google Maps pour un lieu.
+export function lienCarte(lieu: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lieu)}`;
 }

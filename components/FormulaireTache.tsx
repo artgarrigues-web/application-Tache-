@@ -8,6 +8,7 @@
    et chaque frappe met cet état à jour via onChange.                         */
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { listeMateriel } from "@/lib/taches";
 import type { Categorie, DonneesTache, Priorite, Tache } from "@/lib/types";
 
 interface Props {
@@ -24,9 +25,27 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
   const [enCours, setEnCours] = useState(false);
   const [valeurs, setValeurs] = useState<DonneesTache>(() =>
     tache
-      ? { titre: tache.titre, description: tache.description, date: tache.date, heure: tache.heure, categorie: tache.categorie, priorite: tache.priorite }
-      : { titre: "", description: "", date: dateParDefaut, heure: "", categorie: categorieParDefaut, priorite: "moyenne" },
+      ? {
+          titre: tache.titre, description: tache.description, date: tache.date, heure: tache.heure,
+          dureeMinutes: tache.dureeMinutes, lieu: tache.lieu, materiel: tache.materiel,
+          categorie: tache.categorie, priorite: tache.priorite,
+        }
+      : {
+          titre: "", description: "", date: dateParDefaut, heure: "",
+          dureeMinutes: null, lieu: "", materiel: "",
+          categorie: categorieParDefaut, priorite: "moyenne",
+        },
   );
+
+  /* La durée est stockée en minutes, mais saisie en heures + minutes (plus naturel).
+     On recalcule les deux champs affichés à partir de dureeMinutes… */
+  const dureeHeures = valeurs.dureeMinutes ? Math.floor(valeurs.dureeMinutes / 60) : "";
+  const dureeMin = valeurs.dureeMinutes ? valeurs.dureeMinutes % 60 : "";
+  // … et inversement, à chaque saisie, on recombine les deux en minutes (0 → pas de durée).
+  function changerDuree(heures: number, minutes: number) {
+    const total = (heures || 0) * 60 + (minutes || 0);
+    changer("dureeMinutes", total > 0 ? total : null);
+  }
 
   useEffect(() => {
     const d = dialogue.current;
@@ -40,7 +59,13 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
 
   async function soumettre(e: FormEvent) {
     e.preventDefault(); // empêche le rechargement de la page
-    const donnees = { ...valeurs, titre: valeurs.titre.trim(), description: valeurs.description.trim() };
+    const donnees = {
+      ...valeurs,
+      titre: valeurs.titre.trim(),
+      description: valeurs.description.trim(),
+      lieu: valeurs.lieu.trim(),
+      materiel: listeMateriel(valeurs.materiel).join("\n"), // retire les lignes vides
+    };
     if (!donnees.titre || !donnees.date) return;
     setEnCours(true);
     const ok = await onEnregistrer(donnees);
@@ -84,6 +109,33 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
             <input id="champ-heure" type="time"
               value={valeurs.heure} onChange={(e) => changer("heure", e.target.value)} />
           </div>
+        </div>
+
+        <div className="ligne-champs">
+          <div className="champ">
+            <label htmlFor="champ-duree-h">Durée estimée</label>
+            <div className="duree-champs">
+              <input id="champ-duree-h" type="number" min={0} max={168} inputMode="numeric" placeholder="0"
+                aria-label="Heures" value={dureeHeures}
+                onChange={(e) => changerDuree(Number(e.target.value), Number(dureeMin))} />
+              <span>h</span>
+              <input id="champ-duree-m" type="number" min={0} max={59} step={5} inputMode="numeric" placeholder="0"
+                aria-label="Minutes" value={dureeMin}
+                onChange={(e) => changerDuree(Number(dureeHeures), Math.min(59, Number(e.target.value)))} />
+              <span>min</span>
+            </div>
+          </div>
+          <div className="champ">
+            <label htmlFor="champ-lieu">Lieu</label>
+            <input id="champ-lieu" type="text" maxLength={200} placeholder="Ex. : Bâtiment B, salle 204"
+              value={valeurs.lieu} onChange={(e) => changer("lieu", e.target.value)} />
+          </div>
+        </div>
+
+        <div className="champ">
+          <label htmlFor="champ-materiel">Matériel nécessaire <span className="indice">(un élément par ligne)</span></label>
+          <textarea id="champ-materiel" rows={2} maxLength={2000} placeholder={"Calculatrice\nBlouse\nClé USB"}
+            value={valeurs.materiel} onChange={(e) => changer("materiel", e.target.value)} />
         </div>
 
         <div className="ligne-champs">

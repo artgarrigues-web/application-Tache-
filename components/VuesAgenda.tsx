@@ -4,7 +4,7 @@
    et se contente de la disposer à l'écran.                                    */
 
 import { ajouterJours, aujourdhui, debutSemaine, depuisISO, formater, majuscule, versISO } from "@/lib/dates";
-import { grouperParDate } from "@/lib/taches";
+import { chargeRestante, formaterDuree, grouperParDate } from "@/lib/taches";
 import { JOURS_COURTS, type Tache } from "@/lib/types";
 import { CarteTache, ListeTaches, type ActionsAgenda } from "./CarteTache";
 
@@ -19,9 +19,12 @@ interface Props {
 /* ---------- Vue Jour ---------- */
 export function VueJour({ dateRef, liste, actions }: Props) {
   const iso = versISO(dateRef);
+  const taches = liste.filter((t) => t.date === iso);
+  const charge = chargeRestante(taches);
   return (
     <section className="jour-unique">
-      <ListeTaches taches={liste.filter((t) => t.date === iso)} actions={actions} messageVide="Aucune tâche prévue ce jour." />
+      {charge > 0 && <p className="charge-jour">⏱ Temps prévu restant ce jour : <strong>{formaterDuree(charge)}</strong></p>}
+      <ListeTaches taches={taches} actions={actions} messageVide="Aucune tâche prévue ce jour." />
       <button type="button" className="btn-ajouter" onClick={() => actions.ajouterLe(iso)}>
         + Ajouter une tâche ce jour
       </button>
@@ -40,11 +43,13 @@ export function VueSemaine({ dateRef, liste, actions }: Props) {
     <div className="grille-semaine">
       {jours.map((jour, i) => {
         const iso = versISO(jour);
+        const charge = chargeRestante(parDate.get(iso) ?? []);
         return (
           <section key={iso} className={`colonne-jour${iso === isoAujourdhui ? " aujourdhui" : ""}`}>
             <button type="button" className="entete-jour" title="Voir ce jour" onClick={() => actions.allerAuJour(iso)}>
               <span className="nom-jour">{JOURS_COURTS[i]}</span>
               <span className="num-jour">{jour.getDate()}</span>
+              {charge > 0 && <span className="charge-colonne" title="Temps prévu restant">⏱ {formaterDuree(charge)}</span>}
             </button>
             <ListeTaches taches={parDate.get(iso) ?? []} actions={actions} />
             <button type="button" className="btn-ajouter" title="Ajouter une tâche ce jour" onClick={() => actions.ajouterLe(iso)}>+</button>

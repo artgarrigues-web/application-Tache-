@@ -6,7 +6,7 @@
    un titre contenant "<script>" s'affiche comme du texte (protection XSS).  */
 
 import { formater, depuisISO } from "@/lib/dates";
-import { estEnRetard } from "@/lib/taches";
+import { estEnRetard, formaterDuree, heureFin, lienCarte, listeMateriel } from "@/lib/taches";
 import { CATEGORIES, PRIORITES, type Tache } from "@/lib/types";
 
 // Les actions possibles depuis une vue de l'agenda, fournies par le composant Agenda.
@@ -27,6 +27,7 @@ interface Props {
 
 export function CarteTache({ tache, actions, compacte = false, avecDate = false }: Props) {
   const retard = estEnRetard(tache);
+  const materiel = listeMateriel(tache.materiel);
   const classes = [
     "tache", `cat-${tache.categorie}`, `prio-${tache.priorite}`,
     compacte && "compacte", tache.faite && "faite", retard && "retard",
@@ -51,18 +52,39 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false 
       >
         <div className="tache-titre">
           <span className={`point-prio point-${tache.priorite}`} />
-          {tache.heure && <span className="tache-heure">{tache.heure}</span>}
+          {tache.heure && (
+            <span className="tache-heure">
+              {tache.heure}
+              {tache.dureeMinutes ? `–${heureFin(tache.heure, tache.dureeMinutes)}` : ""}
+            </span>
+          )}
           <span>{tache.titre}</span>
         </div>
 
         {!compacte && (
           <>
             {tache.description && <p className="tache-description">{tache.description}</p>}
+            {materiel.length > 0 && (
+              <p className="tache-materiel">
+                <span aria-hidden="true">🎒 </span>
+                <strong>Matériel :</strong> {materiel.join(" · ")}
+              </p>
+            )}
             <div className="tache-meta">
               {avecDate && (
                 <span className="badge badge-date">
                   {formater(depuisISO(tache.date), { weekday: "short", day: "numeric", month: "short" })}
                 </span>
+              )}
+              {tache.dureeMinutes && (
+                <span className="badge badge-info" title="Durée estimée">⏱ {formaterDuree(tache.dureeMinutes)}</span>
+              )}
+              {tache.lieu && (
+                /* stopPropagation : sans ça, le clic remonterait jusqu'à la carte et ouvrirait aussi le formulaire. */
+                <a className="badge badge-info badge-lieu" href={lienCarte(tache.lieu)} target="_blank" rel="noopener noreferrer"
+                  title="Ouvrir dans Google Maps" onClick={(e) => e.stopPropagation()}>
+                  📍 {tache.lieu}
+                </a>
               )}
               <span className="badge badge-cat">{CATEGORIES[tache.categorie]}</span>
               <span className={`badge badge-prio-${tache.priorite}`}>

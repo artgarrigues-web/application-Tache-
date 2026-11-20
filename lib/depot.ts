@@ -4,7 +4,7 @@
 
    Conventions différentes des deux côtés, d'où les fonctions de conversion :
    - base de données (SQL) : snake_case (cree_le), heure de type "time" ("14:00:00") ou null ;
-   - application (TypeScript) : camelCase (creeLe), heure "14:00" ou "".             */
+   - application (TypeScript) : camelCase (creeLe, dureeMinutes), heure "14:00" ou "".  */
 
 import { supabase } from "./supabase";
 import type { Categorie, DonneesTache, Priorite, Tache } from "./types";
@@ -18,6 +18,9 @@ interface Ligne {
   description: string | null;
   date: string;
   heure: string | null;
+  duree_minutes: number | null;
+  lieu: string | null;
+  materiel: string | null;
   categorie: Categorie;
   priorite: Priorite;
   faite: boolean;
@@ -31,6 +34,9 @@ function depuisLigne(l: Ligne): Tache {
     description: l.description ?? "",
     date: l.date,
     heure: l.heure ? l.heure.slice(0, 5) : "",
+    dureeMinutes: l.duree_minutes,
+    lieu: l.lieu ?? "",
+    materiel: l.materiel ?? "",
     categorie: l.categorie,
     priorite: l.priorite,
     faite: l.faite,
@@ -44,6 +50,9 @@ function versLigne(d: DonneesTache) {
     description: d.description,
     date: d.date,
     heure: d.heure || null,
+    duree_minutes: d.dureeMinutes,
+    lieu: d.lieu,
+    materiel: d.materiel,
     categorie: d.categorie,
     priorite: d.priorite,
   };
