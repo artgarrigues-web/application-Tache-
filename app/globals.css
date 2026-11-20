@@ -296,3 +296,23 @@ a.badge-lieu:hover { color: var(--accent); }
 .charge-jour { margin: 0; color: var(--texte-doux); font-size: 0.9rem; }
 .charge-colonne { font-size: 0.7rem; color: var(--texte-doux); margin-top: 2px; }
 @media (max-width: 800px) { .charge-colonne { margin-top: 0; } }
+
+/* ---------- Groupes Urgent / Important / Rapide (vue Tri + badges) ---------- */
+:root { --urgent: #e03131; --important: #f08c00; --rapide: #0c8599; }
+@media (prefers-color-scheme: dark) { :root { --urgent: #ff6b6b; --important: #ffc078; --rapide: #3bc9db; } }
+.groupe-urgent { --couleur-groupe: var(--urgent); }
+.groupe-important { --couleur-groupe: var(--important); }
+.groupe-rapide { --couleur-groupe: var(--rapide); }
+.groupe-autres { --couleur-groupe: var(--bord); }
+.badge-groupe { color: var(--couleur-groupe); font-weight: 600; }
+.aide-tri { margin: 0 0 12px; font-size: 0.85rem; color: var(--texte-doux); }
+.grille-tri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.colonne-tri {
+  background: var(--surface); border: 1px solid var(--bord); border-top: 4px solid var(--couleur-groupe);
+  border-radius: var(--rayon); padding: 10px; box-shadow: var(--ombre); min-width: 0;
+}
+.colonne-tri h3 { margin: 0 0 2px; font-size: 1rem; display: flex; align-items: center; gap: 6px; }
+.compte-groupe { margin-left: auto; font-size: 0.8rem; background: var(--surface-2); border-radius: 999px; padding: 1px 8px; }
+.regle-groupe { margin: 0 0 8px; font-size: 0.78rem; color: var(--texte-doux); }
+.groupe-autres { margin-top: 12px; }
+@media (max-width: 800px) { .grille-tri { grid-template-columns: 1fr; } }

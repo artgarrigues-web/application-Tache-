@@ -3,10 +3,10 @@
    données et renvoient des données. Le stockage (Supabase) est géré à part,
    dans lib/depot.ts.                                                         */
 
-import { aujourdhui, versISO } from "./dates";
+import { ajouterJours, aujourdhui, versISO } from "./dates";
 import {
-  CATEGORIES, PRIORITES, RANG_PRIORITE,
-  type Categorie, type DonneesTache, type Filtres, type Priorite, type Tache,
+  CATEGORIES, DUREE_RAPIDE_MAX, GROUPES, JOURS_URGENCE, PRIORITES, RANG_PRIORITE,
+  type Categorie, type DonneesTache, type Filtres, type Groupe, type Priorite, type Tache,
 } from "./types";
 
 export function genererId(): string {
@@ -115,4 +115,35 @@ export function chargeRestante(taches: Tache[]): number {
 // Lien de recherche Google Maps pour un lieu.
 export function lienCarte(lieu: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lieu)}`;
+}
+
+/* ---------- Groupes Urgent / Important / Rapide ---------- */
+
+/* Tous les groupes auxquels une tâche appartient (une tâche peut cocher plusieurs cases :
+   un rendu de TP à 20 min, prévu demain et en priorité haute, est les trois à la fois).
+   Une tâche déjà faite n'appartient à aucun groupe : il n'y a plus rien à trier.
+   Comparer des dates "AAAA-MM-JJ" comme du texte marche car l'ordre alphabétique = l'ordre chronologique. */
+export function groupesDe(tache: Tache): Groupe[] {
+  if (tache.faite) return [];
+  const limiteUrgence = versISO(ajouterJours(aujourdhui(), JOURS_URGENCE));
+  const groupes: Groupe[] = [];
+  if (tache.date <= limiteUrgence) groupes.push("urgent");
+  if (tache.priorite === "haute") groupes.push("important");
+  if (tache.dureeMinutes !== null && tache.dureeMinutes <= DUREE_RAPIDE_MAX) groupes.push("rapide");
+  return groupes;
+}
+
+/* Répartition pour la vue "Tri" : chaque tâche n'est rangée QUE dans son premier groupe,
+   dans l'ordre Urgent > Important > Rapide (pour ne pas l'afficher deux fois).
+   Les tâches à faire qui ne relèvent d'aucun groupe vont dans "autres". */
+export function repartirParGroupe(liste: Tache[]): { groupes: Record<Groupe, Tache[]>; autres: Tache[] } {
+  const groupes = Object.fromEntries(GROUPES.map((g) => [g.id, [] as Tache[]])) as Record<Groupe, Tache[]>;
+  const autres: Tache[] = [];
+  for (const t of liste) {
+    if (t.faite) continue;
+    const premier = groupesDe(t)[0];
+    if (premier) groupes[premier].push(t);
+    else autres.push(t);
+  }
+  return { groupes, autres };
 }

@@ -125,6 +125,13 @@ React **échappe automatiquement** le texte inséré avec `{tache.titre}`. Un ti
 
 ---
 
+### Les groupes Urgent / Important / Rapide (vue « Tri »)
+Ces trois groupes ne sont **pas stockés** dans la base : ils sont **calculés** à chaque affichage (`groupesDe()` dans `lib/taches.ts`) à partir de champs qui existent déjà. Aucune migration n'a donc été nécessaire, et un groupe ne peut jamais être « faux » (pas de valeur à tenir à jour).
+- 🔥 **Urgent** : tâche non faite dont la date est aujourd'hui, demain, ou passée (seuil `JOURS_URGENCE` dans `lib/types.ts`).
+- ⭐ **Important** : priorité « haute ».
+- ⚡ **Rapide** : durée estimée ≤ 30 min (seuil `DUREE_RAPIDE_MAX`).
+Une tâche peut appartenir à plusieurs groupes (badges sur la carte). Dans la vue Tri, elle n'est rangée qu'une fois, dans le premier groupe qui s'applique (Urgent > Important > Rapide). Les tâches déjà faites n'apparaissent pas dans cette vue.
+
 ## 4. Limites, en toute honnêteté
 
 - **Synchronisation entre appareils** : les tâches sont rechargées à l'ouverture et chaque fois que tu reviens sur l'onglet. Ce n'est pas du temps réel : si deux appareils sont ouverts en même temps, l'un ne voit les changements de l'autre qu'en revenant sur l'onglet. Supabase Realtime permettrait le vrai temps réel.

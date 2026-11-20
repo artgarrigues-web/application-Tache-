@@ -6,8 +6,8 @@
    un titre contenant "<script>" s'affiche comme du texte (protection XSS).  */
 
 import { formater, depuisISO } from "@/lib/dates";
-import { estEnRetard, formaterDuree, heureFin, lienCarte, listeMateriel } from "@/lib/taches";
-import { CATEGORIES, PRIORITES, type Tache } from "@/lib/types";
+import { estEnRetard, formaterDuree, groupesDe, heureFin, lienCarte, listeMateriel } from "@/lib/taches";
+import { CATEGORIES, GROUPES, PRIORITES, type Tache } from "@/lib/types";
 
 // Les actions possibles depuis une vue de l'agenda, fournies par le composant Agenda.
 export interface ActionsAgenda {
@@ -28,6 +28,7 @@ interface Props {
 export function CarteTache({ tache, actions, compacte = false, avecDate = false }: Props) {
   const retard = estEnRetard(tache);
   const materiel = listeMateriel(tache.materiel);
+  const groupes = groupesDe(tache);
   const classes = [
     "tache", `cat-${tache.categorie}`, `prio-${tache.priorite}`,
     compacte && "compacte", tache.faite && "faite", retard && "retard",
@@ -71,6 +72,9 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false 
               </p>
             )}
             <div className="tache-meta">
+              {GROUPES.filter((g) => groupes.includes(g.id)).map((g) => (
+                <span key={g.id} className={`badge badge-groupe groupe-${g.id}`} title={g.regle}>{g.icone} {g.libelle}</span>
+              ))}
               {avecDate && (
                 <span className="badge badge-date">
                   {formater(depuisISO(tache.date), { weekday: "short", day: "numeric", month: "short" })}

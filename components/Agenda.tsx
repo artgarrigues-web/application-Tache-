@@ -18,7 +18,7 @@ import { useTaches } from "@/hooks/useTaches";
 import type { ActionsAgenda } from "./CarteTache";
 import { Compteurs } from "./Compteurs";
 import { FormulaireTache } from "./FormulaireTache";
-import { VueJour, VueListe, VueMois, VueSemaine } from "./VuesAgenda";
+import { VueJour, VueListe, VueMois, VueSemaine, VueTri } from "./VuesAgenda";
 
 const CLE_VUE = "agenda-taches-vue"; // simple préférence d'affichage, gardée dans le navigateur
 
@@ -45,6 +45,8 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   }, [vue]);
 
   const plage = plageVisible(vue, dateRef);
+  // Les vues Liste et Tri montrent toutes les dates : pas de navigation ‹ ›.
+  const navigable = vue !== "liste" && vue !== "tri";
 
   // useMemo : ne refait le filtrage/tri que si les tâches ou les filtres changent.
   const liste = useMemo(
@@ -118,12 +120,12 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
       if (["INPUT", "TEXTAREA", "SELECT"].includes(cible.tagName)) return;
       if (e.key === "n" || e.key === "N") { e.preventDefault(); setFormulaire({ tacheId: null, date: "" }); }
       else if (e.key === "t" || e.key === "T") setDateRef(aujourdhui());
-      else if (e.key === "ArrowLeft" && vue !== "liste") setDateRef((d) => deplacer(vue, d, -1));
-      else if (e.key === "ArrowRight" && vue !== "liste") setDateRef((d) => deplacer(vue, d, 1));
+      else if (e.key === "ArrowLeft" && navigable) setDateRef((d) => deplacer(vue, d, -1));
+      else if (e.key === "ArrowRight" && navigable) setDateRef((d) => deplacer(vue, d, 1));
     }
     document.addEventListener("keydown", auClavier);
     return () => document.removeEventListener("keydown", auClavier);
-  }, [formulaire, vue]);
+  }, [formulaire, vue, navigable]);
 
   /* ---------- Affichage ---------- */
   const propsVue = { dateRef, liste, actions };
@@ -148,7 +150,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
       )}
 
       <section className="barre-outils">
-        {vue !== "liste" && (
+        {navigable && (
           <div className="navigation">
             <button type="button" className="btn" aria-label="Période précédente" onClick={() => setDateRef(deplacer(vue, dateRef, -1))}>‹</button>
             <button type="button" className="btn" onClick={() => setDateRef(aujourdhui())}>Aujourd&apos;hui</button>
@@ -197,6 +199,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           : vue === "jour" ? <VueJour {...propsVue} />
           : vue === "semaine" ? <VueSemaine {...propsVue} />
           : vue === "mois" ? <VueMois {...propsVue} />
+          : vue === "tri" ? <VueTri {...propsVue} />
           : <VueListe {...propsVue} />}
       </main>
 

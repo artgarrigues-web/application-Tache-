@@ -1,11 +1,11 @@
 "use client";
 
-/* Les quatre vues de l'agenda. Chacune reçoit la liste DÉJÀ filtrée et triée,
+/* Les cinq vues de l'agenda. Chacune reçoit la liste DÉJÀ filtrée et triée,
    et se contente de la disposer à l'écran.                                    */
 
 import { ajouterJours, aujourdhui, debutSemaine, depuisISO, formater, majuscule, versISO } from "@/lib/dates";
-import { chargeRestante, formaterDuree, grouperParDate } from "@/lib/taches";
-import { JOURS_COURTS, type Tache } from "@/lib/types";
+import { chargeRestante, formaterDuree, grouperParDate, repartirParGroupe } from "@/lib/taches";
+import { DUREE_RAPIDE_MAX, GROUPES, JOURS_COURTS, type Tache } from "@/lib/types";
 import { CarteTache, ListeTaches, type ActionsAgenda } from "./CarteTache";
 
 const MAX_TACHES_CASE_MOIS = 3;
@@ -123,6 +123,44 @@ export function VueListe({ liste, actions }: Props) {
           </div>
         </section>
       ))}
+    </section>
+  );
+}
+
+/* ---------- Vue Tri : tâches à faire réparties en Urgent / Important / Rapide ---------- */
+export function VueTri({ liste, actions }: Props) {
+  const { groupes, autres } = repartirParGroupe(liste);
+  return (
+    <section className="vue-tri-contenu">
+      <p className="aide-tri">
+        Seules les tâches <strong>à faire</strong> sont affichées. Une tâche qui entre dans plusieurs groupes
+        est rangée dans le premier (Urgent, puis Important, puis Rapide) ; ses badges montrent tous ses groupes.
+      </p>
+      <div className="grille-tri">
+        {GROUPES.map((g) => (
+          <section key={g.id} className={`colonne-tri groupe-${g.id}`}>
+            <h3>
+              {g.icone} {g.libelle} <span className="compte-groupe">{groupes[g.id].length}</span>
+            </h3>
+            <p className="regle-groupe">{g.regle}</p>
+            {g.id === "rapide" && (
+              <p className="regle-groupe">Astuce : renseigne la durée d&apos;une tâche ({DUREE_RAPIDE_MAX} min max) pour qu&apos;elle arrive ici.</p>
+            )}
+            <div className="liste-taches">
+              {groupes[g.id].length === 0 && <p className="vide">Rien ici.</p>}
+              {groupes[g.id].map((t) => <CarteTache key={t.id} tache={t} actions={actions} avecDate />)}
+            </div>
+          </section>
+        ))}
+      </div>
+      {autres.length > 0 && (
+        <section className="colonne-tri groupe-autres">
+          <h3>Autres tâches à faire <span className="compte-groupe">{autres.length}</span></h3>
+          <div className="liste-taches">
+            {autres.map((t) => <CarteTache key={t.id} tache={t} actions={actions} avecDate />)}
+          </div>
+        </section>
+      )}
     </section>
   );
 }
