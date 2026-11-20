@@ -4,14 +4,14 @@
 
 export type Categorie = "perso" | "travail" | "projets";
 export type Priorite = "haute" | "moyenne" | "basse";
-export type Vue = "jour" | "semaine" | "mois" | "liste" | "tri";
+export type Vue = "jour" | "semaine" | "mois" | "liste" | "tri" | "checklist";
 export type Statut = "toutes" | "afaire" | "faites" | "retard";
 
 export interface Tache {
   id: string;
   titre: string;
   description: string;
-  date: string;      // "AAAA-MM-JJ"
+  date: string;      // "AAAA-MM-JJ", ou "" pour une tâche sans date (checklist)
   heure: string;     // "HH:MM" ou "" si pas d'heure
   dureeMinutes: number | null; // durée estimée en minutes, null si non renseignée
   lieu: string;      // "" si non renseigné
@@ -43,6 +43,7 @@ export const VUES: { id: Vue; libelle: string }[] = [
   { id: "mois", libelle: "Mois" },
   { id: "liste", libelle: "Liste" },
   { id: "tri", libelle: "Tri" },
+  { id: "checklist", libelle: "Checklist" },
 ];
 
 /* ---------- Les 3 groupes de tri : Urgent / Important / Rapide ----------

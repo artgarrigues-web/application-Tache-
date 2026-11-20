@@ -18,11 +18,12 @@ import { useTaches } from "@/hooks/useTaches";
 import type { ActionsAgenda } from "./CarteTache";
 import { Compteurs } from "./Compteurs";
 import { FormulaireTache } from "./FormulaireTache";
-import { VueJour, VueListe, VueMois, VueSemaine, VueTri } from "./VuesAgenda";
+import { VueChecklist, VueJour, VueListe, VueMois, VueSemaine, VueTri } from "./VuesAgenda";
 
 const CLE_VUE = "agenda-taches-vue"; // simple préférence d'affichage, gardée dans le navigateur
 
-interface EtatFormulaire { tacheId: string | null; date: string }
+// date : "AAAA-MM-JJ" imposée, "" = sans date (checklist), undefined = date par défaut de la vue.
+interface EtatFormulaire { tacheId: string | null; date?: string }
 
 export function Agenda({ utilisateur }: { utilisateur: User }) {
   const { taches, charge, erreur, effacerErreur, ajouter, modifier, supprimer, basculerFaite, effacerTerminees, importer } =
@@ -46,7 +47,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
 
   const plage = plageVisible(vue, dateRef);
   // Les vues Liste et Tri montrent toutes les dates : pas de navigation ‹ ›.
-  const navigable = vue !== "liste" && vue !== "tri";
+  const navigable = vue !== "liste" && vue !== "tri" && vue !== "checklist";
 
   // useMemo : ne refait le filtrage/tri que si les tâches ou les filtres changent.
   const liste = useMemo(
@@ -56,6 +57,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
 
   /* ---------- Actions ---------- */
   function dateParDefaut(): string {
+    if (vue === "checklist") return ""; // depuis l'onglet Checklist, une nouvelle tâche est sans date
     const iso = versISO(aujourdhui());
     if (!plage || (iso >= plage.debut && iso <= plage.fin)) return iso;
     return plage.debut;
@@ -63,7 +65,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
 
   const actions: ActionsAgenda = {
     cocher: (id) => { basculerFaite(id); },
-    modifier: (id) => setFormulaire({ tacheId: id, date: "" }),
+    modifier: (id) => setFormulaire({ tacheId: id }),
     supprimer: (id) => { confirmerSuppression(id); },
     ajouterLe: (iso) => setFormulaire({ tacheId: null, date: iso }),
     allerAuJour: (iso) => { setDateRef(depuisISO(iso)); setVue("jour"); },
@@ -78,7 +80,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   async function enregistrer(d: DonneesTache): Promise<boolean> {
     const ok = formulaire?.tacheId ? await modifier(formulaire.tacheId, d) : await ajouter(d);
     // Si la date choisie n'est pas visible, on déplace l'agenda pour la montrer.
-    if (ok && plage && (d.date < plage.debut || d.date > plage.fin)) setDateRef(depuisISO(d.date));
+    if (ok && plage && d.date && (d.date < plage.debut || d.date > plage.fin)) setDateRef(depuisISO(d.date));
     return ok;
   }
 
@@ -118,7 +120,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
       if (formulaire || e.ctrlKey || e.metaKey || e.altKey) return;
       const cible = e.target as HTMLElement;
       if (["INPUT", "TEXTAREA", "SELECT"].includes(cible.tagName)) return;
-      if (e.key === "n" || e.key === "N") { e.preventDefault(); setFormulaire({ tacheId: null, date: "" }); }
+      if (e.key === "n" || e.key === "N") { e.preventDefault(); setFormulaire({ tacheId: null }); }
       else if (e.key === "t" || e.key === "T") setDateRef(aujourdhui());
       else if (e.key === "ArrowLeft" && navigable) setDateRef((d) => deplacer(vue, d, -1));
       else if (e.key === "ArrowRight" && navigable) setDateRef((d) => deplacer(vue, d, 1));
@@ -137,7 +139,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
         <h1>📅 Mon agenda</h1>
         <Compteurs taches={taches} plage={plage} />
         <button type="button" className="btn btn-principal" title="Raccourci : touche N"
-          onClick={() => setFormulaire({ tacheId: null, date: "" })}>
+          onClick={() => setFormulaire({ tacheId: null })}>
           + Nouvelle tâche
         </button>
       </header>
@@ -200,6 +202,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           : vue === "semaine" ? <VueSemaine {...propsVue} />
           : vue === "mois" ? <VueMois {...propsVue} />
           : vue === "tri" ? <VueTri {...propsVue} />
+          : vue === "checklist" ? <VueChecklist {...propsVue} />
           : <VueListe {...propsVue} />}
       </main>
 
@@ -219,9 +222,9 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           "key" change à chaque ouverture : React recrée alors un formulaire neuf, avec des champs réinitialisés. */}
       {formulaire && (
         <FormulaireTache
-          key={`${formulaire.tacheId ?? "nouvelle"}-${formulaire.date}`}
+          key={`${formulaire.tacheId ?? "nouvelle"}-${formulaire.date ?? "defaut"}`}
           tache={tacheEnEdition}
-          dateParDefaut={formulaire.date || dateParDefaut()}
+          dateParDefaut={formulaire.date ?? dateParDefaut()}
           categorieParDefaut={filtres.categorie !== "toutes" ? filtres.categorie : "perso"}
           onEnregistrer={enregistrer}
           onSupprimer={() => (formulaire.tacheId ? confirmerSuppression(formulaire.tacheId) : Promise.resolve(false))}

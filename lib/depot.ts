@@ -16,7 +16,7 @@ interface Ligne {
   user_id: string;
   titre: string;
   description: string | null;
-  date: string;
+  date: string | null;
   heure: string | null;
   duree_minutes: number | null;
   lieu: string | null;
@@ -33,7 +33,7 @@ function depuisLigne(l: Ligne): Tache {
     id: l.id,
     titre: l.titre,
     description: l.description ?? "",
-    date: l.date,
+    date: l.date ?? "",          // null en base = tâche sans date
     heure: l.heure ? l.heure.slice(0, 5) : "",
     dureeMinutes: l.duree_minutes,
     lieu: l.lieu ?? "",
@@ -50,7 +50,7 @@ function versLigne(d: DonneesTache) {
   return {
     titre: d.titre,
     description: d.description,
-    date: d.date,
+    date: d.date || null,
     heure: d.heure || null,
     duree_minutes: d.dureeMinutes,
     lieu: d.lieu,

@@ -77,7 +77,7 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false 
               ))}
               {avecDate && (
                 <span className="badge badge-date">
-                  {formater(depuisISO(tache.date), { weekday: "short", day: "numeric", month: "short" })}
+                  {tache.date ? formater(depuisISO(tache.date), { weekday: "short", day: "numeric", month: "short" }) : "☑ Sans date"}
                 </span>
               )}
               {tache.dureeMinutes && (

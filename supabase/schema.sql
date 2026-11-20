@@ -12,7 +12,7 @@ create table if not exists public.taches (
   user_id     uuid not null default auth.uid() references auth.users (id) on delete cascade,
   titre       text not null check (char_length(titre) between 1 and 120),
   description text not null default '',
-  date        date not null,
+  date        date,                                   -- null = tâche sans date (checklist)
   heure       time,                                   -- null = pas d'heure
   duree_minutes integer check (duree_minutes is null or (duree_minutes > 0 and duree_minutes <= 10080)),
   materiel    text not null default '' check (char_length(materiel) <= 2000), -- un élément par ligne
@@ -65,3 +65,6 @@ alter table public.taches
 -- null = groupe calculé automatiquement par l'application.
 alter table public.taches
   add column if not exists groupe text check (groupe is null or groupe in ('urgent', 'important', 'rapide'));
+
+-- 5. Mise à jour du 21/11/2026 (tâches sans date = checklist) -------------
+alter table public.taches alter column date drop not null;

@@ -133,6 +133,9 @@ Ces trois groupes ne sont **pas stockés** dans la base : ils sont **calculés**
 Le champ **Groupe** du formulaire permet de forcer un groupe à la main (colonne `groupe` en base) : il remplace alors complètement le calcul automatique. « Automatique » (valeur `null`) garde les règles ci-dessus.
 Une tâche peut appartenir à plusieurs groupes (badges sur la carte). Dans la vue Tri, elle n'est rangée qu'une fois, dans le premier groupe qui s'applique (Urgent > Important > Rapide). Les tâches déjà faites n'apparaissent pas dans cette vue.
 
+### Les tâches sans date (onglet « Checklist »)
+La colonne `date` accepte `null` : une tâche sans date ni heure est une simple ligne de checklist. Côté application, elle a `date = ""`. Elle n'est jamais « en retard » ni « urgente » automatiquement, n'apparaît pas dans Jour / Semaine / Mois, mais apparaît dans Liste (groupe « Sans date », à la fin), dans Tri et dans l'onglet Checklist.
+
 ## 4. Limites, en toute honnêteté
 
 - **Synchronisation entre appareils** : les tâches sont rechargées à l'ouverture et chaque fois que tu reviens sur l'onglet. Ce n'est pas du temps réel : si deux appareils sont ouverts en même temps, l'un ne voit les changements de l'autre qu'en revenant sur l'onglet. Supabase Realtime permettrait le vrai temps réel.

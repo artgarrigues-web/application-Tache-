@@ -8,6 +8,7 @@
    et chaque frappe met cet état à jour via onChange.                         */
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { aujourdhui, versISO } from "@/lib/dates";
 import { groupesAutomatiques, listeMateriel } from "@/lib/taches";
 import { GROUPES, type Categorie, type DonneesTache, type Groupe, type Priorite, type Tache } from "@/lib/types";
 
@@ -36,6 +37,19 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
           categorie: categorieParDefaut, priorite: "moyenne", groupe: null,
         },
   );
+
+  /* Tâche sans date (checklist) : date = "" et pas d'heure.
+     On garde la dernière date saisie pour la remettre si on décoche la case. */
+  const sansDate = valeurs.date === "";
+  const derniereDate = useRef(valeurs.date || dateParDefaut || versISO(aujourdhui()));
+  function basculerSansDate(coche: boolean) {
+    if (coche) {
+      if (valeurs.date) derniereDate.current = valeurs.date;
+      setValeurs((v) => ({ ...v, date: "", heure: "" }));
+    } else {
+      changer("date", derniereDate.current);
+    }
+  }
 
   /* La durée est stockée en minutes, mais saisie en heures + minutes (plus naturel).
      On recalcule les deux champs affichés à partir de dureeMinutes… */
@@ -72,7 +86,7 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
       lieu: valeurs.lieu.trim(),
       materiel: listeMateriel(valeurs.materiel).join("\n"), // retire les lignes vides
     };
-    if (!donnees.titre || !donnees.date) return;
+    if (!donnees.titre) return;
     setEnCours(true);
     const ok = await onEnregistrer(donnees);
     setEnCours(false);
@@ -104,7 +118,12 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
             value={valeurs.description} onChange={(e) => changer("description", e.target.value)} />
         </div>
 
-        <div className="ligne-champs">
+        <label className="case-sans-date">
+          <input type="checkbox" checked={sansDate} onChange={(e) => basculerSansDate(e.target.checked)} />
+          Sans date ni heure (checklist)
+        </label>
+
+        {!sansDate && <div className="ligne-champs">
           <div className="champ">
             <label htmlFor="champ-date">Date *</label>
             <input id="champ-date" type="date" required
@@ -115,7 +134,7 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
             <input id="champ-heure" type="time"
               value={valeurs.heure} onChange={(e) => changer("heure", e.target.value)} />
           </div>
-        </div>
+        </div>}
 
         <div className="ligne-champs">
           <div className="champ">

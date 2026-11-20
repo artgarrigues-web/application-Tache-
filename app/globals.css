@@ -261,7 +261,8 @@ kbd { font: inherit; font-size: 0.8rem; border: 1px solid var(--bord); border-bo
   .ligne-champs { grid-template-columns: 1fr; }
   .pied .aide { display: none; }
   .onglets { width: 100%; }
-  .onglets button { flex: 1; }
+  .onglets { flex-wrap: wrap; }   /* 6 onglets : passent sur 2 lignes si l'écran est trop étroit */
+  .onglets button { flex: 1 1 30%; padding: 5px 6px; }
 }
 
 /* ---------- Ajouts version Next.js / Supabase ---------- */
@@ -316,3 +317,10 @@ a.badge-lieu:hover { color: var(--accent); }
 .regle-groupe { margin: 0 0 8px; font-size: 0.78rem; color: var(--texte-doux); }
 .groupe-autres { margin-top: 12px; }
 @media (max-width: 800px) { .grille-tri { grid-template-columns: 1fr; } }
+
+/* ---------- Checklist (tâches sans date) ---------- */
+.formulaire .case-sans-date { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer; }
+.formulaire .case-sans-date input { width: auto; margin: 0; accent-color: var(--accent); }
+.checklist { max-width: 760px; display: flex; flex-direction: column; gap: 10px; }
+.checklist .aide-tri { margin: 0; }
+.checklist .titre-faites { margin: 18px 0 8px; font-size: 0.95rem; color: var(--texte-doux); }

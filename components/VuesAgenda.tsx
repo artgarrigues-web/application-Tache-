@@ -1,10 +1,10 @@
 "use client";
 
-/* Les cinq vues de l'agenda. Chacune reçoit la liste DÉJÀ filtrée et triée,
+/* Les six vues de l'agenda. Chacune reçoit la liste DÉJÀ filtrée et triée,
    et se contente de la disposer à l'écran.                                    */
 
 import { ajouterJours, aujourdhui, debutSemaine, depuisISO, formater, majuscule, versISO } from "@/lib/dates";
-import { chargeRestante, formaterDuree, grouperParDate, repartirParGroupe } from "@/lib/taches";
+import { chargeRestante, estSansDate, formaterDuree, grouperParDate, repartirParGroupe } from "@/lib/taches";
 import { DUREE_RAPIDE_MAX, GROUPES, JOURS_COURTS, type Tache } from "@/lib/types";
 import { CarteTache, ListeTaches, type ActionsAgenda } from "./CarteTache";
 
@@ -115,7 +115,8 @@ export function VueListe({ liste, actions }: Props) {
       {[...grouperParDate(liste)].map(([iso, taches]) => (
         <section key={iso} className={`groupe-date${iso === isoAujourdhui ? " aujourdhui" : ""}`}>
           <h3>
-            {majuscule(formater(depuisISO(iso), { weekday: "long", day: "numeric", month: "long", year: "numeric" }))}
+            {iso === "" ? "☑ Sans date (checklist)"
+              : majuscule(formater(depuisISO(iso), { weekday: "long", day: "numeric", month: "long", year: "numeric" }))}
             {iso === isoAujourdhui && " — aujourd'hui"}
           </h3>
           <div className="liste-taches">
@@ -161,6 +162,31 @@ export function VueTri({ liste, actions }: Props) {
             {autres.map((t) => <CarteTache key={t.id} tache={t} actions={actions} avecDate />)}
           </div>
         </section>
+      )}
+    </section>
+  );
+}
+
+/* ---------- Vue Checklist : les tâches sans date ---------- */
+export function VueChecklist({ liste, actions }: Props) {
+  const taches = liste.filter(estSansDate);
+  const aFaire = taches.filter((t) => !t.faite);
+  const faites = taches.filter((t) => t.faite);
+  return (
+    <section className="checklist">
+      <p className="aide-tri">
+        Les tâches <strong>sans date ni heure</strong> : à faire « quand tu peux ». Elles n&apos;apparaissent pas
+        dans les vues Jour, Semaine et Mois, mais bien dans Liste (à la fin) et dans Tri.
+      </p>
+      <ListeTaches taches={aFaire} actions={actions} messageVide="Rien dans la checklist. 🎉" />
+      <button type="button" className="btn-ajouter" onClick={() => actions.ajouterLe("")}>
+        + Ajouter à la checklist
+      </button>
+      {faites.length > 0 && (
+        <>
+          <h3 className="titre-faites">Cochées ({faites.length})</h3>
+          <ListeTaches taches={faites} actions={actions} />
+        </>
       )}
     </section>
   );

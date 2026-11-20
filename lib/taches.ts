@@ -25,12 +25,12 @@ export function validerTaches(donnees: unknown): Tache[] | null {
     .filter((t): t is Record<string, unknown> =>
       typeof t === "object" && t !== null &&
       typeof t.titre === "string" &&
-      typeof t.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(t.date))
+      (t.date === "" || t.date === null || (typeof t.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(t.date))))
     .map((t) => ({
       id: typeof t.id === "string" ? t.id : genererId(),
       titre: (t.titre as string).slice(0, 120),
       description: typeof t.description === "string" ? t.description : "",
-      date: t.date as string,
+      date: typeof t.date === "string" ? t.date : "",
       heure: typeof t.heure === "string" && /^\d{2}:\d{2}$/.test(t.heure) ? t.heure : "",
       dureeMinutes: typeof t.dureeMinutes === "number" && t.dureeMinutes > 0 ? Math.round(t.dureeMinutes) : null,
       lieu: typeof t.lieu === "string" ? t.lieu.slice(0, 200) : "",
@@ -48,8 +48,13 @@ export function normaliser(texte: string): string {
   return texte.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 }
 
+export function estSansDate(tache: Tache): boolean {
+  return tache.date === "";
+}
+
 export function estEnRetard(tache: Tache): boolean {
-  return !tache.faite && tache.date < versISO(aujourdhui());
+  // Une tâche sans date (checklist) n'est jamais en retard.
+  return !tache.faite && tache.date !== "" && tache.date < versISO(aujourdhui());
 }
 
 export function passeLesFiltres(tache: Tache, f: Filtres): boolean {
@@ -62,9 +67,11 @@ export function passeLesFiltres(tache: Tache, f: Filtres): boolean {
   return true;
 }
 
-// Ordre : date → heure (sans heure = fin de journée) → non faites d'abord → priorité.
+// Ordre : date (sans date = à la fin) → heure (sans heure = fin de journée) → non faites d'abord → priorité.
 export function comparer(a: Tache, b: Tache): number {
-  if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+  const da = a.date || "9999-99-99";
+  const db = b.date || "9999-99-99";
+  if (da !== db) return da < db ? -1 : 1;
   const ha = a.heure || "99:99";
   const hb = b.heure || "99:99";
   if (ha !== hb) return ha < hb ? -1 : 1;
@@ -135,7 +142,7 @@ export function groupesDe(tache: Tache): Groupe[] {
 export function groupesAutomatiques(tache: Pick<Tache, "date" | "priorite" | "dureeMinutes">): Groupe[] {
   const limiteUrgence = versISO(ajouterJours(aujourdhui(), JOURS_URGENCE));
   const groupes: Groupe[] = [];
-  if (tache.date <= limiteUrgence) groupes.push("urgent");
+  if (tache.date !== "" && tache.date <= limiteUrgence) groupes.push("urgent"); // sans date = jamais urgent
   if (tache.priorite === "haute") groupes.push("important");
   if (tache.dureeMinutes !== null && tache.dureeMinutes <= DUREE_RAPIDE_MAX) groupes.push("rapide");
   return groupes;
