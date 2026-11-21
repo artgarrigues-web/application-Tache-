@@ -39,7 +39,7 @@ export async function GET(_requete: Request, { params }: { params: Promise<{ fic
   return new Response(genererICS(taches), {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": 'inline; filename="agenda-taches.ics"',
+      "Content-Disposition": 'inline; filename="agandia.ics"',
       "Cache-Control": "no-store",
     },
   });
