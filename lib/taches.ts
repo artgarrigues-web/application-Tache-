@@ -34,6 +34,7 @@ export function validerTaches(donnees: unknown): Tache[] | null {
       heure: typeof t.heure === "string" && /^\d{2}:\d{2}$/.test(t.heure) ? t.heure : "",
       dureeMinutes: typeof t.dureeMinutes === "number" && t.dureeMinutes > 0 ? Math.round(t.dureeMinutes) : null,
       lieu: typeof t.lieu === "string" ? t.lieu.slice(0, 200) : "",
+      echeance: typeof t.echeance === "string" && /^\d{4}-\d{2}-\d{2}$/.test(t.echeance) ? t.echeance : "",
       materiel: typeof t.materiel === "string" ? t.materiel.slice(0, 2000) : "",
       categorie: (typeof t.categorie === "string" && t.categorie in CATEGORIES ? t.categorie : "perso") as Categorie,
       priorite: (typeof t.priorite === "string" && t.priorite in PRIORITES ? t.priorite : "moyenne") as Priorite,

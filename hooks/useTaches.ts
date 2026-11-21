@@ -108,6 +108,15 @@ export function useTaches(userId: string) {
     [executer],
   );
 
+  // Planification automatique (et son annulation) : nouvelle date + heure pour plusieurs tâches.
+  const changerHoraires = useCallback(
+    (changements: depot.ChangementHoraire[]) => executer(async () => {
+      const majs = new Map((await depot.changerHoraires(changements)).map((t) => [t.id, t]));
+      setTaches((prec) => prec.map((t) => majs.get(t.id) ?? t));
+    }),
+    [executer],
+  );
+
   const importer = useCallback(
     (liste: Tache[]) => executer(async () => {
       const ajoutees = await depot.insererPlusieurs(liste);
@@ -118,6 +127,6 @@ export function useTaches(userId: string) {
 
   return {
     taches, charge, erreur, effacerErreur: () => setErreur(null),
-    ajouter, modifier, supprimer, basculerFaite, effacerTerminees, importer, recharger,
+    ajouter, modifier, supprimer, basculerFaite, effacerTerminees, importer, recharger, changerHoraires,
   };
 }

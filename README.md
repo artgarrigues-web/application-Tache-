@@ -136,6 +136,20 @@ Une tâche peut appartenir à plusieurs groupes (badges sur la carte). Dans la v
 ### Les tâches sans date (onglet « Checklist »)
 La colonne `date` accepte `null` : une tâche sans date ni heure est une simple ligne de checklist. Côté application, elle a `date = ""`. Elle n'est jamais « en retard » ni « urgente » automatiquement, n'apparaît pas dans Jour / Semaine / Mois, mais apparaît dans Liste (groupe « Sans date », à la fin), dans Tri et dans l'onglet Checklist.
 
+## Planification automatique (sans IA)
+
+Bouton « 🪄 Planifier ma semaine » : place les tâches de la Checklist (sans date) dans la semaine choisie.
+
+- **Réglages** : plages de disponibilité par jour (plusieurs plages possibles, ex. 8 h–12 h et 14 h–18 h), gardées dans la table `disponibilites` (ou dans le navigateur si la table n'existe pas).
+- **3 propositions**, calculées par `lib/planification.ts` (algorithme glouton déterministe, testé par `npm test`) :
+  - *Échéances d'abord* : tri par échéance, puis priorité, puis durée décroissante ; premier créneau libre.
+  - *Regroupé par lieu* : les tâches d'un même lieu sont enchaînées dans un seul créneau quand c'est possible.
+  - *Charge équilibrée* : chaque tâche va le jour le moins chargé.
+- Les créneaux des tâches datées **avec heure** sont évités ; pas de placement dans le passé ; durée par défaut 1 h.
+- Une tâche qui ne tient pas avant son échéance est placée après avec un ⚠ ; une tâche qui ne tient nulle part reste dans la Checklist avec la raison.
+- Rien n'est écrit avant « Appliquer » ; un bandeau permet ensuite d'**annuler** (seules les tâches non modifiées depuis sont remises en Checklist).
+- Migration à coller dans Supabase : `supabase/migration-planification.sql`.
+
 ## 4. Limites, en toute honnêteté
 
 - **Synchronisation entre appareils** : les tâches sont rechargées à l'ouverture et chaque fois que tu reviens sur l'onglet. Ce n'est pas du temps réel : si deux appareils sont ouverts en même temps, l'un ne voit les changements de l'autre qu'en revenant sur l'onglet. Supabase Realtime permettrait le vrai temps réel.
