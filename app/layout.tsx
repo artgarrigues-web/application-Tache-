@@ -3,15 +3,18 @@
 
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { NOM_APP, SLOGAN } from "@/lib/marque";
 
 export const metadata: Metadata = {
-  title: "Mon agenda de tâches",
-  description: "Organiser ses tâches personnelles et professionnelles sous forme d'agenda.",
+  title: NOM_APP,
+  description: SLOGAN,
+  applicationName: NOM_APP,
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  themeColor: "#3b5bdb",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

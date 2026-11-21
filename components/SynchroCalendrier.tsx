@@ -12,8 +12,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { NOM_APP } from "@/lib/marque";
 
-const NOM_CALENDRIER = "Mon agenda de tâches";
+const NOM_CALENDRIER = NOM_APP;
 
 export function SynchroCalendrier({ onFermer }: { onFermer: () => void }) {
   const dialogue = useRef<HTMLDialogElement>(null);
@@ -119,7 +120,7 @@ export function SynchroCalendrier({ onFermer }: { onFermer: () => void }) {
               <ol>
                 <li>Clique sur « Google Agenda / Android » (depuis un ordinateur de préférence : l&apos;appli Android ne sait pas ajouter un calendrier par adresse).</li>
                 <li>Google propose « Ajouter cet agenda » : confirme. Sinon : calendar.google.com → « Autres agendas » → « + » → « À partir de l&apos;URL » → colle l&apos;adresse.</li>
-                <li>Sur le téléphone : appli Google Agenda → menu ☰ → Paramètres → « Mon agenda de tâches » → active « Synchronisation ». Il apparaît alors aussi dans l&apos;agenda Samsung ou tout agenda Android relié à ton compte Google.</li>
+                <li>Sur le téléphone : appli Google Agenda → menu ☰ → Paramètres → « {NOM_APP} » → active « Synchronisation ». Il apparaît alors aussi dans l&apos;agenda Samsung ou tout agenda Android relié à ton compte Google.</li>
               </ol>
               <h3>Outlook et Teams</h3>
               <ol>

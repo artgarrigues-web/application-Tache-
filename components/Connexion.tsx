@@ -4,6 +4,7 @@
 
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/lib/supabase";
+import { Logo, NomApp } from "./Logo";
 
 export function Connexion() {
   const [mode, setMode] = useState<"connexion" | "inscription">("connexion");
@@ -40,7 +41,7 @@ export function Connexion() {
   return (
     <div className="ecran-centre">
       <form className="carte-connexion formulaire" onSubmit={soumettre}>
-        <h1>📅 Mon agenda</h1>
+        <h1 className="titre-app"><Logo taille={40} /> <NomApp /></h1>
         <h2>{mode === "connexion" ? "Connexion" : "Créer un compte"}</h2>
 
         <div className="champ">

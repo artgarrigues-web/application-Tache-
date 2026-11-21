@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import type { Plage } from "@/lib/dates";
 import { estEnRetard } from "@/lib/taches";
 import type { Tache } from "@/lib/types";
+import { NOM_APP } from "@/lib/marque";
 
 interface Props {
   taches: Tache[];       // toutes les tâches, sans filtre
@@ -21,7 +22,7 @@ export function Compteurs({ taches, plage }: Props) {
 
   // Nombre de tâches restantes dans le titre de l'onglet du navigateur.
   useEffect(() => {
-    document.title = `(${restantes}) Mon agenda de tâches`;
+    document.title = `(${restantes}) ${NOM_APP}`;
   }, [restantes]);
 
   return (

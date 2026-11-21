@@ -14,6 +14,7 @@
      END:VCALENDAR                                                           */
 
 import { CATEGORIES, PRIORITES, type Categorie, type Priorite } from "./types";
+import { NOM_APP } from "./marque";
 
 // L'app enregistre des heures "locales" sans fuseau : on les interprète en heure de Paris.
 export const FUSEAU = "Europe/Paris";
@@ -111,6 +112,9 @@ function horodatageUTC(d: Date): string {
 }
 
 function evenement(t: TacheCalendrier, maintenant: string): string[] {
+  // Le suffixe "@agenda-taches" date d'avant le nom AgandIA : on le GARDE exprès.
+  // Le changer ferait croire aux calendriers déjà abonnés que toutes les tâches
+  // sont de nouveaux événements (doublons ou clignotements).
   const lignes = ["BEGIN:VEVENT", `UID:${t.id}@agenda-taches`, `DTSTAMP:${maintenant}`];
 
   if (t.heure) {
@@ -150,10 +154,10 @@ export function genererICS(taches: TacheCalendrier[], maintenant = new Date()): 
   const lignes = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Agenda de taches//FR",
+    "PRODID:-//AgandIA//FR",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    "X-WR-CALNAME:Mon agenda de tâches",
+    `X-WR-CALNAME:${NOM_APP}`,
     `X-WR-TIMEZONE:${FUSEAU}`,
     // Intervalle de rafraîchissement SOUHAITÉ (Outlook/Apple le respectent à peu près, Google l'ignore).
     "REFRESH-INTERVAL;VALUE=DURATION:PT1H",

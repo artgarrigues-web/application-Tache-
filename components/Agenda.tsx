@@ -23,6 +23,7 @@ import { Planificateur } from "./Planificateur";
 import type { ChangementHoraire } from "@/lib/depot";
 import type { Planning } from "@/lib/planification";
 import { VueChecklist, VueJour, VueListe, VueMois, VueSemaine, VueTri } from "./VuesAgenda";
+import { Logo, NomApp } from "./Logo";
 
 const CLE_VUE = "agenda-taches-vue"; // simple préférence d'affichage, gardée dans le navigateur
 const CLE_ANNULATION = "agenda-dernier-planning"; // de quoi annuler le dernier planning appliqué
@@ -201,7 +202,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   return (
     <div className="page">
       <header className="entete">
-        <h1>📅 Mon agenda</h1>
+        <h1 className="titre-app"><Logo /> <NomApp /></h1>
         <Compteurs taches={taches} plage={plage} />
         <button type="button" className="btn" title="Placer automatiquement les tâches de la Checklist dans la semaine"
           onClick={() => setPlanifOuverte(true)}>

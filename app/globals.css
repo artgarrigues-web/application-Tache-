@@ -1,5 +1,5 @@
 /* =====================================================================
-   Mon agenda de tâches — mise en forme
+   AgandIA — mise en forme
    Les couleurs sont définies une seule fois sous forme de "variables CSS"
    (--nom) : on les change ici et toute l'application suit. Un second jeu
    de valeurs s'applique automatiquement si le système est en mode sombre.
@@ -82,6 +82,11 @@ body {
 /* ---------- En-tête ---------- */
 .entete { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 16px; }
 .entete h1 { margin: 0; font-size: 1.5rem; flex: 1 1 auto; }
+/* Titre = logo + nom ; « IA » prend la couleur d'accent. */
+.titre-app { display: flex; align-items: center; gap: 10px; }
+.logo { flex: none; border-radius: 22%; }
+.nom-app { font-weight: 800; letter-spacing: -0.01em; }
+.nom-app-ia { color: var(--accent); }
 .compteurs { display: flex; flex-wrap: wrap; gap: 8px; }
 .compteur {
   display: flex; align-items: center; gap: 6px;
