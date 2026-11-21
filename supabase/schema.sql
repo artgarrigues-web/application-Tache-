@@ -68,3 +68,90 @@ alter table public.taches
 
 -- 5. Mise à jour du 21/11/2026 (tâches sans date = checklist) -------------
 alter table public.taches alter column date drop not null;
+
+-- 6. Mise à jour du 21/11/2026 (abonnement calendrier Google / Outlook) ---
+-- Chaque utilisateur peut obtenir une adresse secrète du type
+--   https://<site>/api/calendrier/<jeton>.ics
+-- à laquelle Google Agenda, Outlook, Apple Calendrier… s'abonnent.
+-- Le jeton (UUID aléatoire, 122 bits de hasard) fait office de mot de passe :
+-- qui le connaît peut LIRE les tâches datées de cet utilisateur, rien d'autre.
+create table if not exists public.calendrier_jetons (
+  user_id uuid primary key default auth.uid() references auth.users (id) on delete cascade,
+  jeton   uuid not null unique default gen_random_uuid(),
+  cree_le timestamptz not null default now()
+);
+alter table public.calendrier_jetons enable row level security;
+
+drop policy if exists "Lire son jeton" on public.calendrier_jetons;
+create policy "Lire son jeton" on public.calendrier_jetons
+  for select to authenticated using ((select auth.uid()) = user_id);
+drop policy if exists "Créer son jeton" on public.calendrier_jetons;
+create policy "Créer son jeton" on public.calendrier_jetons
+  for insert to authenticated with check ((select auth.uid()) = user_id);
+drop policy if exists "Changer son jeton" on public.calendrier_jetons;
+create policy "Changer son jeton" on public.calendrier_jetons
+  for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+drop policy if exists "Supprimer son jeton" on public.calendrier_jetons;
+create policy "Supprimer son jeton" on public.calendrier_jetons
+  for delete to authenticated using ((select auth.uid()) = user_id);
+
+-- Renvoie le jeton de l'utilisateur connecté (le crée s'il n'existe pas).
+-- nouveau = true : remplace l'ancien jeton (l'ancienne adresse cesse de marcher).
+-- "security invoker" : la fonction s'exécute avec les droits de l'appelant,
+-- donc les règles RLS ci-dessus s'appliquent.
+create or replace function public.jeton_calendrier(nouveau boolean default false)
+returns uuid
+language sql
+security invoker
+set search_path = ''
+as $$
+  insert into public.calendrier_jetons (user_id) values (auth.uid())
+  on conflict (user_id) do update
+    set jeton = case when nouveau then gen_random_uuid() else public.calendrier_jetons.jeton end,
+        cree_le = case when nouveau then now() else public.calendrier_jetons.cree_le end
+  returning jeton;
+$$;
+revoke execute on function public.jeton_calendrier(boolean) from public, anon;
+grant execute on function public.jeton_calendrier(boolean) to authenticated;
+
+-- Utilisée par le serveur Next.js (route /api/calendrier) qui n'a PAS de
+-- session utilisateur : elle doit donc contourner RLS ("security definer"),
+-- mais ne renvoie que les tâches DATÉES du propriétaire du jeton, des 90
+-- derniers jours et à venir, et jamais l'identifiant de l'utilisateur.
+create or replace function public.taches_du_calendrier(p_jeton uuid)
+returns table (
+  id uuid, titre text, description text, date date, heure time,
+  duree_minutes integer, lieu text, materiel text,
+  categorie text, priorite text, faite boolean, cree_le timestamptz
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select t.id, t.titre, t.description, t.date, t.heure,
+         t.duree_minutes, t.lieu, t.materiel,
+         t.categorie, t.priorite, t.faite, t.cree_le
+  from public.taches t
+  join public.calendrier_jetons j on j.user_id = t.user_id
+  where j.jeton = p_jeton
+    and t.date is not null
+    and t.date >= current_date - 90
+  order by t.date, t.heure nulls first;
+$$;
+revoke execute on function public.taches_du_calendrier(uuid) from public;
+grant execute on function public.taches_du_calendrier(uuid) to anon, authenticated;
+
+-- Permet à la route de distinguer "jeton valide mais aucune tâche" (calendrier
+-- vide) de "jeton inconnu ou révoqué" (réponse 404).
+create or replace function public.calendrier_existe(p_jeton uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (select 1 from public.calendrier_jetons where jeton = p_jeton);
+$$;
+revoke execute on function public.calendrier_existe(uuid) from public;
+grant execute on function public.calendrier_existe(uuid) to anon, authenticated;

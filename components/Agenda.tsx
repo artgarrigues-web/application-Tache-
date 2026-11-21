@@ -18,6 +18,7 @@ import { useTaches } from "@/hooks/useTaches";
 import type { ActionsAgenda } from "./CarteTache";
 import { Compteurs } from "./Compteurs";
 import { FormulaireTache } from "./FormulaireTache";
+import { SynchroCalendrier } from "./SynchroCalendrier";
 import { VueChecklist, VueJour, VueListe, VueMois, VueSemaine, VueTri } from "./VuesAgenda";
 
 const CLE_VUE = "agenda-taches-vue"; // simple préférence d'affichage, gardée dans le navigateur
@@ -33,6 +34,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   const [dateRef, setDateRef] = useState<Date>(() => aujourdhui());
   const [filtres, setFiltres] = useState<Filtres>(FILTRES_INITIAUX);
   const [formulaire, setFormulaire] = useState<EtatFormulaire | null>(null);
+  const [synchroOuverte, setSynchroOuverte] = useState(false);
   const champFichier = useRef<HTMLInputElement>(null);
 
   // Retrouve la dernière vue utilisée…
@@ -117,7 +119,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   /* ---------- Raccourcis clavier ---------- */
   useEffect(() => {
     function auClavier(e: KeyboardEvent) {
-      if (formulaire || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (formulaire || synchroOuverte || e.ctrlKey || e.metaKey || e.altKey) return;
       const cible = e.target as HTMLElement;
       if (["INPUT", "TEXTAREA", "SELECT"].includes(cible.tagName)) return;
       if (e.key === "n" || e.key === "N") { e.preventDefault(); setFormulaire({ tacheId: null }); }
@@ -127,7 +129,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
     }
     document.addEventListener("keydown", auClavier);
     return () => document.removeEventListener("keydown", auClavier);
-  }, [formulaire, vue, navigable]);
+  }, [formulaire, synchroOuverte, vue, navigable]);
 
   /* ---------- Affichage ---------- */
   const propsVue = { dateRef, liste, actions };
@@ -207,6 +209,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
       </main>
 
       <footer className="pied">
+        <button type="button" className="btn btn-principal" onClick={() => setSynchroOuverte(true)}>📆 Synchroniser mon calendrier</button>
         <button type="button" className="btn" onClick={exporter}>⬇ Exporter (JSON)</button>
         <button type="button" className="btn" onClick={() => champFichier.current?.click()}>⬆ Importer</button>
         <input ref={champFichier} type="file" accept="application/json,.json" hidden onChange={importerFichier} />
@@ -231,6 +234,8 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           onFermer={() => setFormulaire(null)}
         />
       )}
+
+      {synchroOuverte && <SynchroCalendrier onFermer={() => setSynchroOuverte(false)} />}
     </div>
   );
 }
