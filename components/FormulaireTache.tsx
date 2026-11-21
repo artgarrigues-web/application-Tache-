@@ -195,7 +195,7 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
           <select id="champ-groupe" value={valeurs.groupe ?? ""}
             onChange={(e) => changer("groupe", (e.target.value || null) as Groupe | null)}>
             <option value="">Automatique (actuellement : {texteAuto})</option>
-            {GROUPES.map((g) => <option key={g.id} value={g.id}>{g.icone} {g.libelle}</option>)}
+            {GROUPES.map((g) => <option key={g.id} value={g.id}>{g.libelle}</option>)}
           </select>
         </div>
 

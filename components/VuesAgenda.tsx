@@ -7,6 +7,7 @@ import { ajouterJours, aujourdhui, debutSemaine, depuisISO, formater, majuscule,
 import { chargeRestante, estSansDate, formaterDuree, grouperParDate, repartirParGroupe } from "@/lib/taches";
 import { DUREE_RAPIDE_MAX, GROUPES, JOURS_COURTS, type Tache } from "@/lib/types";
 import { CarteTache, ListeTaches, type ActionsAgenda } from "./CarteTache";
+import { IconeAjouter, IconeBravo, IconeChecklist, IconeDuree, IconeGroupe, IconePlanifier } from "./Icones";
 
 const MAX_TACHES_CASE_MOIS = 3;
 
@@ -23,10 +24,10 @@ export function VueJour({ dateRef, liste, actions }: Props) {
   const charge = chargeRestante(taches);
   return (
     <section className="jour-unique">
-      {charge > 0 && <p className="charge-jour">⏱ Temps prévu restant ce jour : <strong>{formaterDuree(charge)}</strong></p>}
+      {charge > 0 && <p className="charge-jour"><IconeDuree /> Temps prévu restant ce jour : <strong>{formaterDuree(charge)}</strong></p>}
       <ListeTaches taches={taches} actions={actions} messageVide="Aucune tâche prévue ce jour." />
       <button type="button" className="btn-ajouter" onClick={() => actions.ajouterLe(iso)}>
-        + Ajouter une tâche ce jour
+        <IconeAjouter /> Ajouter une tâche ce jour
       </button>
     </section>
   );
@@ -49,10 +50,10 @@ export function VueSemaine({ dateRef, liste, actions }: Props) {
             <button type="button" className="entete-jour" title="Voir ce jour" onClick={() => actions.allerAuJour(iso)}>
               <span className="nom-jour">{JOURS_COURTS[i]}</span>
               <span className="num-jour">{jour.getDate()}</span>
-              {charge > 0 && <span className="charge-colonne" title="Temps prévu restant">⏱ {formaterDuree(charge)}</span>}
+              {charge > 0 && <span className="charge-colonne" title="Temps prévu restant"><IconeDuree /> {formaterDuree(charge)}</span>}
             </button>
             <ListeTaches taches={parDate.get(iso) ?? []} actions={actions} />
-            <button type="button" className="btn-ajouter" title="Ajouter une tâche ce jour" onClick={() => actions.ajouterLe(iso)}>+</button>
+            <button type="button" className="btn-ajouter" title="Ajouter une tâche ce jour" aria-label="Ajouter une tâche ce jour" onClick={() => actions.ajouterLe(iso)}><IconeAjouter /></button>
           </section>
         );
       })}
@@ -96,7 +97,7 @@ export function VueMois({ dateRef, liste, actions }: Props) {
                 +{taches.length - MAX_TACHES_CASE_MOIS} autre(s)
               </button>
             )}
-            <button type="button" className="btn-ajouter-mini" title="Ajouter une tâche ce jour" onClick={() => actions.ajouterLe(iso)}>+</button>
+            <button type="button" className="btn-ajouter-mini" title="Ajouter une tâche ce jour" aria-label="Ajouter une tâche ce jour" onClick={() => actions.ajouterLe(iso)}><IconeAjouter /></button>
           </div>
         );
       })}
@@ -115,7 +116,7 @@ export function VueListe({ liste, actions }: Props) {
       {[...grouperParDate(liste)].map(([iso, taches]) => (
         <section key={iso} className={`groupe-date${iso === isoAujourdhui ? " aujourdhui" : ""}`}>
           <h3>
-            {iso === "" ? "☑ Sans date (checklist)"
+            {iso === "" ? <><IconeChecklist /> Sans date (checklist)</>
               : majuscule(formater(depuisISO(iso), { weekday: "long", day: "numeric", month: "long", year: "numeric" }))}
             {iso === isoAujourdhui && " — aujourd'hui"}
           </h3>
@@ -142,7 +143,7 @@ export function VueTri({ liste, actions }: Props) {
         {GROUPES.map((g) => (
           <section key={g.id} className={`colonne-tri groupe-${g.id}`}>
             <h3>
-              {g.icone} {g.libelle} <span className="compte-groupe">{groupes[g.id].length}</span>
+              <IconeGroupe groupe={g.id} /> {g.libelle} <span className="compte-groupe">{groupes[g.id].length}</span>
             </h3>
             <p className="regle-groupe">{g.regle}</p>
             {g.id === "rapide" && (
@@ -178,14 +179,14 @@ export function VueChecklist({ liste, actions }: Props) {
         Les tâches <strong>sans date ni heure</strong> : à faire « quand tu peux ». Elles n&apos;apparaissent pas
         dans les vues Jour, Semaine et Mois, mais bien dans Liste (à la fin) et dans Tri.
       </p>
-      <ListeTaches taches={aFaire} actions={actions} messageVide="Rien dans la checklist. 🎉" />
+      <ListeTaches taches={aFaire} actions={actions} messageVide={<><IconeBravo /> Rien dans la checklist.</>} />
       {aFaire.length > 0 && actions.planifier && (
         <button type="button" className="btn btn-principal" onClick={actions.planifier}>
-          🪄 Placer ces tâches dans ma semaine
+          <IconePlanifier /> Placer ces tâches dans ma semaine
         </button>
       )}
       <button type="button" className="btn-ajouter" onClick={() => actions.ajouterLe("")}>
-        + Ajouter à la checklist
+        <IconeAjouter /> Ajouter à la checklist
       </button>
       {faites.length > 0 && (
         <>

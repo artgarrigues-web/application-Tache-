@@ -24,6 +24,7 @@ import type { ChangementHoraire } from "@/lib/depot";
 import type { Planning } from "@/lib/planification";
 import { VueChecklist, VueJour, VueListe, VueMois, VueSemaine, VueTri } from "./VuesAgenda";
 import { Logo, NomApp } from "./Logo";
+import { IconeAjouter, IconeAnnuler, IconeExporter, IconeFermer, IconeImporter, IconePlanifier, IconePrecedent, IconeRecherche, IconeSucces, IconeSuivant, IconeSynchro } from "./Icones";
 
 const CLE_VUE = "agenda-taches-vue"; // simple préférence d'affichage, gardée dans le navigateur
 const CLE_ANNULATION = "agenda-dernier-planning"; // de quoi annuler le dernier planning appliqué
@@ -206,42 +207,42 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
         <Compteurs taches={taches} plage={plage} />
         <button type="button" className="btn" title="Placer automatiquement les tâches de la Checklist dans la semaine"
           onClick={() => setPlanifOuverte(true)}>
-          🪄 Planifier ma semaine
+          <IconePlanifier /> Planifier ma semaine
         </button>
         <button type="button" className="btn btn-principal" title="Raccourci : touche N"
           onClick={() => setFormulaire({ tacheId: null })}>
-          + Nouvelle tâche
+          <IconeAjouter /> Nouvelle tâche
         </button>
       </header>
 
       {erreur && (
         <div className="bandeau-erreur" role="alert">
           <span>Problème de connexion à la base : {erreur}</span>
-          <button type="button" className="btn-icone" aria-label="Fermer" onClick={effacerErreur}>✕</button>
+          <button type="button" className="btn-icone" aria-label="Fermer" onClick={effacerErreur}><IconeFermer /></button>
         </div>
       )}
 
       {dernierPlanning && (
         <div className="bandeau-info" role="status">
-          <span>✅ Planning « {dernierPlanning.nom} » appliqué à {dernierPlanning.apres.length} tâche(s).</span>
-          <button type="button" className="btn" onClick={annulerPlanning}>↶ Annuler ce planning</button>
+          <span><IconeSucces /> Planning « {dernierPlanning.nom} » appliqué à {dernierPlanning.apres.length} tâche(s).</span>
+          <button type="button" className="btn" onClick={annulerPlanning}><IconeAnnuler /> Annuler ce planning</button>
           <button type="button" className="btn-icone" aria-label="Fermer (le planning est gardé)" title="Fermer (le planning est gardé)"
-            onClick={() => memoriserAnnulation(null)}>✕</button>
+            onClick={() => memoriserAnnulation(null)}><IconeFermer /></button>
         </div>
       )}
       {messagePlanif && (
         <div className="bandeau-info" role="status">
           <span>{messagePlanif}</span>
-          <button type="button" className="btn-icone" aria-label="Fermer" onClick={() => setMessagePlanif("")}>✕</button>
+          <button type="button" className="btn-icone" aria-label="Fermer" onClick={() => setMessagePlanif("")}><IconeFermer /></button>
         </div>
       )}
 
       <section className="barre-outils">
         {navigable && (
           <div className="navigation">
-            <button type="button" className="btn" aria-label="Période précédente" onClick={() => setDateRef(deplacer(vue, dateRef, -1))}>‹</button>
+            <button type="button" className="btn" aria-label="Période précédente" onClick={() => setDateRef(deplacer(vue, dateRef, -1))}><IconePrecedent /></button>
             <button type="button" className="btn" onClick={() => setDateRef(aujourdhui())}>Aujourd&apos;hui</button>
-            <button type="button" className="btn" aria-label="Période suivante" onClick={() => setDateRef(deplacer(vue, dateRef, 1))}>›</button>
+            <button type="button" className="btn" aria-label="Période suivante" onClick={() => setDateRef(deplacer(vue, dateRef, 1))}><IconeSuivant /></button>
           </div>
         )}
         <h2>{titrePeriode(vue, dateRef)}</h2>
@@ -256,8 +257,11 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
       </section>
 
       <section className="filtres">
-        <input type="search" placeholder="🔍 Rechercher une tâche…" aria-label="Rechercher"
-          value={filtres.recherche} onChange={(e) => setFiltres({ ...filtres, recherche: e.target.value })} />
+        <label className="champ-recherche">
+          <IconeRecherche />
+          <input type="search" placeholder="Rechercher une tâche…" aria-label="Rechercher"
+            value={filtres.recherche} onChange={(e) => setFiltres({ ...filtres, recherche: e.target.value })} />
+        </label>
         <select aria-label="Filtrer par catégorie" value={filtres.categorie}
           onChange={(e) => setFiltres({ ...filtres, categorie: e.target.value as Filtres["categorie"] })}>
           <option value="toutes">Toutes les catégories</option>
@@ -292,9 +296,9 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
       </main>
 
       <footer className="pied">
-        <button type="button" className="btn btn-principal" onClick={() => setSynchroOuverte(true)}>📆 Synchroniser mon calendrier</button>
-        <button type="button" className="btn" onClick={exporter}>⬇ Exporter (JSON)</button>
-        <button type="button" className="btn" onClick={() => champFichier.current?.click()}>⬆ Importer</button>
+        <button type="button" className="btn btn-principal" onClick={() => setSynchroOuverte(true)}><IconeSynchro /> Synchroniser mon calendrier</button>
+        <button type="button" className="btn" onClick={exporter}><IconeExporter /> Exporter (JSON)</button>
+        <button type="button" className="btn" onClick={() => champFichier.current?.click()}><IconeImporter /> Importer</button>
         <input ref={champFichier} type="file" accept="application/json,.json" hidden onChange={importerFichier} />
         <button type="button" className="btn btn-danger" onClick={effacerFaites}>Effacer les tâches terminées</button>
         <span className="aide">Raccourcis : <kbd>N</kbd> nouvelle tâche · <kbd>←</kbd> <kbd>→</kbd> naviguer · <kbd>T</kbd> aujourd&apos;hui</span>

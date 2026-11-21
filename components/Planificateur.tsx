@@ -16,6 +16,7 @@ import {
 } from "@/lib/planification";
 import { formaterDuree, heureFin } from "@/lib/taches";
 import type { Tache } from "@/lib/types";
+import { IconeAjouter, IconeAlerte, IconeContinuer, IconeEchec, IconeEquilibre, IconeFermer, IconeLieu, IconePlanifier, IconeRetour, IconeSucces } from "./Icones";
 
 const CLE_PLAGES = "agenda-plages-dispo"; // copie de secours dans le navigateur
 
@@ -113,7 +114,7 @@ export function Planificateur({ taches, onAppliquer, onFermer }: Props) {
   return (
     <dialog ref={dialogue} aria-labelledby="titre-planif" onClose={onFermer} className="dialogue-large">
       <div className="formulaire planif">
-        <h2 id="titre-planif">🪄 Planifier ma semaine</h2>
+        <h2 id="titre-planif"><IconePlanifier /> Planifier ma semaine</h2>
 
         {etape === "reglages" ? (
           <>
@@ -148,10 +149,10 @@ export function Planificateur({ taches, onAppliquer, onFermer }: Props) {
                           <input type="time" aria-label={`${nom} début`} value={p.debut} onChange={(e) => majPlage(i, "debut", e.target.value)} />
                           –
                           <input type="time" aria-label={`${nom} fin`} value={p.fin} onChange={(e) => majPlage(i, "fin", e.target.value)} />
-                          <button type="button" className="btn-icone" aria-label="Retirer cette plage" onClick={() => retirerPlage(i)}>✕</button>
+                          <button type="button" className="btn-icone" aria-label="Retirer cette plage" onClick={() => retirerPlage(i)}><IconeFermer /></button>
                         </span>
                       ))}
-                      <button type="button" className="lien" onClick={() => ajouterPlage(jour)}>+ plage</button>
+                      <button type="button" className="lien" onClick={() => ajouterPlage(jour)}><IconeAjouter /> plage</button>
                     </div>
                   </div>
                 );
@@ -161,7 +162,7 @@ export function Planificateur({ taches, onAppliquer, onFermer }: Props) {
                 <button type="button" className="lien" onClick={() => copierLundi([1, 2, 3, 4, 5, 6])}>Copier lundi sur toute la semaine</button>
                 <button type="button" className="lien" onClick={() => setPlages(PLAGES_PAR_DEFAUT)}>Rétablir 8 h–20 h</button>
               </div>
-              {invalides > 0 && <p className="avertissement">⚠ {invalides} plage(s) dont la fin n&apos;est pas après le début seront ignorées.</p>}
+              {invalides > 0 && <p className="avertissement"><IconeAlerte /> {invalides} plage(s) dont la fin n&apos;est pas après le début seront ignorées.</p>}
             </fieldset>
             {noteStockage && <p className="indice">{noteStockage}</p>}
 
@@ -169,7 +170,7 @@ export function Planificateur({ taches, onAppliquer, onFermer }: Props) {
               <button type="button" className="btn" onClick={() => dialogue.current?.close()}>Fermer</button>
               <button type="button" className="btn btn-principal" disabled={!chargees || aPlacer.length === 0 || plagesValides.length === 0}
                 onClick={voirPropositions}>
-                Voir les propositions →
+                Voir les propositions <IconeContinuer />
               </button>
             </div>
           </>
@@ -185,11 +186,11 @@ export function Planificateur({ taches, onAppliquer, onFermer }: Props) {
                   <strong>{p.nom}</strong>
                   <span className="indice">{p.description}</span>
                   <span className="stats">
-                    <span>✅ {p.placements.length}/{p.placements.length + p.nonPlaces.length} placées</span>
-                    {p.stats.apresEcheance > 0 && <span className="alerte">⚠ {p.stats.apresEcheance} après échéance</span>}
-                    {p.nonPlaces.length > 0 && <span className="alerte">✗ {p.nonPlaces.length} sans place</span>}
-                    <span>📍 {p.stats.changementsDeLieu} changement(s) de lieu</span>
-                    <span>⚖ écart entre jours : {p.stats.ecartCharge ? formaterDuree(p.stats.ecartCharge) : "0"}</span>
+                    <span><IconeSucces /> {p.placements.length}/{p.placements.length + p.nonPlaces.length} placées</span>
+                    {p.stats.apresEcheance > 0 && <span className="alerte"><IconeAlerte /> {p.stats.apresEcheance} après échéance</span>}
+                    {p.nonPlaces.length > 0 && <span className="alerte"><IconeEchec /> {p.nonPlaces.length} sans place</span>}
+                    <span><IconeLieu /> {p.stats.changementsDeLieu} changement(s) de lieu</span>
+                    <span><IconeEquilibre /> écart entre jours : {p.stats.ecartCharge ? formaterDuree(p.stats.ecartCharge) : "0"}</span>
                   </span>
                   {p.identiqueA && <span className="indice">= même résultat que « {plannings.find((q) => q.id === p.identiqueA)!.nom} »</span>}
                 </button>
@@ -199,7 +200,7 @@ export function Planificateur({ taches, onAppliquer, onFermer }: Props) {
             {planning && <Apercu planning={planning} />}
 
             <div className="boutons-dialogue">
-              <button type="button" className="btn" onClick={() => setEtape("reglages")}>← Modifier les réglages</button>
+              <button type="button" className="btn" onClick={() => setEtape("reglages")}><IconeRetour /> Modifier les réglages</button>
               <button type="button" className="btn btn-principal" disabled={enCours || !planning || planning.placements.length === 0} onClick={appliquer}>
                 {enCours ? "Application…" : `Appliquer « ${planning?.nom ?? ""} »`}
               </button>
@@ -225,9 +226,9 @@ function Apercu({ planning }: { planning: Planning }) {
             {liste.map((p) => (
               <li key={p.tacheId}>
                 <span className="tache-heure">{p.heure}–{heureFin(p.heure, p.dureeMinutes)}</span> {p.titre}
-                {p.lieu && <span className="indice"> · 📍 {p.lieu}</span>}
+                {p.lieu && <span className="indice"> · <IconeLieu /> {p.lieu}</span>}
                 {p.dureeParDefaut && <span className="indice"> · durée inconnue → 1 h</span>}
-                {p.apresEcheance && <span className="alerte"> · ⚠ après l&apos;échéance (aucune place avant)</span>}
+                {p.apresEcheance && <span className="alerte"> · <IconeAlerte /> après l&apos;échéance (aucune place avant)</span>}
               </li>
             ))}
           </ul>
