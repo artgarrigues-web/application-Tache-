@@ -28,12 +28,12 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
     tache
       ? {
           titre: tache.titre, description: tache.description, date: tache.date, heure: tache.heure,
-          dureeMinutes: tache.dureeMinutes, lieu: tache.lieu, materiel: tache.materiel,
+          dureeMinutes: tache.dureeMinutes, lieu: tache.lieu, echeance: tache.echeance, materiel: tache.materiel,
           categorie: tache.categorie, priorite: tache.priorite, groupe: tache.groupe,
         }
       : {
           titre: "", description: "", date: dateParDefaut, heure: "",
-          dureeMinutes: null, lieu: "", materiel: "",
+          dureeMinutes: null, lieu: "", echeance: "", materiel: "",
           categorie: categorieParDefaut, priorite: "moyenne", groupe: null,
         },
   );
@@ -155,6 +155,12 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
             <input id="champ-lieu" type="text" maxLength={200} placeholder="Ex. : Bâtiment B, salle 204"
               value={valeurs.lieu} onChange={(e) => changer("lieu", e.target.value)} />
           </div>
+        </div>
+
+        <div className="champ">
+          <label htmlFor="champ-echeance">Échéance <span className="indice">(facultative : « à faire avant le… », utilisée par la planification automatique)</span></label>
+          <input id="champ-echeance" type="date"
+            value={valeurs.echeance} onChange={(e) => changer("echeance", e.target.value)} />
         </div>
 
         <div className="champ">

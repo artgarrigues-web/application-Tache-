@@ -5,7 +5,7 @@
    des données. React échappe automatiquement le texte inséré avec {…} :
    un titre contenant "<script>" s'affiche comme du texte (protection XSS).  */
 
-import { formater, depuisISO } from "@/lib/dates";
+import { aujourdhui, formater, depuisISO, versISO } from "@/lib/dates";
 import { estEnRetard, formaterDuree, groupesDe, heureFin, lienCarte, listeMateriel } from "@/lib/taches";
 import { CATEGORIES, GROUPES, PRIORITES, type Tache } from "@/lib/types";
 
@@ -16,6 +16,7 @@ export interface ActionsAgenda {
   supprimer: (id: string) => void;
   ajouterLe: (dateISO: string) => void;
   allerAuJour: (dateISO: string) => void;
+  planifier?: () => void; // ouvre la planification automatique (bouton de l'onglet Checklist)
 }
 
 interface Props {
@@ -82,6 +83,11 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false 
               )}
               {tache.dureeMinutes && (
                 <span className="badge badge-info" title="Durée estimée">⏱ {formaterDuree(tache.dureeMinutes)}</span>
+              )}
+              {tache.echeance && (
+                <span className={`badge ${!tache.faite && tache.echeance < versISO(aujourdhui()) ? "badge-retard" : "badge-info"}`} title="Échéance">
+                  ⏳ avant le {formater(depuisISO(tache.echeance), { weekday: "short", day: "numeric", month: "short" })}
+                </span>
               )}
               {tache.lieu && (
                 /* stopPropagation : sans ça, le clic remonterait jusqu'à la carte et ouvrirait aussi le formulaire. */

@@ -179,6 +179,11 @@ export function VueChecklist({ liste, actions }: Props) {
         dans les vues Jour, Semaine et Mois, mais bien dans Liste (à la fin) et dans Tri.
       </p>
       <ListeTaches taches={aFaire} actions={actions} messageVide="Rien dans la checklist. 🎉" />
+      {aFaire.length > 0 && actions.planifier && (
+        <button type="button" className="btn btn-principal" onClick={actions.planifier}>
+          🪄 Placer ces tâches dans ma semaine
+        </button>
+      )}
       <button type="button" className="btn-ajouter" onClick={() => actions.ajouterLe("")}>
         + Ajouter à la checklist
       </button>

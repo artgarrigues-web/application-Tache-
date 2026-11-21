@@ -15,6 +15,7 @@ export interface Tache {
   heure: string;     // "HH:MM" ou "" si pas d'heure
   dureeMinutes: number | null; // durée estimée en minutes, null si non renseignée
   lieu: string;      // "" si non renseigné
+  echeance: string;  // "AAAA-MM-JJ" : date limite (sert à la planification automatique), "" si aucune
   materiel: string;  // un élément par ligne, "" si rien
   categorie: Categorie;
   priorite: Priorite;
