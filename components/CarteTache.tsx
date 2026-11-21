@@ -5,9 +5,11 @@
    des données. React échappe automatiquement le texte inséré avec {…} :
    un titre contenant "<script>" s'affiche comme du texte (protection XSS).  */
 
+import type { ReactNode } from "react";
 import { aujourdhui, formater, depuisISO, versISO } from "@/lib/dates";
 import { estEnRetard, formaterDuree, groupesDe, heureFin, lienCarte, listeMateriel } from "@/lib/taches";
 import { CATEGORIES, GROUPES, PRIORITES, type Tache } from "@/lib/types";
+import { IconeChecklist, IconeDuree, IconeEcheance, IconeGroupe, IconeLieu, IconeMateriel, IconeModifier, IconeSupprimer } from "./Icones";
 
 // Les actions possibles depuis une vue de l'agenda, fournies par le composant Agenda.
 export interface ActionsAgenda {
@@ -68,32 +70,32 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false 
             {tache.description && <p className="tache-description">{tache.description}</p>}
             {materiel.length > 0 && (
               <p className="tache-materiel">
-                <span aria-hidden="true">🎒 </span>
+                <IconeMateriel />{" "}
                 <strong>Matériel :</strong> {materiel.join(" · ")}
               </p>
             )}
             <div className="tache-meta">
               {GROUPES.filter((g) => groupes.includes(g.id)).map((g) => (
-                <span key={g.id} className={`badge badge-groupe groupe-${g.id}`} title={tache.groupe ? "Groupe choisi à la main" : g.regle}>{g.icone} {g.libelle}</span>
+                <span key={g.id} className={`badge badge-groupe groupe-${g.id}`} title={tache.groupe ? "Groupe choisi à la main" : g.regle}><IconeGroupe groupe={g.id} /> {g.libelle}</span>
               ))}
               {avecDate && (
                 <span className="badge badge-date">
-                  {tache.date ? formater(depuisISO(tache.date), { weekday: "short", day: "numeric", month: "short" }) : "☑ Sans date"}
+                  {tache.date ? formater(depuisISO(tache.date), { weekday: "short", day: "numeric", month: "short" }) : <><IconeChecklist /> Sans date</>}
                 </span>
               )}
               {tache.dureeMinutes && (
-                <span className="badge badge-info" title="Durée estimée">⏱ {formaterDuree(tache.dureeMinutes)}</span>
+                <span className="badge badge-info" title="Durée estimée"><IconeDuree /> {formaterDuree(tache.dureeMinutes)}</span>
               )}
               {tache.echeance && (
                 <span className={`badge ${!tache.faite && tache.echeance < versISO(aujourdhui()) ? "badge-retard" : "badge-info"}`} title="Échéance">
-                  ⏳ avant le {formater(depuisISO(tache.echeance), { weekday: "short", day: "numeric", month: "short" })}
+                  <IconeEcheance /> avant le {formater(depuisISO(tache.echeance), { weekday: "short", day: "numeric", month: "short" })}
                 </span>
               )}
               {tache.lieu && (
                 /* stopPropagation : sans ça, le clic remonterait jusqu'à la carte et ouvrirait aussi le formulaire. */
                 <a className="badge badge-info badge-lieu" href={lienCarte(tache.lieu)} target="_blank" rel="noopener noreferrer"
                   title="Ouvrir dans Google Maps" onClick={(e) => e.stopPropagation()}>
-                  📍 {tache.lieu}
+                  <IconeLieu /> {tache.lieu}
                 </a>
               )}
               <span className="badge badge-cat">{CATEGORIES[tache.categorie]}</span>
@@ -109,9 +111,9 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false 
       {!compacte && (
         <div className="tache-actions">
           <button type="button" className="btn-icone" title="Modifier" aria-label="Modifier"
-            onClick={() => actions.modifier(tache.id)}>✏️</button>
+            onClick={() => actions.modifier(tache.id)}><IconeModifier /></button>
           <button type="button" className="btn-icone" title="Supprimer" aria-label="Supprimer"
-            onClick={() => actions.supprimer(tache.id)}>🗑️</button>
+            onClick={() => actions.supprimer(tache.id)}><IconeSupprimer /></button>
         </div>
       )}
     </article>
@@ -121,7 +123,7 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false 
 interface PropsListe {
   taches: Tache[];
   actions: ActionsAgenda;
-  messageVide?: string;
+  messageVide?: ReactNode;
   compacte?: boolean;
 }
 

@@ -116,7 +116,12 @@ body {
   font: inherit; color: var(--texte); background: var(--surface);
   border: 1px solid var(--bord); border-radius: 8px; padding: 7px 10px;
 }
-.filtres input[type="search"] { flex: 1 1 220px; }
+.champ-recherche { flex: 1 1 220px; position: relative; display: flex; }
+.champ-recherche input { flex: 1; min-width: 0; padding-left: 34px; }
+.champ-recherche .lucide {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  color: var(--texte-doux); pointer-events: none;   /* le clic traverse l'icône et va au champ */
+}
 .filtres select { flex: 0 1 auto; }
 
 /* ---------- Carte d'une tâche ---------- */
@@ -381,3 +386,19 @@ dialog.dialogue-large { width: min(760px, calc(100vw - 32px)); }
   .plage-jour { flex-direction: column; gap: 4px; }
   .plage-nom { padding-top: 0; }
 }
+
+/* ---------- Icônes (components/Icones.tsx, bibliothèque lucide-react) ----------
+   "em" = relatif à la taille du texte voisin : l'icône suit le texte partout
+   (bouton, badge, titre) sans réglage au cas par cas. stroke = currentColor :
+   elle prend la couleur du texte, donc suit le thème clair/sombre et les badges. */
+.lucide {
+  width: 1.15em; height: 1.15em;
+  vertical-align: -0.2em;   /* aligne le dessin sur la ligne d'écriture du texte */
+  flex-shrink: 0;           /* ne s'écrase jamais dans une ligne flex étroite (téléphone) */
+}
+.badge .lucide { width: 1.05em; height: 1.05em; vertical-align: -0.18em; }
+.btn-icone .lucide { width: 18px; height: 18px; vertical-align: middle; }
+.btn-ajouter-mini .lucide, .colonne-jour > .btn-ajouter .lucide { vertical-align: middle; }
+.tache-actions .btn-icone { color: var(--texte-doux); }
+.tache-actions .btn-icone:hover { color: var(--accent); }
+.tache-actions .btn-icone[aria-label="Supprimer"]:hover { color: var(--haute); }

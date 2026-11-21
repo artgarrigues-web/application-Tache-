@@ -13,6 +13,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { NOM_APP } from "@/lib/marque";
+import { IconeMenu, IconeSynchro, IconeValide } from "./Icones";
 
 const NOM_CALENDRIER = NOM_APP;
 
@@ -81,7 +82,7 @@ export function SynchroCalendrier({ onFermer }: { onFermer: () => void }) {
   return (
     <dialog ref={dialogue} aria-labelledby="titre-synchro" onClose={onFermer}>
       <div className="formulaire synchro">
-        <h2 id="titre-synchro">📆 Synchroniser avec mon calendrier</h2>
+        <h2 id="titre-synchro"><IconeSynchro /> Synchroniser avec mon calendrier</h2>
 
         <p className="indice">
           Tes tâches <strong>datées</strong> apparaissent dans Google Agenda (et donc sur Android), Outlook,
@@ -103,7 +104,7 @@ export function SynchroCalendrier({ onFermer }: { onFermer: () => void }) {
               <label htmlFor="champ-adresse">Ton adresse d&apos;abonnement (personnelle et secrète)</label>
               <div className="ligne-copie">
                 <input id="champ-adresse" type="text" readOnly value={adresse} onFocus={(e) => e.target.select()} />
-                <button type="button" className="btn" onClick={copier}>{copie ? "✓ Copiée" : "Copier"}</button>
+                <button type="button" className="btn" onClick={copier}>{copie ? <><IconeValide /> Copiée</> : "Copier"}</button>
               </div>
             </div>
 
@@ -120,7 +121,7 @@ export function SynchroCalendrier({ onFermer }: { onFermer: () => void }) {
               <ol>
                 <li>Clique sur « Google Agenda / Android » (depuis un ordinateur de préférence : l&apos;appli Android ne sait pas ajouter un calendrier par adresse).</li>
                 <li>Google propose « Ajouter cet agenda » : confirme. Sinon : calendar.google.com → « Autres agendas » → « + » → « À partir de l&apos;URL » → colle l&apos;adresse.</li>
-                <li>Sur le téléphone : appli Google Agenda → menu ☰ → Paramètres → « {NOM_APP} » → active « Synchronisation ». Il apparaît alors aussi dans l&apos;agenda Samsung ou tout agenda Android relié à ton compte Google.</li>
+                <li>Sur le téléphone : appli Google Agenda → menu <IconeMenu /> → Paramètres → « {NOM_APP} » → active « Synchronisation ». Il apparaît alors aussi dans l&apos;agenda Samsung ou tout agenda Android relié à ton compte Google.</li>
               </ol>
               <h3>Outlook et Teams</h3>
               <ol>

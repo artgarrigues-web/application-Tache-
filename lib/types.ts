@@ -51,10 +51,10 @@ export const VUES: { id: Vue; libelle: string }[] = [
    Ils ne sont PAS stockés en base : ils sont calculés à partir des champs
    existants (date, priorité, durée). Voir groupesDe() dans lib/taches.ts. */
 export type Groupe = "urgent" | "important" | "rapide";
-export const GROUPES: { id: Groupe; libelle: string; icone: string; regle: string }[] = [
-  { id: "urgent", libelle: "Urgent", icone: "🔥", regle: "À faire aujourd'hui, demain, ou déjà en retard" },
-  { id: "important", libelle: "Important", icone: "⭐", regle: "Priorité haute" },
-  { id: "rapide", libelle: "Rapide", icone: "⚡", regle: "Durée estimée de 30 min ou moins" },
+export const GROUPES: { id: Groupe; libelle: string; regle: string }[] = [
+  { id: "urgent", libelle: "Urgent", regle: "À faire aujourd'hui, demain, ou déjà en retard" },
+  { id: "important", libelle: "Important", regle: "Priorité haute" },
+  { id: "rapide", libelle: "Rapide", regle: "Durée estimée de 30 min ou moins" },
 ];
 // Seuils réglables : modifier ces deux nombres suffit à changer les règles.
 export const JOURS_URGENCE = 1;      // 0 = aujourd'hui seulement, 1 = jusqu'à demain inclus, etc.
