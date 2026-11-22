@@ -112,7 +112,7 @@ function horodatageUTC(d: Date): string {
 }
 
 function evenement(t: TacheCalendrier, maintenant: string): string[] {
-  // Le suffixe "@agenda-taches" date d'avant le nom AgandIA : on le GARDE exprès.
+  // Le suffixe "@agenda-taches" date d'avant le nom AgendIA : on le GARDE exprès.
   // Le changer ferait croire aux calendriers déjà abonnés que toutes les tâches
   // sont de nouveaux événements (doublons ou clignotements).
   const lignes = ["BEGIN:VEVENT", `UID:${t.id}@agenda-taches`, `DTSTAMP:${maintenant}`];
@@ -154,7 +154,7 @@ export function genererICS(taches: TacheCalendrier[], maintenant = new Date()): 
   const lignes = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//AgandIA//FR",
+    "PRODID:-//AgendIA//FR",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     `X-WR-CALNAME:${NOM_APP}`,

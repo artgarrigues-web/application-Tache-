@@ -1,8 +1,8 @@
-# AgandIA (Next.js + Supabase)
+# AgendIA (Next.js + Supabase)
 
-<img src="app/icon.svg" alt="Logo AgandIA" width="64" height="64">
+<img src="app/icon.svg" alt="Logo AgendIA" width="64" height="64">
 
-**AgandIA** (agenda + IA) : application web pour organiser ses tâches personnelles et professionnelles sous forme d'agenda (jour, semaine, mois, liste). Elle permet d'ajouter, modifier, supprimer et cocher des tâches, affiche le nombre de tâches restantes et propose catégories, priorités, recherche et filtres. Chaque tâche peut aussi avoir une **durée estimée** (avec l'heure de fin calculée et le temps total prévu par jour), un **lieu** (cliquable vers Google Maps) et une **liste de matériel**. Les tâches sont stockées dans **Supabase**, chacun a son compte, et le site s'héberge sur **Vercel**.
+**AgendIA** (agenda + IA) : application web pour organiser ses tâches personnelles et professionnelles sous forme d'agenda (jour, semaine, mois, liste). Elle permet d'ajouter, modifier, supprimer et cocher des tâches, affiche le nombre de tâches restantes et propose catégories, priorités, recherche et filtres. Chaque tâche peut aussi avoir une **durée estimée** (avec l'heure de fin calculée et le temps total prévu par jour), un **lieu** (cliquable vers Google Maps) et une **liste de matériel**. Les tâches sont stockées dans **Supabase**, chacun a son compte, et le site s'héberge sur **Vercel**.
 
 > Le nom annonce la suite : l'**IA** sera intégrée plus tard. La planification automatique actuelle (« Planifier ma semaine ») n'utilise pas d'IA, c'est un algorithme déterministe.
 >
@@ -44,6 +44,8 @@ Le code est poussé sur ton dépôt GitHub. Le fichier `.gitignore` exclut `node
    - `NEXT_PUBLIC_SUPABASE_URL` = l'URL du projet ;
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` = la clé publishable.
 3. **Deploy**. Tu obtiens une adresse du type `https://agenda-taches-xxx.vercel.app`.
+
+   Adresse actuelle du site : **https://agendia-taches.vercel.app**. L'ancienne adresse `https://application-tache-cyan.vercel.app` reste active (même site, pas de redirection) pour que les liens d'abonnement calendrier (.ics) déjà ajoutés dans Google Agenda / Outlook continuent de fonctionner.
 4. Retourne dans Supabase → **Authentication → URL Configuration** :
    - **Site URL** : ton adresse Vercel ;
    - **Redirect URLs** : ajoute aussi `http://localhost:3000` pour le développement.

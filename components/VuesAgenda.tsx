@@ -7,7 +7,7 @@ import { ajouterJours, aujourdhui, debutSemaine, depuisISO, formater, majuscule,
 import { chargeRestante, estSansDate, formaterDuree, grouperParDate, repartirParGroupe } from "@/lib/taches";
 import { DUREE_RAPIDE_MAX, GROUPES, JOURS_COURTS, type Tache } from "@/lib/types";
 import { CarteTache, ListeTaches, type ActionsAgenda } from "./CarteTache";
-import { IconeAjouter, IconeBravo, IconeChecklist, IconeDuree, IconeGroupe, IconePlanifier } from "./Icones";
+import { IconeAjouter, IconeBravo, IconeCalendrier, IconeChecklist, IconeDuree, IconeGroupe, IconePlanifier } from "./Icones";
 
 const MAX_TACHES_CASE_MOIS = 3;
 
@@ -168,30 +168,55 @@ export function VueTri({ liste, actions }: Props) {
   );
 }
 
-/* ---------- Vue Checklist : les tâches sans date ---------- */
+/* ---------- Vue Checklist : TOUTES les tâches à cocher ----------
+   Trois parties, dans cet ordre :
+   1. « Sans date » : les tâches à faire quand tu peux (celles que le planificateur peut placer) ;
+   2. « Planifiées » : les tâches à faire qui ont une date (et souvent une heure), triées
+      chronologiquement — la liste reçue est déjà triée par date puis heure (comparer()) ;
+      chaque carte affiche un badge de date, et l'heure en tête du titre ;
+   3. « Cochées » : tout ce qui est terminé, daté ou non.
+   Les tâches datées restent bien sûr AUSSI dans Jour, Semaine et Mois. */
 export function VueChecklist({ liste, actions }: Props) {
-  const taches = liste.filter(estSansDate);
-  const aFaire = taches.filter((t) => !t.faite);
-  const faites = taches.filter((t) => t.faite);
+  const aFaire = liste.filter((t) => !t.faite);
+  const sansDate = aFaire.filter(estSansDate);
+  const planifiees = aFaire.filter((t) => !estSansDate(t));
+  const faites = liste.filter((t) => t.faite);
   return (
     <section className="checklist">
       <p className="aide-tri">
-        Les tâches <strong>sans date ni heure</strong> : à faire « quand tu peux ». Elles n&apos;apparaissent pas
-        dans les vues Jour, Semaine et Mois, mais bien dans Liste (à la fin) et dans Tri.
+        Toutes tes tâches à cocher : d&apos;abord celles <strong>sans date</strong> (à faire « quand tu peux »),
+        puis celles <strong>planifiées</strong> avec une date et un horaire, de la plus proche à la plus lointaine.
+        Les tâches planifiées restent aussi dans les vues Jour, Semaine et Mois.
       </p>
-      <ListeTaches taches={aFaire} actions={actions} messageVide={<><IconeBravo /> Rien dans la checklist.</>} />
-      {aFaire.length > 0 && actions.planifier && (
+
+      <h3 className="titre-section-checklist">
+        <IconeChecklist /> Sans date <span className="compte-groupe">{sansDate.length}</span>
+      </h3>
+      <ListeTaches taches={sansDate} actions={actions} messageVide={<><IconeBravo /> Aucune tâche sans date.</>} />
+      {sansDate.length > 0 && actions.planifier && (
         <button type="button" className="btn btn-principal" onClick={actions.planifier}>
           <IconePlanifier /> Placer ces tâches dans ma semaine
         </button>
       )}
       <button type="button" className="btn-ajouter" onClick={() => actions.ajouterLe("")}>
-        <IconeAjouter /> Ajouter à la checklist
+        <IconeAjouter /> Ajouter une tâche sans date
       </button>
+
+      <h3 className="titre-section-checklist">
+        <IconeCalendrier /> Planifiées <span className="compte-groupe">{planifiees.length}</span>
+      </h3>
+      {planifiees.length === 0
+        ? <p className="vide">Aucune tâche planifiée à faire.</p>
+        : <div className="liste-taches">
+            {planifiees.map((t) => <CarteTache key={t.id} tache={t} actions={actions} avecDate />)}
+          </div>}
+
       {faites.length > 0 && (
         <>
           <h3 className="titre-faites">Cochées ({faites.length})</h3>
-          <ListeTaches taches={faites} actions={actions} />
+          <div className="liste-taches">
+            {faites.map((t) => <CarteTache key={t.id} tache={t} actions={actions} avecDate={!estSansDate(t)} />)}
+          </div>
         </>
       )}
     </section>
