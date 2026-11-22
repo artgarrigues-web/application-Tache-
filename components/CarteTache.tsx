@@ -35,7 +35,6 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false 
   const classes = [
     "tache", `cat-${tache.categorie}`, `prio-${tache.priorite}`,
     compacte && "compacte", tache.faite && "faite", retard && "retard",
-    groupes.includes("urgent") && "urgente",
   ].filter(Boolean).join(" ");
 
   return (

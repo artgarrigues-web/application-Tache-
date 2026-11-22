@@ -7,40 +7,60 @@
 
 :root {
   color-scheme: light dark;          /* adapte aussi les champs natifs (calendrier, etc.) */
-  --fond: #f4f6fb;
+  /* Palette « Bleu franc » (choisie le 22/11/2026) : fond blanc, bleu ; vert = fait ; rouge = en retard.
+     Tous les textes ont un contraste ≥ 4,5:1 sur leurs fonds (norme WCAG AA). */
+  --fond: #ffffff;
   --surface: #ffffff;
-  --surface-2: #eef1f7;
-  --texte: #1d2433;
-  --texte-doux: #5d6678;
-  --bord: #dde2ec;
-  --accent: #3b5bdb;
+  --surface-2: #f1f5fb;
+  --texte: #0f172a;
+  --texte-doux: #475569;
+  --bord: #d5deea;
+  --accent: #1d4ed8;
   --accent-texte: #ffffff;
-  --perso: #9c36b5;
-  --travail: #1c7ed6;
-  --projets: #2f9e44;
-  --haute: #e03131;
-  --moyenne: #e8590c;
-  --basse: #868e96;
-  --ombre: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --perso: #7e22ce;
+  --travail: #1d4ed8;
+  --projets: #a21caf;
+  --haute: #c2410c;
+  --moyenne: #8f5a07;
+  --basse: #5b6a80;
+  --urgent: #c2410c;   /* groupe Urgent (orange, pas rouge) */
+  --important: #8f5a07;
+  --rapide: #0e7490;
+  --fait: #15803d;   /* ce qui est terminé (vert) */
+  --fait-fond: #f0fdf4;
+  --retard: #c81e1e;   /* en retard : SEULE utilisation du rouge pour une tâche */
+  --retard-fond: #fef2f2;
+  --critique: #a51b1b;   /* badge « En retard » (rouge plein) */
+  --critique-texte: #ffffff;
+  --ombre: 0 1px 2px rgba(15, 23, 42, 0.06);
   --rayon: 10px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --fond: #12151c;
-    --surface: #1b2029;
-    --surface-2: #252b36;
-    --texte: #e7eaf0;
-    --texte-doux: #9aa3b2;
-    --bord: #313848;
-    --accent: #748ffc;
-    --accent-texte: #0b1020;
-    --perso: #da77f2;
-    --travail: #4dabf7;
-    --projets: #69db7c;
-    --haute: #ff6b6b;
-    --moyenne: #ffa94d;
-    --basse: #adb5bd;
+    --fond: #0b1220;
+    --surface: #111a2e;
+    --surface-2: #1a2540;
+    --texte: #e5ecf6;
+    --texte-doux: #9fb0c8;
+    --bord: #2a3a5a;
+    --accent: #60a5fa;
+    --accent-texte: #0b1220;
+    --perso: #c084fc;
+    --travail: #60a5fa;
+    --projets: #f0abfc;
+    --haute: #fb923c;
+    --moyenne: #facc15;
+    --basse: #94a3b8;
+    --urgent: #fb923c;   /* groupe Urgent (orange, pas rouge) */
+    --important: #facc15;
+    --rapide: #22d3ee;
+    --fait: #4ade80;   /* ce qui est terminé (vert) */
+    --fait-fond: #0f2a1e;
+    --retard: #f87171;   /* en retard : SEULE utilisation du rouge pour une tâche */
+    --retard-fond: #2c1318;
+    --critique: #dc2626;   /* badge « En retard » (rouge plein) */
+    --critique-texte: #ffffff;
     --ombre: none;
   }
 }
@@ -71,7 +91,7 @@ body {
 .btn:hover { background: var(--surface-2); }
 .btn-principal { background: var(--accent); color: var(--accent-texte); border-color: transparent; font-weight: 600; }
 .btn-principal:hover { background: var(--accent); filter: brightness(1.1); }
-.btn-danger { color: var(--haute); border-color: var(--haute); }
+.btn-danger { color: var(--retard); border-color: var(--retard); }
 .btn-icone {
   border: none; background: transparent; cursor: pointer;
   padding: 4px; border-radius: 6px; font-size: 0.95rem; line-height: 1; opacity: 0.55;
@@ -94,9 +114,9 @@ body {
   padding: 6px 12px; font-size: 0.9rem; color: var(--texte-doux);
 }
 .compteur .nombre { font-size: 1.25rem; font-weight: 700; color: var(--texte); font-variant-numeric: tabular-nums; }
-.compteur.alerte .nombre { color: var(--haute); }
+.compteur.alerte .nombre { color: var(--retard); }
 .progression { width: 70px; height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
-.progression > span { display: block; height: 100%; background: var(--projets); transition: width 0.3s; }
+.progression > span { display: block; height: 100%; background: var(--fait); transition: width 0.3s; }
 
 /* ---------- Barre d'outils ---------- */
 .barre-outils { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 12px; }
@@ -154,12 +174,21 @@ body {
 .badge-prio-haute { color: var(--haute); }
 .badge-prio-moyenne { color: var(--moyenne); }
 .badge-prio-basse { color: var(--basse); }
-.badge-retard { background: var(--haute); color: #fff; border-color: transparent; }
+.badge-retard { background: var(--critique); color: var(--critique-texte); border-color: transparent; }
 .tache-actions { display: flex; gap: 2px; flex: none; }
 
-.tache.faite { opacity: 0.55; }
-.tache.faite .tache-titre { text-decoration: line-through; }
-.tache.retard { border-top-color: var(--haute); border-right-color: var(--haute); border-bottom-color: var(--haute); }
+/* FAIT = vert : fond vert pâle, bord gauche et case verts, titre barré.
+   (Plus de transparence : elle faisait tomber le contraste du texte à 2,3:1.) */
+.tache.faite {
+  background: var(--fait-fond);
+  border-color: color-mix(in srgb, var(--fait) 35%, var(--bord));
+  border-left-color: var(--fait);
+}
+.tache.faite input[type="checkbox"] { accent-color: var(--fait); }
+.tache.faite .tache-titre { color: var(--texte-doux); text-decoration: line-through; text-decoration-color: var(--fait); text-decoration-thickness: 2px; }
+.tache.faite .badge { color: var(--texte-doux); }
+/* EN RETARD = rouge, et c'est le seul cas où une tâche est rouge. */
+.tache.retard { background: var(--retard-fond); border-color: var(--critique); box-shadow: 0 0 0 1px var(--critique); }
 
 .liste-taches { display: flex; flex-direction: column; gap: 6px; }
 .vide { margin: 4px 0; color: var(--texte-doux); font-style: italic; }
@@ -286,12 +315,12 @@ kbd { font: inherit; font-size: 0.8rem; border: 1px solid var(--bord); border-bo
 .carte-connexion code { font-size: 0.85em; }
 .lien { font: inherit; font-size: 0.85rem; color: var(--accent); background: none; border: none; cursor: pointer; padding: 0; }
 .lien:hover { text-decoration: underline; }
-.message-erreur { margin: 0; color: var(--haute); font-size: 0.9rem; }
-.message-info { margin: 0; color: var(--projets); font-size: 0.9rem; }
+.message-erreur { margin: 0; color: var(--retard); font-size: 0.9rem; }
+.message-info { margin: 0; color: var(--fait); font-size: 0.9rem; }
 .bandeau-erreur {
   display: flex; justify-content: space-between; align-items: center; gap: 8px;
   margin-bottom: 12px; padding: 8px 12px; border-radius: 8px;
-  border: 1px solid var(--haute); color: var(--haute); background: var(--surface);
+  border: 1px solid var(--retard); color: var(--retard); background: var(--surface);
 }
 .utilisateur { display: flex; gap: 10px; align-items: center; width: 100%; justify-content: flex-end; }
 button:disabled { opacity: 0.6; cursor: wait; }
@@ -309,8 +338,7 @@ a.badge-lieu:hover { color: var(--accent); }
 @media (max-width: 800px) { .charge-colonne { margin-top: 0; } }
 
 /* ---------- Groupes Urgent / Important / Rapide (vue Tri + badges) ---------- */
-:root { --urgent: #e03131; --important: #f08c00; --rapide: #0c8599; }
-@media (prefers-color-scheme: dark) { :root { --urgent: #ff6b6b; --important: #ffc078; --rapide: #3bc9db; } }
+/* Couleurs --urgent, --important, --rapide : définies en haut du fichier avec la palette. */
 .groupe-urgent { --couleur-groupe: var(--urgent); }
 .groupe-important { --couleur-groupe: var(--important); }
 .groupe-rapide { --couleur-groupe: var(--rapide); }
@@ -351,12 +379,12 @@ a.badge-lieu:hover { color: var(--accent); }
 .bandeau-info {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   margin-bottom: 12px; padding: 8px 12px; border-radius: 8px;
-  border: 1px solid var(--projets); background: var(--surface);
+  border: 1px solid var(--fait); background: var(--surface);
 }
 .bandeau-info > span { flex: 1; min-width: 200px; }
 dialog.dialogue-large { width: min(760px, calc(100vw - 32px)); }
 .planif .indice { margin: 0; color: var(--texte-doux); font-size: 0.85rem; }
-.planif .alerte, .planif .avertissement { color: var(--haute); }
+.planif .alerte, .planif .avertissement { color: var(--retard); }
 .planif .avertissement { margin: 6px 0 0; font-size: 0.85rem; }
 .ligne-semaine { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.9rem; }
 .ligne-semaine .onglets { flex-wrap: wrap; }
@@ -366,7 +394,7 @@ dialog.dialogue-large { width: min(760px, calc(100vw - 32px)); }
 .plage-nom { width: 80px; flex-shrink: 0; font-size: 0.9rem; padding-top: 6px; }
 .plage-liste { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 32px; }
 .plage { display: inline-flex; align-items: center; gap: 4px; background: var(--surface-2); border-radius: 8px; padding: 2px 4px; border: 1px solid transparent; }
-.plage.plage-erreur { border-color: var(--haute); }
+.plage.plage-erreur { border-color: var(--retard); }
 .formulaire .plage input { width: auto; padding: 3px 4px; }
 .plage-raccourcis { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.85rem; }
 .propositions { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
@@ -401,4 +429,4 @@ dialog.dialogue-large { width: min(760px, calc(100vw - 32px)); }
 .btn-ajouter-mini .lucide, .colonne-jour > .btn-ajouter .lucide { vertical-align: middle; }
 .tache-actions .btn-icone { color: var(--texte-doux); }
 .tache-actions .btn-icone:hover { color: var(--accent); }
-.tache-actions .btn-icone[aria-label="Supprimer"]:hover { color: var(--haute); }
+.tache-actions .btn-icone[aria-label="Supprimer"]:hover { color: var(--retard); }
