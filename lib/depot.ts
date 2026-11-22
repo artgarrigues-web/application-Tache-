@@ -7,7 +7,7 @@
    - application (TypeScript) : camelCase (creeLe, dureeMinutes), heure "14:00" ou "".  */
 
 import { supabase } from "./supabase";
-import type { Categorie, DonneesTache, Groupe, Priorite, Tache } from "./types";
+import type { Categorie, DonneesTache, Groupe, Idee, Priorite, ProjetIdees, Tache } from "./types";
 
 const TABLE = "taches";
 
@@ -150,5 +150,59 @@ export async function supprimerTache(id: string): Promise<void> {
 
 export async function supprimerTerminees(): Promise<void> {
   const { error } = await supabase().from(TABLE).delete().eq("faite", true);
+  verifier(error);
+}
+
+/* ---------- Idées de projets (tables projets_idees et idees) ----------
+   Même principe que les tâches : les règles RLS ne renvoient que les lignes de
+   l'utilisateur connecté, et user_id est rempli par la base (default auth.uid()). */
+
+interface LigneProjet { id: string; titre: string; cree_le: string }
+interface LigneIdee { id: string; projet_id: string; texte: string; faite: boolean; cree_le: string }
+
+const versProjet = (l: LigneProjet): ProjetIdees => ({ id: l.id, titre: l.titre, creeLe: l.cree_le });
+const versIdee = (l: LigneIdee): Idee => ({ id: l.id, projetId: l.projet_id, texte: l.texte, faite: l.faite, creeLe: l.cree_le });
+
+export async function listerProjetsEtIdees(): Promise<{ projets: ProjetIdees[]; idees: Idee[] }> {
+  // Deux requêtes lancées en même temps (Promise.all) plutôt que l'une après l'autre.
+  const [p, i] = await Promise.all([
+    supabase().from("projets_idees").select("id, titre, cree_le").order("cree_le"),
+    supabase().from("idees").select("id, projet_id, texte, faite, cree_le").order("cree_le"),
+  ]);
+  verifier(p.error);
+  verifier(i.error);
+  return { projets: (p.data as LigneProjet[]).map(versProjet), idees: (i.data as LigneIdee[]).map(versIdee) };
+}
+
+export async function insererProjet(titre: string): Promise<ProjetIdees> {
+  const { data, error } = await supabase().from("projets_idees").insert({ titre }).select().single();
+  verifier(error);
+  return versProjet(data as LigneProjet);
+}
+
+export async function renommerProjet(id: string, titre: string): Promise<void> {
+  const { error } = await supabase().from("projets_idees").update({ titre }).eq("id", id);
+  verifier(error);
+}
+
+// Les idées du projet sont supprimées avec lui par la base (on delete cascade).
+export async function supprimerProjet(id: string): Promise<void> {
+  const { error } = await supabase().from("projets_idees").delete().eq("id", id);
+  verifier(error);
+}
+
+export async function insererIdee(projetId: string, texte: string): Promise<Idee> {
+  const { data, error } = await supabase().from("idees").insert({ projet_id: projetId, texte }).select().single();
+  verifier(error);
+  return versIdee(data as LigneIdee);
+}
+
+export async function modifierIdee(id: string, champs: { texte?: string; faite?: boolean }): Promise<void> {
+  const { error } = await supabase().from("idees").update(champs).eq("id", id);
+  verifier(error);
+}
+
+export async function supprimerIdee(id: string): Promise<void> {
+  const { error } = await supabase().from("idees").delete().eq("id", id);
   verifier(error);
 }

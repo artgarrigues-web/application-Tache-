@@ -60,3 +60,20 @@ export const GROUPES: { id: Groupe; libelle: string; regle: string }[] = [
 export const JOURS_URGENCE = 1;      // 0 = aujourd'hui seulement, 1 = jusqu'à demain inclus, etc.
 export const DUREE_RAPIDE_MAX = 30;  // en minutes
 export const FILTRES_INITIAUX: Filtres = { recherche: "", categorie: "toutes", priorite: "toutes", statut: "toutes" };
+
+/* ---------- Idées de projets (catégorie de la Checklist) ----------
+   Un projet = un titre ; ses idées = une liste de notes cochables, sans date.
+   Tables Supabase projets_idees et idees (supabase/migration-idees.sql). */
+export interface ProjetIdees {
+  id: string;
+  titre: string;
+  creeLe: string;
+}
+
+export interface Idee {
+  id: string;
+  projetId: string;
+  texte: string;
+  faite: boolean;    // « réalisée » / retenue : cochée = barrée en vert, comme une tâche faite
+  creeLe: string;
+}

@@ -48,6 +48,8 @@ export {
   MapPin as IconeLieu,
   Backpack as IconeMateriel,
   ListChecks as IconeChecklist,
+  Lightbulb as IconeIdee,
+  FolderOpen as IconeProjet,
   CalendarClock as IconeCalendrier,
   // Messages et statistiques
   CircleCheck as IconeSucces,
