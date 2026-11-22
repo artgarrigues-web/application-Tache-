@@ -4,7 +4,13 @@
    elle est donc dans un composant client (<App />).                       */
 
 import { App } from "@/components/App";
+import { ApercuPalettes } from "@/components/ApercuPalettes";
 
 export default function Page() {
-  return <App />;
+  return (
+    <>
+      <App />
+      <ApercuPalettes />
+    </>
+  );
 }
