@@ -435,3 +435,72 @@ dialog.dialogue-large { width: min(760px, calc(100vw - 32px)); }
 .tache-actions .btn-icone { color: var(--texte-doux); }
 .tache-actions .btn-icone:hover { color: var(--accent); }
 .tache-actions .btn-icone[aria-label="Supprimer"]:hover { color: var(--retard); }
+
+/* ---------- Checklist : menu de catégories à gauche (Tâches / Idées de projets) ----------
+   Bureau : deux colonnes (menu 240 px | contenu). Téléphone (< 720 px) : le menu passe
+   au-dessus du contenu, les deux catégories côte à côte comme des onglets. */
+.checklist-categories {
+  display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; align-items: start; max-width: 1040px;
+}
+.menu-checklist {
+  display: flex; flex-direction: column; gap: 4px; position: sticky; top: 12px;
+  background: var(--surface); border: 1px solid var(--bord); border-radius: var(--rayon); padding: 8px;
+}
+.categorie-checklist, .projet-menu {
+  font: inherit; color: var(--texte); background: transparent; border: none; cursor: pointer;
+  display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+  padding: 8px 10px; border-radius: 8px;
+}
+.categorie-checklist { font-weight: 600; }
+.categorie-checklist > span:nth-of-type(1), .projet-menu-titre { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.categorie-checklist:hover, .projet-menu:hover { background: var(--surface-2); }
+.categorie-checklist.actif { background: var(--accent); color: var(--accent-texte); }
+.categorie-checklist.actif .compte-groupe { background: color-mix(in srgb, currentColor 22%, transparent); color: inherit; }
+.menu-projets { display: flex; flex-direction: column; gap: 6px; margin: 2px 0 0 12px; padding-left: 8px; border-left: 2px solid var(--bord); }
+.menu-projets ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.projet-menu { padding: 6px 8px; font-size: 0.92rem; color: var(--texte-doux); }
+.projet-menu .lucide { color: var(--projets); }
+.projet-menu.actif { color: var(--accent); font-weight: 600; background: var(--surface-2); box-shadow: inset 3px 0 0 var(--accent); }
+.contenu-checklist { min-width: 0; }
+.contenu-checklist .checklist { max-width: none; }
+
+/* Champ une ligne + bouton (nouveau projet, nouvelle idée) */
+.champ-ajout { display: flex; gap: 6px; }
+.champ-ajout input, .champ-sur-place {
+  font: inherit; color: var(--texte); background: var(--surface);
+  border: 1px solid var(--bord); border-radius: 8px; padding: 6px 10px; flex: 1; min-width: 0;
+}
+.champ-sur-place { width: 100%; resize: vertical; }
+.champ-ajout .btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; white-space: nowrap; }
+.champ-ajout .btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+.menu-projets .champ-ajout .texte-bouton { display: none; }   /* colonne étroite : icône + seule */
+
+/* Panneau d'un projet et ses idées (même allure que les cartes de tâches, couleur Projets) */
+.panneau-projet { display: flex; flex-direction: column; gap: 10px; }
+.entete-projet { display: flex; align-items: center; gap: 8px; }
+.entete-projet h3 { margin: 0; font-size: 1.15rem; flex: 1; min-width: 0; overflow-wrap: anywhere; display: flex; align-items: center; gap: 8px; }
+.entete-projet h3 .lucide { color: var(--projets); }
+.resume-projet { margin: -6px 0 0; font-size: 0.85rem; color: var(--texte-doux); }
+.liste-idees { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.idee {
+  display: flex; align-items: flex-start; gap: 8px;
+  background: var(--surface); border: 1px solid var(--bord); border-left: 4px solid var(--projets);
+  border-radius: 8px; padding: 8px 10px; box-shadow: var(--ombre);
+}
+.idee input[type="checkbox"] { width: 18px; height: 18px; margin: 1px 0 0; flex: none; accent-color: var(--projets); cursor: pointer; }
+.idee-texte { flex: 1; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; cursor: pointer; }
+.idee.faite { background: var(--fait-fond); border-color: color-mix(in srgb, var(--fait) 35%, var(--bord)); border-left-color: var(--fait); }
+.idee.faite input[type="checkbox"] { accent-color: var(--fait); }
+.idee.faite .idee-texte { color: var(--texte-doux); text-decoration: line-through; text-decoration-color: var(--fait); text-decoration-thickness: 2px; }
+.panneau-projet .titre-faites { margin: 8px 0 0; font-size: 0.95rem; color: var(--texte-doux); display: flex; align-items: center; gap: 6px; }
+
+@media (max-width: 720px) {
+  .checklist-categories { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .menu-checklist { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .categorie-checklist { padding: 8px; gap: 6px; }
+  .menu-projets { grid-column: 1 / -1; min-width: 0; margin: 4px 0 0; padding: 8px 0 0; border-left: none; border-top: 1px solid var(--bord); }
+  .menu-projets ul { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+  .projet-menu { width: auto; max-width: 100%; border: 1px solid var(--bord); border-radius: 999px; padding: 5px 12px; }
+  .projet-menu.actif { box-shadow: none; border-color: var(--accent); }
+  .menu-projets .champ-ajout .texte-bouton { display: inline; }
+}

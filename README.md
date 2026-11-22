@@ -158,6 +158,13 @@ Bouton « 🪄 Planifier ma semaine » : place les tâches de la Checklist (sans
 - Rien n'est écrit avant « Appliquer » ; un bandeau permet ensuite d'**annuler** (seules les tâches non modifiées depuis sont remises en Checklist).
 - Migration à coller dans Supabase : `supabase/migration-planification.sql`.
 
+### Idées de projets (Checklist)
+
+- La Checklist a un **menu de catégories à gauche** (au-dessus sur téléphone) : *Tâches* et *Idées de projets*.
+- *Idées de projets* : autant de projets que tu veux (créer, renommer, supprimer) ; chaque projet a sa liste d'idées (ajouter, modifier d'un clic, cocher quand elle est réalisée, supprimer). Pas de date : ce ne sont pas des tâches.
+- Code : `components/IdeesProjets.tsx`, `hooks/useIdees.ts`, fonctions « Idées » de `lib/depot.ts`.
+- Données : tables `projets_idees` et `idees` (RLS par utilisateur ; supprimer un projet supprime ses idées). Migration à coller dans Supabase : `supabase/migration-idees.sql`. Tant qu'elle n'est pas appliquée, la catégorie affiche un message au lieu d'une erreur.
+
 ## 4. Limites, en toute honnêteté
 
 - **Synchronisation entre appareils** : les tâches sont rechargées à l'ouverture et chaque fois que tu reviens sur l'onglet. Ce n'est pas du temps réel : si deux appareils sont ouverts en même temps, l'un ne voit les changements de l'autre qu'en revenant sur l'onglet. Supabase Realtime permettrait le vrai temps réel.

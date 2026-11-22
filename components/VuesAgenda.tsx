@@ -7,7 +7,10 @@ import { ajouterJours, aujourdhui, debutSemaine, depuisISO, formater, majuscule,
 import { chargeRestante, estSansDate, formaterDuree, grouperParDate, repartirParGroupe } from "@/lib/taches";
 import { DUREE_RAPIDE_MAX, GROUPES, JOURS_COURTS, type Tache } from "@/lib/types";
 import { CarteTache, ListeTaches, type ActionsAgenda } from "./CarteTache";
-import { IconeAjouter, IconeBravo, IconeCalendrier, IconeChecklist, IconeDuree, IconeGroupe, IconePlanifier } from "./Icones";
+import { IconeAjouter, IconeBravo, IconeCalendrier, IconeChecklist, IconeDuree, IconeGroupe, IconeIdee, IconePlanifier } from "./Icones";
+import { useEffect, useState } from "react";
+import type { DonneesIdees } from "@/hooks/useIdees";
+import { MenuProjets, PanneauProjet } from "./IdeesProjets";
 
 const MAX_TACHES_CASE_MOIS = 3;
 
@@ -178,7 +181,61 @@ export function VueTri({ liste, actions }: Props) {
    Les tâches datées restent bien sûr AUSSI dans Jour, Semaine et Mois. */
 /* sousAgenda : la même Checklist affichée sous le calendrier (Jour/Semaine/Mois).
    On y masque juste le paragraphe d'explication, déjà lisible dans l'onglet. */
-export function VueChecklist({ liste, actions, sousAgenda = false }: Props & { sousAgenda?: boolean }) {
+/* ---------- Checklist ----------
+   À gauche (au-dessus sur téléphone), un menu de catégories :
+   - « Tâches » : les tâches à cocher (sans date, planifiées, cochées) ;
+   - « Idées de projets » : des projets, chacun avec sa liste d'idées.
+   La catégorie et le projet choisis sont retenus dans le navigateur. */
+type CategorieChecklist = "taches" | "idees";
+const CLE_CATEGORIE = "agendia-checklist-categorie";
+const CLE_PROJET = "agendia-checklist-projet";
+
+function lire(cle: string): string | null {
+  try { return localStorage.getItem(cle); } catch { return null; }
+}
+function ecrire(cle: string, valeur: string) {
+  try { localStorage.setItem(cle, valeur); } catch { /* navigateur privé : non retenu */ }
+}
+
+export function VueChecklist({ liste, actions, sousAgenda = false, idees }: Props & { sousAgenda?: boolean; idees?: DonneesIdees }) {
+  const [categorie, setCategorie] = useState<CategorieChecklist>("taches");
+  const [projetChoisi, setProjetChoisi] = useState<string | null>(null);
+  useEffect(() => {
+    if (lire(CLE_CATEGORIE) === "idees") setCategorie("idees");
+    setProjetChoisi(lire(CLE_PROJET));
+  }, []);
+  function changerCategorie(c: CategorieChecklist) { setCategorie(c); ecrire(CLE_CATEGORIE, c); }
+  function choisirProjet(id: string) { setProjetChoisi(id); ecrire(CLE_PROJET, id); }
+
+  if (!idees) return <ChecklistTaches liste={liste} actions={actions} sousAgenda={sousAgenda} />;
+
+  // Projet affiché : celui choisi s'il existe encore, sinon le premier de la liste.
+  const projet = idees.projets.find((p) => p.id === projetChoisi) ?? idees.projets[0] ?? null;
+  const nbAFaire = liste.filter((t) => !t.faite).length;
+
+  return (
+    <div className="checklist-categories">
+      <nav className="menu-checklist" aria-label="Catégories de la checklist">
+        <button type="button" className={`categorie-checklist${categorie === "taches" ? " actif" : ""}`}
+          aria-current={categorie === "taches" ? "true" : undefined} onClick={() => changerCategorie("taches")}>
+          <IconeChecklist /> <span>Tâches</span> <span className="compte-groupe">{nbAFaire}</span>
+        </button>
+        <button type="button" className={`categorie-checklist${categorie === "idees" ? " actif" : ""}`}
+          aria-current={categorie === "idees" ? "true" : undefined} onClick={() => changerCategorie("idees")}>
+          <IconeIdee /> <span>Idées de projets</span> <span className="compte-groupe">{idees.projets.length}</span>
+        </button>
+        {categorie === "idees" && <MenuProjets donnees={idees} projetActif={projet?.id ?? null} choisir={choisirProjet} />}
+      </nav>
+      <div className="contenu-checklist">
+        {categorie === "taches"
+          ? <ChecklistTaches liste={liste} actions={actions} sousAgenda={sousAgenda} />
+          : <PanneauProjet key={projet?.id ?? "aucun"} donnees={idees} projet={projet} />}
+      </div>
+    </div>
+  );
+}
+
+function ChecklistTaches({ liste, actions, sousAgenda }: Omit<Props, "dateRef"> & { sousAgenda: boolean }) {
   const aFaire = liste.filter((t) => !t.faite);
   const sansDate = aFaire.filter(estSansDate);
   const planifiees = aFaire.filter((t) => !estSansDate(t));

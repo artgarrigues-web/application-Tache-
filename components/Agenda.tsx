@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabase";
 import { comparer, passeLesFiltres, validerTaches } from "@/lib/taches";
 import { FILTRES_INITIAUX, VUES, type DonneesTache, type Filtres, type Vue } from "@/lib/types";
 import { useTaches } from "@/hooks/useTaches";
+import { useIdees } from "@/hooks/useIdees";
 import type { ActionsAgenda } from "./CarteTache";
 import { Compteurs } from "./Compteurs";
 import { FormulaireTache } from "./FormulaireTache";
@@ -39,6 +40,7 @@ interface EtatFormulaire { tacheId: string | null; date?: string }
 export function Agenda({ utilisateur }: { utilisateur: User }) {
   const { taches, charge, erreur, effacerErreur, ajouter, modifier, supprimer, basculerFaite, effacerTerminees, importer, changerHoraires } =
     useTaches(utilisateur.id);
+  const idees = useIdees(utilisateur.id); // catégorie « Idées de projets » de la Checklist
 
   const [vue, setVue] = useState<Vue>("semaine");
   const [dateRef, setDateRef] = useState<Date>(() => aujourdhui());
@@ -293,7 +295,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           : vue === "semaine" ? <VueSemaine {...propsVue} />
           : vue === "mois" ? <VueMois {...propsVue} />
           : vue === "tri" ? <VueTri {...propsVue} />
-          : vue === "checklist" ? <VueChecklist {...propsVue} />
+          : vue === "checklist" ? <VueChecklist {...propsVue} idees={idees} />
           : <VueListe {...propsVue} />}
       </main>
 
@@ -303,7 +305,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
       {charge && vueCalendrier && (
         <section id="checklist" className="checklist-sous-agenda" aria-labelledby="titre-checklist-sous-agenda">
           <h2 id="titre-checklist-sous-agenda"><IconeChecklist /> Checklist</h2>
-          <VueChecklist {...propsVue} sousAgenda />
+          <VueChecklist {...propsVue} sousAgenda idees={idees} />
         </section>
       )}
 
