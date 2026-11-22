@@ -24,7 +24,7 @@ import type { ChangementHoraire } from "@/lib/depot";
 import type { Planning } from "@/lib/planification";
 import { VueChecklist, VueJour, VueListe, VueMois, VueSemaine, VueTri } from "./VuesAgenda";
 import { Logo, NomApp } from "./Logo";
-import { IconeAjouter, IconeAnnuler, IconeExporter, IconeFermer, IconeImporter, IconePlanifier, IconePrecedent, IconeRecherche, IconeSucces, IconeSuivant, IconeSynchro } from "./Icones";
+import { IconeAjouter, IconeAnnuler, IconeChecklist, IconeExporter, IconeFermer, IconeImporter, IconePlanifier, IconePrecedent, IconeRecherche, IconeSucces, IconeSuivant, IconeSynchro } from "./Icones";
 
 const CLE_VUE = "agenda-taches-vue"; // simple préférence d'affichage, gardée dans le navigateur
 const CLE_ANNULATION = "agenda-dernier-planning"; // de quoi annuler le dernier planning appliqué
@@ -70,6 +70,8 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   const plage = plageVisible(vue, dateRef);
   // Les vues Liste et Tri montrent toutes les dates : pas de navigation ‹ ›.
   const navigable = vue !== "liste" && vue !== "tri" && vue !== "checklist";
+  // Vues « calendrier » sous lesquelles on affiche aussi la Checklist.
+  const vueCalendrier = vue === "jour" || vue === "semaine" || vue === "mois";
 
   // useMemo : ne refait le filtrage/tri que si les tâches ou les filtres changent.
   const liste = useMemo(
@@ -294,6 +296,16 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           : vue === "checklist" ? <VueChecklist {...propsVue} />
           : <VueListe {...propsVue} />}
       </main>
+
+      {/* Sous les vues calendrier (Jour, Semaine, Mois), la Checklist est aussi affichée
+          en bas de page : on y arrive en faisant défiler. Même composant et mêmes données
+          (liste filtrée + actions) que l'onglet Checklist : rien n'est dupliqué. */}
+      {charge && vueCalendrier && (
+        <section id="checklist" className="checklist-sous-agenda" aria-labelledby="titre-checklist-sous-agenda">
+          <h2 id="titre-checklist-sous-agenda"><IconeChecklist /> Checklist</h2>
+          <VueChecklist {...propsVue} sousAgenda />
+        </section>
+      )}
 
       <footer className="pied">
         <button type="button" className="btn btn-principal" onClick={() => setSynchroOuverte(true)}><IconeSynchro /> Synchroniser mon calendrier</button>

@@ -364,6 +364,9 @@ a.badge-lieu:hover { color: var(--accent); }
 .checklist .titre-section-checklist { margin: 14px 0 0; font-size: 1rem; display: flex; align-items: center; gap: 6px; }
 .checklist .titre-section-checklist:first-of-type { margin-top: 4px; }
 .checklist .titre-faites { margin: 18px 0 8px; font-size: 0.95rem; color: var(--texte-doux); }
+/* La même Checklist affichée sous le calendrier (vues Jour / Semaine / Mois). */
+.checklist-sous-agenda { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--bord); scroll-margin-top: 16px; }
+.checklist-sous-agenda > h2 { margin: 0 0 6px; font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
 
 /* ---------- Fenêtre de synchronisation calendrier ---------- */
 .synchro .indice { margin: 0; color: var(--texte-doux); font-size: 0.9rem; }
