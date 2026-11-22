@@ -176,18 +176,20 @@ export function VueTri({ liste, actions }: Props) {
       chaque carte affiche un badge de date, et l'heure en tête du titre ;
    3. « Cochées » : tout ce qui est terminé, daté ou non.
    Les tâches datées restent bien sûr AUSSI dans Jour, Semaine et Mois. */
-export function VueChecklist({ liste, actions }: Props) {
+/* sousAgenda : la même Checklist affichée sous le calendrier (Jour/Semaine/Mois).
+   On y masque juste le paragraphe d'explication, déjà lisible dans l'onglet. */
+export function VueChecklist({ liste, actions, sousAgenda = false }: Props & { sousAgenda?: boolean }) {
   const aFaire = liste.filter((t) => !t.faite);
   const sansDate = aFaire.filter(estSansDate);
   const planifiees = aFaire.filter((t) => !estSansDate(t));
   const faites = liste.filter((t) => t.faite);
   return (
     <section className="checklist">
-      <p className="aide-tri">
+      {!sousAgenda && <p className="aide-tri">
         Toutes tes tâches à cocher : d&apos;abord celles <strong>sans date</strong> (à faire « quand tu peux »),
         puis celles <strong>planifiées</strong> avec une date et un horaire, de la plus proche à la plus lointaine.
         Les tâches planifiées restent aussi dans les vues Jour, Semaine et Mois.
-      </p>
+      </p>}
 
       <h3 className="titre-section-checklist">
         <IconeChecklist /> Sans date <span className="compte-groupe">{sansDate.length}</span>
