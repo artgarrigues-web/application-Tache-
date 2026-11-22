@@ -69,7 +69,7 @@ export function titrePeriode(vue: Vue, d: Date): string {
     return `Semaine du ${formater(lundi, { day: "numeric", month: "long" })} au ${formater(dimanche, { day: "numeric", month: "long", year: "numeric" })}`;
   }
   if (vue === "mois") return majuscule(formater(d, { month: "long", year: "numeric" }));
-  if (vue === "checklist") return "Checklist : tâches sans date";
+  if (vue === "checklist") return "Checklist : toutes les tâches à cocher";
   if (vue === "tri") return "Tâches à faire : Urgent · Important · Rapide";
   return "Toutes les tâches";
 }

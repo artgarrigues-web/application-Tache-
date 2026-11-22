@@ -1,5 +1,5 @@
 /* =====================================================================
-   AgandIA — mise en forme
+   AgendIA — mise en forme
    Les couleurs sont définies une seule fois sous forme de "variables CSS"
    (--nom) : on les change ici et toute l'application suit. Un second jeu
    de valeurs s'applique automatiquement si le système est en mode sombre.
@@ -361,6 +361,8 @@ a.badge-lieu:hover { color: var(--accent); }
 .formulaire .case-sans-date input { width: auto; margin: 0; accent-color: var(--accent); }
 .checklist { max-width: 760px; display: flex; flex-direction: column; gap: 10px; }
 .checklist .aide-tri { margin: 0; }
+.checklist .titre-section-checklist { margin: 14px 0 0; font-size: 1rem; display: flex; align-items: center; gap: 6px; }
+.checklist .titre-section-checklist:first-of-type { margin-top: 4px; }
 .checklist .titre-faites { margin: 18px 0 8px; font-size: 0.95rem; color: var(--texte-doux); }
 
 /* ---------- Fenêtre de synchronisation calendrier ---------- */
