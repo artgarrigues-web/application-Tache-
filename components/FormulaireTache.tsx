@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { aujourdhui, versISO } from "@/lib/dates";
 import { groupesAutomatiques, listeMateriel } from "@/lib/taches";
+import { IconeMoinsOptions, IconePlusOptions } from "./Icones";
 import { GROUPES, type Categorie, type DonneesTache, type Groupe, type Priorite, type Tache } from "@/lib/types";
 
 interface Props {
@@ -24,6 +25,13 @@ interface Props {
 export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEnregistrer, onSupprimer, onFermer }: Props) {
   const dialogue = useRef<HTMLDialogElement>(null);
   const [enCours, setEnCours] = useState(false);
+  /* Mode "simple" ou "complet".
+     - Nouvelle tâche : simple (titre, date, heure) ; le bouton en bas à droite
+       ("Plus d'options") déplie les autres champs.
+     - Modification d'une tâche existante : complet d'emblée, pour tout voir.
+     Replier ne vide pas les champs : leurs valeurs restent dans "valeurs"
+     et sont enregistrées (valeurs par défaut si on n'y a pas touché). */
+  const [complet, setComplet] = useState(tache !== null);
   const [valeurs, setValeurs] = useState<DonneesTache>(() =>
     tache
       ? {
@@ -112,16 +120,12 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
             value={valeurs.titre} onChange={(e) => changer("titre", e.target.value)} />
         </div>
 
-        <div className="champ">
-          <label htmlFor="champ-description">Description</label>
-          <textarea id="champ-description" rows={3} placeholder="Détails, liens, sous-étapes…"
-            value={valeurs.description} onChange={(e) => changer("description", e.target.value)} />
-        </div>
-
-        <label className="case-sans-date">
+        {/* En mode simple, la case n'apparaît que si la tâche est déjà sans date
+            (ajout depuis la Checklist), pour qu'on comprenne pourquoi la date manque. */}
+        {(complet || sansDate) && <label className="case-sans-date">
           <input type="checkbox" checked={sansDate} onChange={(e) => basculerSansDate(e.target.checked)} />
           Sans date ni heure (checklist)
-        </label>
+        </label>}
 
         {!sansDate && <div className="ligne-champs">
           <div className="champ">
@@ -135,6 +139,13 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
               value={valeurs.heure} onChange={(e) => changer("heure", e.target.value)} />
           </div>
         </div>}
+
+        {complet && <>
+        <div className="champ">
+          <label htmlFor="champ-description">Description</label>
+          <textarea id="champ-description" rows={3} placeholder="Détails, liens, sous-étapes…"
+            value={valeurs.description} onChange={(e) => changer("description", e.target.value)} />
+        </div>
 
         <div className="ligne-champs">
           <div className="champ">
@@ -197,6 +208,18 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
             <option value="">Automatique (actuellement : {texteAuto})</option>
             {GROUPES.map((g) => <option key={g.id} value={g.id}>{g.libelle}</option>)}
           </select>
+        </div>
+        </>}
+
+        {/* Bouton en bas à droite qui déplie / replie les champs supplémentaires.
+            aria-expanded indique l'état aux lecteurs d'écran. */}
+        <div className="bascule-options">
+          <button type="button" className="lien" aria-expanded={complet}
+            onClick={() => setComplet((c) => !c)}>
+            {complet
+              ? <>Moins d&apos;options <IconeMoinsOptions /></>
+              : <>Plus d&apos;options <span className="indice">(description, catégorie, durée…)</span> <IconePlusOptions /></>}
+          </button>
         </div>
 
         <div className="boutons-dialogue">
