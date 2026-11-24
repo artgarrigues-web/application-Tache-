@@ -280,6 +280,11 @@ dialog::backdrop { background: rgba(10, 15, 25, 0.5); }
 .ligne-champs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .boutons-dialogue { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
 #btn-supprimer-dialogue { margin-right: auto; }
+/* Bouton « Plus d'options » : aligné à droite, juste au-dessus des boutons Annuler / Enregistrer. */
+.bascule-options { display: flex; justify-content: flex-end; }
+.bascule-options .lien { display: inline-flex; align-items: center; gap: 4px; padding: 6px 2px; text-align: right; }
+.bascule-options .indice { color: var(--texte-doux); font-size: 0.8rem; }
+@media (max-width: 480px) { .bascule-options .indice { display: none; } }
 
 /* ---------- Pied de page ---------- */
 .pied { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 28px; font-size: 0.85rem; color: var(--texte-doux); }
