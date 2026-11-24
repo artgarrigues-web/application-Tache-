@@ -609,7 +609,7 @@ dialog.dialogue-large { width: min(760px, calc(100vw - 32px)); }
   .menu-projets .champ-ajout .texte-bouton { display: inline; }
 }
 
-/* ---------- APERÇU : repères d'heure (?reperes=a|b|c|d) ---------- */
+/* ---------- Repères d'heure : C par défaut ; A, B et D gardées de côté (?reperes=a|b|d) ---------- */
 .repere {
   display: flex; align-items: center; gap: 6px; margin: 2px 0;
   font-size: 0.72rem; color: var(--texte-doux); font-variant-numeric: tabular-nums;

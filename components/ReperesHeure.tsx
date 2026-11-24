@@ -1,8 +1,10 @@
 "use client";
 
-/* APERÇU — Repères d'heure dans les vues Jour et Semaine (4 variantes à comparer).
-   La variante se choisit dans l'adresse : ?reperes=a | b | c | d (sans paramètre = comme avant).
-   Une seule variante sera gardée après le choix d'Arthur ; le paramètre disparaîtra alors.
+/* Repères d'heure dans les vues Jour et Semaine.
+   Choix d'Arthur (24/11/2026) : variante C par défaut. Les variantes A, B et D sont
+   GARDÉES DE CÔTÉ exprès (Arthur a une idée pour elles plus tard) : on peut les voir
+   en ajoutant à l'adresse ?reperes=a | b | d (ou ?reperes=aucune pour l'ancien affichage).
+   Pour en changer définitivement, il suffit de modifier VARIANTE_PAR_DEFAUT.
 
    a : repères fixes toutes les 4 h (8h, 12h, 16h, 20h), toujours visibles ;
    b : intertitres « Matin / Après-midi / Soir », seulement pour les moments qui ont des tâches ;
@@ -15,11 +17,13 @@ import { CarteTache, ListeTaches, type ActionsAgenda } from "./CarteTache";
 
 export type VarianteReperes = "aucune" | "a" | "b" | "c" | "d";
 
+export const VARIANTE_PAR_DEFAUT: VarianteReperes = "c";
+
 export function useVarianteReperes(): VarianteReperes {
-  const [variante, setVariante] = useState<VarianteReperes>("aucune");
+  const [variante, setVariante] = useState<VarianteReperes>(VARIANTE_PAR_DEFAUT);
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("reperes");
-    if (p === "a" || p === "b" || p === "c" || p === "d") setVariante(p);
+    if (p === "aucune" || p === "a" || p === "b" || p === "c" || p === "d") setVariante(p);
   }, []);
   return variante;
 }
