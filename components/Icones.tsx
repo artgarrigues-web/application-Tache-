@@ -40,8 +40,8 @@ export {
   // Navigation
   ChevronLeft as IconePrecedent,
   ChevronRight as IconeSuivant,
-  ChevronDown as IconePlusOptions,
-  ChevronUp as IconeMoinsOptions,
+  ChevronDown as IconeDeplier,
+  SlidersHorizontal as IconeOptions,
   ArrowLeft as IconeRetour,
   ArrowRight as IconeContinuer,
   // Informations sur une tâche

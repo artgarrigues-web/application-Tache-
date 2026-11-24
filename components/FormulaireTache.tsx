@@ -10,7 +10,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { aujourdhui, versISO } from "@/lib/dates";
 import { groupesAutomatiques, listeMateriel } from "@/lib/taches";
-import { IconeMoinsOptions, IconePlusOptions } from "./Icones";
+import { IconeDeplier, IconeOptions } from "./Icones";
 import { GROUPES, type Categorie, type DonneesTache, type Groupe, type Priorite, type Tache } from "@/lib/types";
 
 interface Props {
@@ -74,6 +74,12 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
   const texteAuto = auto.length
     ? auto.map((id) => GROUPES.find((g) => g.id === id)!.libelle).join(" + ")
     : "aucun groupe";
+
+  // Nombre de détails (champs repliables) déjà remplis, affiché sur la pastille quand elle est fermée.
+  const nbDetails = [
+    valeurs.description.trim(), valeurs.dureeMinutes, valeurs.lieu.trim(), valeurs.echeance,
+    valeurs.materiel.trim(), valeurs.groupe, valeurs.priorite !== "moyenne",
+  ].filter(Boolean).length;
 
   useEffect(() => {
     const d = dialogue.current;
@@ -140,7 +146,11 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
           </div>
         </div>}
 
-        {complet && <>
+        {/* Champs supplémentaires : toujours dans la page, mais repliés.
+            L'animation d'ouverture vient du CSS (.options-sup, grille 0fr → 1fr).
+            "inert" rend les champs repliés inaccessibles au clavier (Tab) et aux lecteurs d'écran. */}
+        <div id="options-sup" className={`options-sup${complet ? " ouvert" : ""}`} inert={!complet}>
+        <div className="options-sup-contenu">
         <div className="champ">
           <label htmlFor="champ-description">Description</label>
           <textarea id="champ-description" rows={3} placeholder="Détails, liens, sous-étapes…"
@@ -209,16 +219,19 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
             {GROUPES.map((g) => <option key={g.id} value={g.id}>{g.libelle}</option>)}
           </select>
         </div>
-        </>}
+        </div>
+        </div>
 
-        {/* Bouton en bas à droite qui déplie / replie les champs supplémentaires.
-            aria-expanded indique l'état aux lecteurs d'écran. */}
+        {/* Séparateur fin avec, à droite, la pastille qui déplie / replie les détails.
+            Repliée, elle affiche le nombre de détails déjà remplis (ex. en revenant en arrière). */}
         <div className="bascule-options">
-          <button type="button" className="lien" aria-expanded={complet}
+          <button type="button" className={`pastille-options${complet ? " ouvert" : ""}`}
+            aria-expanded={complet} aria-controls="options-sup"
             onClick={() => setComplet((c) => !c)}>
-            {complet
-              ? <>Moins d&apos;options <IconeMoinsOptions /></>
-              : <>Plus d&apos;options <span className="indice">(description, catégorie, durée…)</span> <IconePlusOptions /></>}
+            <IconeOptions />
+            <span>{complet ? "Moins de détails" : "Plus de détails"}</span>
+            {!complet && nbDetails > 0 && <span className="pastille-compte" aria-label={`${nbDetails} rempli(s)`}>{nbDetails}</span>}
+            <IconeDeplier className="chevron" />
           </button>
         </div>
 
