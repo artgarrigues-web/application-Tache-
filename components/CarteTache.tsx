@@ -34,6 +34,7 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false 
   const groupes = groupesDe(tache);
   const classes = [
     "tache", `cat-${tache.categorie}`, `prio-${tache.priorite}`,
+    tache.couleur && `avec-couleur couleur-${tache.couleur}`,
     compacte && "compacte", tache.faite && "faite", retard && "retard",
   ].filter(Boolean).join(" ");
 

@@ -10,8 +10,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { aujourdhui, versISO } from "@/lib/dates";
 import { groupesAutomatiques, listeMateriel } from "@/lib/taches";
-import { IconeDeplier, IconeOptions } from "./Icones";
-import { GROUPES, type Categorie, type DonneesTache, type Groupe, type Priorite, type Tache } from "@/lib/types";
+import { IconeAucune, IconeDeplier, IconeOptions, IconeValide } from "./Icones";
+import { COULEURS, GROUPES, type Categorie, type Couleur, type DonneesTache, type Groupe, type Priorite, type Tache } from "@/lib/types";
 
 interface Props {
   tache: Tache | null;                  // null = nouvelle tâche
@@ -37,12 +37,12 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
       ? {
           titre: tache.titre, description: tache.description, date: tache.date, heure: tache.heure,
           dureeMinutes: tache.dureeMinutes, lieu: tache.lieu, echeance: tache.echeance, materiel: tache.materiel,
-          categorie: tache.categorie, priorite: tache.priorite, groupe: tache.groupe,
+          categorie: tache.categorie, priorite: tache.priorite, groupe: tache.groupe, couleur: tache.couleur,
         }
       : {
           titre: "", description: "", date: dateParDefaut, heure: "",
           dureeMinutes: null, lieu: "", echeance: "", materiel: "",
-          categorie: categorieParDefaut, priorite: "moyenne", groupe: null,
+          categorie: categorieParDefaut, priorite: "moyenne", groupe: null, couleur: null,
         },
   );
 
@@ -145,6 +145,30 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
               value={valeurs.heure} onChange={(e) => changer("heure", e.target.value)} />
           </div>
         </div>}
+
+        {/* Palette de couleurs : visible dès le mode simple.
+            Ce sont de vrais boutons radio (un seul choix possible), cachés visuellement
+            et remplacés par des pastilles rondes : le clavier (flèches) et les lecteurs
+            d'écran fonctionnent comme pour n'importe quel groupe de boutons radio. */}
+        <fieldset className="palette">
+          <legend>Couleur</legend>
+          <div className="palette-pastilles">
+            <label className="pastille-couleur sans-couleur" title="Aucune couleur">
+              <input type="radio" name="couleur" value="" checked={valeurs.couleur === null}
+                onChange={() => changer("couleur", null)} />
+              <span className="rond" aria-hidden="true"><IconeAucune /></span>
+              <span className="visuellement-cache">Aucune</span>
+            </label>
+            {COULEURS.map((c) => (
+              <label key={c.id} className={`pastille-couleur couleur-${c.id}`} title={c.libelle}>
+                <input type="radio" name="couleur" value={c.id} checked={valeurs.couleur === c.id}
+                  onChange={() => changer("couleur", c.id as Couleur)} />
+                <span className="rond" aria-hidden="true"><IconeValide /></span>
+                <span className="visuellement-cache">{c.libelle}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
 
         {/* Champs supplémentaires : toujours dans la page, mais repliés.
             L'animation d'ouverture vient du CSS (.options-sup, grille 0fr → 1fr).

@@ -5,7 +5,7 @@
 
 import { ajouterJours, aujourdhui, versISO } from "./dates";
 import {
-  CATEGORIES, DUREE_RAPIDE_MAX, GROUPES, JOURS_URGENCE, PRIORITES, RANG_PRIORITE,
+  CATEGORIES, DUREE_RAPIDE_MAX, estCouleur, GROUPES, JOURS_URGENCE, PRIORITES, RANG_PRIORITE,
   type Categorie, type DonneesTache, type Filtres, type Groupe, type Priorite, type Tache,
 } from "./types";
 
@@ -39,6 +39,7 @@ export function validerTaches(donnees: unknown): Tache[] | null {
       categorie: (typeof t.categorie === "string" && t.categorie in CATEGORIES ? t.categorie : "perso") as Categorie,
       priorite: (typeof t.priorite === "string" && t.priorite in PRIORITES ? t.priorite : "moyenne") as Priorite,
       groupe: (typeof t.groupe === "string" && GROUPES.some((g) => g.id === t.groupe) ? t.groupe : null) as Groupe | null,
+      couleur: estCouleur(t.couleur) ? t.couleur : null,
       faite: Boolean(t.faite),
       creeLe: typeof t.creeLe === "string" ? t.creeLe : new Date().toISOString(),
     }));

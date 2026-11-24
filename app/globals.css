@@ -34,6 +34,17 @@
   --critique-texte: #ffffff;
   --ombre: 0 1px 2px rgba(15, 23, 42, 0.06);
   --rayon: 10px;
+  /* Palette des couleurs de tâche (choisies dans le formulaire). Pas de rouge
+     (réservé au retard) ni de vert vif (réservé aux tâches faites). */
+  --c-bleu: #2563eb;
+  --c-turquoise: #0891b2;
+  --c-sauge: #4f8a63;
+  --c-violet: #7c3aed;
+  --c-rose: #db2777;
+  --c-orange: #ea580c;
+  --c-jaune: #ca8a04;
+  --c-ardoise: #64748b;
+  --teinte-couleur: 8%;   /* part de la couleur dans le fond d'une carte colorée */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -62,6 +73,15 @@
     --critique: #dc2626;   /* badge « En retard » (rouge plein) */
     --critique-texte: #ffffff;
     --ombre: none;
+    --c-bleu: #60a5fa;
+    --c-turquoise: #22d3ee;
+    --c-sauge: #86c09a;
+    --c-violet: #a78bfa;
+    --c-rose: #f472b6;
+    --c-orange: #fb923c;
+    --c-jaune: #facc15;
+    --c-ardoise: #94a3b8;
+    --teinte-couleur: 13%;
   }
 }
 
@@ -177,6 +197,25 @@ body {
 .badge-retard { background: var(--critique); color: var(--critique-texte); border-color: transparent; }
 .tache-actions { display: flex; gap: 2px; flex: none; }
 
+/* COULEUR choisie par l'utilisateur : elle remplace la bande de catégorie (à gauche)
+   et teinte légèrement le fond. Placée AVANT les règles « faite » et « retard » :
+   à spécificité égale, la dernière règle l'emporte, donc fait (vert) et retard (rouge)
+   restent prioritaires sur la couleur choisie. */
+.couleur-bleu { --couleur-tache: var(--c-bleu); }
+.couleur-turquoise { --couleur-tache: var(--c-turquoise); }
+.couleur-sauge { --couleur-tache: var(--c-sauge); }
+.couleur-violet { --couleur-tache: var(--c-violet); }
+.couleur-rose { --couleur-tache: var(--c-rose); }
+.couleur-orange { --couleur-tache: var(--c-orange); }
+.couleur-jaune { --couleur-tache: var(--c-jaune); }
+.couleur-ardoise { --couleur-tache: var(--c-ardoise); }
+.tache.avec-couleur {
+  border-color: color-mix(in srgb, var(--couleur-tache) 30%, var(--bord));
+  border-left-color: var(--couleur-tache);
+  background: color-mix(in srgb, var(--couleur-tache) var(--teinte-couleur), var(--surface));
+}
+.tache.avec-couleur input[type="checkbox"] { accent-color: var(--couleur-tache); }
+
 /* FAIT = vert : fond vert pâle, bord gauche et case verts, titre barré.
    (Plus de transparence : elle faisait tomber le contraste du texte à 2,3:1.) */
 .tache.faite {
@@ -280,6 +319,34 @@ dialog::backdrop { background: rgba(10, 15, 25, 0.5); }
 .ligne-champs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .boutons-dialogue { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
 #btn-supprimer-dialogue { margin-right: auto; }
+/* Palette de couleurs du formulaire : 9 pastilles rondes (« aucune » + 8 couleurs).
+   Grille de 9 colonnes : tient sur une ligne même sur un petit téléphone. */
+.palette { border: none; margin: 0; padding: 0; min-width: 0; }
+.palette legend { padding: 0; margin-bottom: 6px; font-size: 0.85rem; font-weight: 500; color: var(--texte-doux); }
+.palette-pastilles { display: grid; grid-template-columns: repeat(9, minmax(0, 34px)); gap: 6px; }
+.pastille-couleur { position: relative; display: grid; place-items: center; cursor: pointer; padding: 3px 0; }
+.pastille-couleur input { position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0; pointer-events: none; }
+.pastille-couleur .rond {
+  width: 100%; max-width: 28px; aspect-ratio: 1; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--couleur-tache); color: var(--accent-texte);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.pastille-couleur .rond .lucide { width: 15px; height: 15px; stroke-width: 3; opacity: 0; transform: scale(0.5); transition: opacity 0.15s, transform 0.15s; }
+.pastille-couleur:hover .rond { transform: scale(1.1); }
+/* Couleur choisie : anneau autour de la pastille (écart couleur du fond, puis la couleur) + coche. */
+.pastille-couleur input:checked + .rond { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--couleur-tache); }
+.pastille-couleur input:checked + .rond .lucide { opacity: 1; transform: scale(1); }
+.pastille-couleur input:focus-visible + .rond { outline: 2px solid var(--accent); outline-offset: 5px; }
+.sans-couleur { --couleur-tache: var(--texte-doux); }
+.sans-couleur .rond { background: var(--surface-2); color: var(--texte-doux); box-shadow: inset 0 0 0 1px var(--bord); }
+.sans-couleur .rond .lucide { opacity: 1; transform: none; stroke-width: 2; }
+.visuellement-cache {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
 /* Détails repliables du formulaire de tâche.
    Astuce d'animation : une grille dont l'unique ligne passe de 0fr (hauteur nulle)
    à 1fr (hauteur du contenu). Contrairement à height: auto, cela s'anime en CSS. */
@@ -315,7 +382,7 @@ dialog::backdrop { background: rgba(10, 15, 25, 0.5); }
   background: var(--accent); color: var(--accent-texte); font-size: 0.7rem; font-weight: 600;
 }
 @media (prefers-reduced-motion: reduce) {
-  .options-sup, .pastille-options .chevron { transition: none; }
+  .options-sup, .pastille-options .chevron, .pastille-couleur .rond, .pastille-couleur .rond .lucide { transition: none; }
 }
 
 /* ---------- Pied de page ---------- */

@@ -182,3 +182,12 @@ create policy "Modifier ses disponibilites" on public.disponibilites
 drop policy if exists "Supprimer ses disponibilites" on public.disponibilites;
 create policy "Supprimer ses disponibilites" on public.disponibilites
   for delete to authenticated using ((select auth.uid()) = user_id);
+
+-- Mise à jour du 24/11/2026 (couleur choisie dans la palette du formulaire) --
+-- Détails et vérification : supabase/migration-couleur.sql
+alter table public.taches
+  add column if not exists couleur text;
+alter table public.taches drop constraint if exists taches_couleur_check;
+alter table public.taches
+  add constraint taches_couleur_check
+  check (couleur is null or couleur in ('bleu', 'turquoise', 'sauge', 'violet', 'rose', 'orange', 'jaune', 'ardoise'));
