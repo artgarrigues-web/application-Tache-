@@ -15,6 +15,8 @@
 
 import { CATEGORIES, PRIORITES, type Categorie, type Priorite } from "./types";
 import { NOM_APP } from "./marque";
+import { decrireRecurrence, validerRecurrence } from "./recurrence";
+import { regleRRULE } from "./ics-recurrence";
 
 // L'app enregistre des heures "locales" sans fuseau : on les interprète en heure de Paris.
 export const FUSEAU = "Europe/Paris";
@@ -34,7 +36,11 @@ export interface TacheCalendrier {
   priorite: Priorite;
   faite: boolean;
   cree_le: string;
+  recurrence?: unknown;    // règle de répétition (jsonb), absente avant la migration du 24/11
 }
+
+// Les occurrences cochées plus anciennes que ça ne sont pas réécrites (fichier plus léger).
+const JOURS_HISTORIQUE = 90;
 
 /* Définition du fuseau de Paris (heure d'hiver CET / heure d'été CEST).
    La norme exige qu'un TZID utilisé soit décrit dans le fichier. */
@@ -111,46 +117,84 @@ function horodatageUTC(d: Date): string {
   return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 }
 
-function evenement(t: TacheCalendrier, maintenant: string): string[] {
+/* Un événement. Pour une tâche répétée, on écrit :
+   - l'événement « maître » avec sa règle RRULE (le calendrier calcule lui-même les dates),
+     et EXDATE pour les occurrences supprimées ;
+   - un événement « exception » (même UID + RECURRENCE-ID = date de l'occurrence) pour
+     chaque occurrence cochée, afin qu'elle s'affiche avec ✓ comme une tâche faite.     */
+function evenement(t: TacheCalendrier, maintenant: string, aujourdhuiIso: string): string[] {
+  const recurrence = validerRecurrence(t.recurrence);
+  const heure = t.heure ? t.heure.slice(0, 5) : null;
   // Le suffixe "@agenda-taches" date d'avant le nom AgendIA : on le GARDE exprès.
   // Le changer ferait croire aux calendriers déjà abonnés que toutes les tâches
   // sont de nouveaux événements (doublons ou clignotements).
-  const lignes = ["BEGIN:VEVENT", `UID:${t.id}@agenda-taches`, `DTSTAMP:${maintenant}`];
+  const uid = `UID:${t.id}@agenda-taches`;
 
-  if (t.heure) {
-    // Tâche avec heure : événement de [heure] à [heure + durée].
-    const heure = t.heure.slice(0, 5);
-    const debut = ajouterMinutes(t.date, heure, 0);
-    const fin = ajouterMinutes(t.date, heure, t.duree_minutes ?? DUREE_PAR_DEFAUT);
-    lignes.push(`DTSTART;TZID=${FUSEAU}:${debut}`, `DTEND;TZID=${FUSEAU}:${fin}`);
-  } else {
-    // Tâche sans heure : événement "toute la journée". DTEND est EXCLU, d'où le lendemain.
-    lignes.push(`DTSTART;VALUE=DATE:${dateCompacte(t.date)}`, `DTEND;VALUE=DATE:${lendemain(t.date)}`);
+  // DTSTART / DTEND (et RECURRENCE-ID) pour une date donnée.
+  const debutFin = (date: string): { debut: string; fin: string; id: string } => heure
+    ? {
+        // Tâche avec heure : événement de [heure] à [heure + durée].
+        debut: `DTSTART;TZID=${FUSEAU}:${ajouterMinutes(date, heure, 0)}`,
+        fin: `DTEND;TZID=${FUSEAU}:${ajouterMinutes(date, heure, t.duree_minutes ?? DUREE_PAR_DEFAUT)}`,
+        id: `RECURRENCE-ID;TZID=${FUSEAU}:${ajouterMinutes(date, heure, 0)}`,
+      }
+    : {
+        // Tâche sans heure : événement "toute la journée". DTEND est EXCLU, d'où le lendemain.
+        debut: `DTSTART;VALUE=DATE:${dateCompacte(date)}`,
+        fin: `DTEND;VALUE=DATE:${lendemain(date)}`,
+        id: `RECURRENCE-ID;VALUE=DATE:${dateCompacte(date)}`,
+      };
+
+  const corps = (faite: boolean): string[] => {
+    const lignes = [`SUMMARY:${echapper((faite ? "✓ " : "") + t.titre)}`];
+    // La description regroupe tout ce qui n'a pas de champ dédié dans un agenda.
+    const details: string[] = [];
+    if (t.description) details.push(t.description);
+    const materiel = (t.materiel ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
+    if (materiel.length) details.push("Matériel :\n" + materiel.map((l) => "• " + l).join("\n"));
+    details.push(`Catégorie : ${CATEGORIES[t.categorie] ?? t.categorie} · Priorité : ${PRIORITES[t.priorite] ?? t.priorite}`);
+    if (recurrence) details.push(`Répétition : ${decrireRecurrence(recurrence, t.date)}.`);
+    if (faite) details.push("Tâche terminée.");
+    lignes.push(`DESCRIPTION:${echapper(details.join("\n\n"))}`);
+    if (t.lieu) lignes.push(`LOCATION:${echapper(t.lieu)}`);
+    lignes.push(`CATEGORIES:${echapper(CATEGORIES[t.categorie] ?? t.categorie)}`);
+    // PRIORITY iCalendar : 1 = la plus haute, 9 = la plus basse.
+    lignes.push(`PRIORITY:${t.priorite === "haute" ? 1 : t.priorite === "moyenne" ? 5 : 9}`);
+    // TRANSPARENT : la tâche n'apparaît pas comme "occupé" dans les disponibilités.
+    lignes.push("TRANSP:TRANSPARENT");
+    return lignes;
+  };
+
+  const principal = debutFin(t.date);
+  const lignes = ["BEGIN:VEVENT", uid, `DTSTAMP:${maintenant}`, principal.debut, principal.fin];
+  if (!recurrence) return [...lignes, ...corps(t.faite), "END:VEVENT"];
+
+  lignes.push(`RRULE:${regleRRULE(recurrence, t.date, heure)}`);
+  if (recurrence.exceptions.length) {
+    const dates = recurrence.exceptions.map((d) => (heure ? ajouterMinutes(d, heure, 0) : dateCompacte(d)));
+    lignes.push(heure ? `EXDATE;TZID=${FUSEAU}:${dates.join(",")}` : `EXDATE;VALUE=DATE:${dates.join(",")}`);
   }
+  lignes.push(...corps(false), "END:VEVENT");
 
-  lignes.push(`SUMMARY:${echapper((t.faite ? "✓ " : "") + t.titre)}`);
-
-  // La description regroupe tout ce qui n'a pas de champ dédié dans un agenda.
-  const details: string[] = [];
-  if (t.description) details.push(t.description);
-  const materiel = (t.materiel ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
-  if (materiel.length) details.push("Matériel :\n" + materiel.map((l) => "• " + l).join("\n"));
-  details.push(`Catégorie : ${CATEGORIES[t.categorie] ?? t.categorie} · Priorité : ${PRIORITES[t.priorite] ?? t.priorite}`);
-  if (t.faite) details.push("Tâche terminée.");
-  lignes.push(`DESCRIPTION:${echapper(details.join("\n\n"))}`);
-
-  if (t.lieu) lignes.push(`LOCATION:${echapper(t.lieu)}`);
-  lignes.push(`CATEGORIES:${echapper(CATEGORIES[t.categorie] ?? t.categorie)}`);
-  // PRIORITY iCalendar : 1 = la plus haute, 9 = la plus basse.
-  lignes.push(`PRIORITY:${t.priorite === "haute" ? 1 : t.priorite === "moyenne" ? 5 : 9}`);
-  // TRANSPARENT : la tâche n'apparaît pas comme "occupé" dans les disponibilités.
-  lignes.push("TRANSP:TRANSPARENT");
-  lignes.push("END:VEVENT");
+  // Occurrences cochées (récentes) : une exception par date.
+  const limite = decalerIso(aujourdhuiIso, -JOURS_HISTORIQUE);
+  for (const d of recurrence.faites) {
+    if (d < limite || d < t.date || recurrence.exceptions.includes(d)) continue;
+    const o = debutFin(d);
+    lignes.push("BEGIN:VEVENT", uid, `DTSTAMP:${maintenant}`, o.id, o.debut, o.fin, ...corps(true), "END:VEVENT");
+  }
   return lignes;
+}
+
+function decalerIso(iso: string, n: number): string {
+  const [a, m, j] = iso.split("-").map(Number);
+  const d = new Date(Date.UTC(a, m - 1, j + n));
+  return `${d.getUTCFullYear()}-${deuxChiffres(d.getUTCMonth() + 1)}-${deuxChiffres(d.getUTCDate())}`;
 }
 
 export function genererICS(taches: TacheCalendrier[], maintenant = new Date()): string {
   const stamp = horodatageUTC(maintenant);
+  const aujourdhuiIso = maintenant.toISOString().slice(0, 10);
   const lignes = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -163,7 +207,7 @@ export function genererICS(taches: TacheCalendrier[], maintenant = new Date()): 
     "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
     "X-PUBLISHED-TTL:PT1H",
     ...VTIMEZONE,
-    ...taches.flatMap((t) => evenement(t, stamp)),
+    ...taches.flatMap((t) => evenement(t, stamp, aujourdhuiIso)),
     "END:VCALENDAR",
   ];
   return lignes.map(plier).join("\r\n") + "\r\n";

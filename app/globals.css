@@ -647,3 +647,76 @@ dialog.dialogue-large { width: min(760px, calc(100vw - 32px)); }
 .place-tache .point-prio { display: none; }
 .reperes-d .entete-jour { min-height: 74px; justify-content: flex-start; }
 @media (max-width: 800px) { .reperes-d .entete-jour { min-height: 0; } }
+
+/* ---------- Répétition des tâches (24/11/2026) ---------- */
+/* Bloc du formulaire : carte légèrement teintée, pour qu'on repère la section d'un coup d'œil. */
+.repetition, .portee-serie {
+  border: 1px solid var(--bord); border-radius: var(--rayon); margin: 0; min-width: 0;
+  padding: 10px 12px 12px; background: var(--surface-2);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.repetition legend, .portee-serie legend {
+  padding: 0 4px; font-size: 0.85rem; font-weight: 600; color: var(--texte);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.repetition legend .lucide, .portee-serie legend .lucide { color: var(--accent); }
+.portee-serie { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); border-color: color-mix(in srgb, var(--accent) 35%, var(--bord)); }
+.portee-serie .indice { margin: 0; font-size: 0.82rem; color: var(--texte-doux); }
+
+/* Pastilles de choix (boutons radio cachés + étiquette arrondie), comme la palette de couleurs. */
+.choix-pastilles { display: flex; flex-wrap: wrap; gap: 6px; }
+.choix-pastille { position: relative; cursor: pointer; }
+.choix-pastille input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none; }
+.choix-pastille span {
+  display: inline-block; font-size: 0.82rem; font-weight: 500; padding: 5px 11px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--bord); color: var(--texte);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.choix-pastille:hover span { border-color: var(--accent); }
+.choix-pastille input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--accent-texte); }
+.choix-pastille input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.repetition-details { display: flex; flex-direction: column; gap: 10px; animation: apparition-repetition 0.2s ease; }
+@keyframes apparition-repetition { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+.ligne-repetition { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 0.9rem; }
+.ligne-repetition .etiquette, .ligne-repetition > label { color: var(--texte-doux); font-size: 0.85rem; font-weight: 500; min-width: 2.2em; }
+.formulaire .petit-nombre { width: 4.2em; text-align: center; }
+.formulaire .ligne-repetition select { flex: 1 1 auto; min-width: 0; }
+.formulaire .fin-repetition input[type="date"] { width: auto; }
+
+/* Jours de la semaine : 7 ronds L M M J V S D. */
+.jours-semaine { display: flex; gap: 5px; flex-wrap: wrap; }
+.jour-pastille {
+  width: 32px; height: 32px; border-radius: 50%; font: inherit; font-size: 0.8rem; font-weight: 600;
+  background: var(--surface); color: var(--texte); border: 1px solid var(--bord); cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
+}
+.jour-pastille:hover { border-color: var(--accent); transform: scale(1.06); }
+.jour-pastille.actif { background: var(--accent); border-color: var(--accent); color: var(--accent-texte); }
+.jour-pastille:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.resume-repetition {
+  margin: 0; display: flex; gap: 7px; align-items: flex-start; font-size: 0.85rem; color: var(--texte);
+  padding: 7px 10px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+}
+.resume-repetition .lucide { color: var(--accent); flex: none; margin-top: 1px; }
+.repetition .avertissement, .repetition-impossible { margin: 0; font-size: 0.82rem; color: var(--texte-doux); display: flex; gap: 6px; align-items: center; }
+
+/* Icône discrète sur la carte d'une tâche répétée. */
+.icone-repetition { display: inline-flex; vertical-align: -0.12em; margin-left: 5px; color: var(--texte-doux); opacity: 0.85; }
+.icone-repetition .lucide { width: 0.95em; height: 0.95em; }
+.tache.avec-couleur .icone-repetition { color: var(--couleur-tache); }
+.tache.compacte .icone-repetition { margin-left: 3px; }
+
+/* Fenêtre « Supprimer : ce jour / les suivants / la série ». */
+.dialogue-portee { max-width: 420px; }
+.dialogue-portee h2 { display: flex; align-items: center; gap: 8px; }
+.dialogue-portee .indice { margin: 0; color: var(--texte-doux); font-size: 0.88rem; display: flex; gap: 6px; align-items: center; }
+.choix-portee { display: flex; flex-direction: column; gap: 8px; }
+.choix-portee-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 10px 12px; }
+.choix-portee-btn span { font-size: 0.82rem; color: var(--texte-doux); font-weight: 400; }
+.choix-portee-btn.danger { border-color: var(--retard); }
+.choix-portee-btn.danger strong { color: var(--retard); }
+@media (max-width: 640px) {
+  .jour-pastille { width: 34px; height: 34px; }
+}

@@ -26,7 +26,10 @@ export async function GET(_requete: Request, { params }: { params: Promise<{ fic
 
   // Client neuf à chaque requête, sans session à mémoriser (on est sur le serveur).
   const client = createClient(url, cle, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data, error } = await client.rpc("taches_du_calendrier", { p_jeton: jeton });
+  // _v2 (24/11/2026) renvoie aussi la règle de répétition ; si elle n'existe pas encore
+  // (migration supabase/migration-recurrence.sql non appliquée), on garde l'ancienne.
+  let { data, error } = await client.rpc("taches_du_calendrier_v2", { p_jeton: jeton });
+  if (error) ({ data, error } = await client.rpc("taches_du_calendrier", { p_jeton: jeton }));
   if (error) return new Response("Erreur de lecture de l'agenda.", { status: 502 });
 
   const taches = (data ?? []) as TacheCalendrier[];

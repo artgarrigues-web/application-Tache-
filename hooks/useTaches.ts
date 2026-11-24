@@ -11,7 +11,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import * as depot from "@/lib/depot";
-import type { DonneesTache, Tache } from "@/lib/types";
+import * as rec from "@/lib/recurrence";
+import type { DonneesTache, Portee, Tache } from "@/lib/types";
 
 function messageErreur(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
@@ -79,9 +80,29 @@ export function useTaches(userId: string) {
   );
 
   /* Mise à jour "optimiste" : on coche tout de suite à l'écran (réactivité),
-     puis on envoie à la base. Si la base refuse, on annule le changement.   */
+     puis on envoie à la base. Si la base refuse, on annule le changement.
+     Pour une occurrence de tâche répétée (id "serie~date"), on coche/décoche la date
+     dans la règle de la série (liste « faites »).                                */
   const basculerFaite = useCallback(
     (id: string) => {
+      const occ = rec.analyserId(id);
+      if (occ) {
+        const serie = taches.find((t) => t.id === occ.serieId);
+        if (!serie?.recurrence) return Promise.resolve(false);
+        const avant = serie.recurrence;
+        const apres = rec.basculerFaite(avant, occ.date);
+        const appliquer = (r: typeof avant) =>
+          setTaches((prec) => prec.map((t) => (t.id === serie.id ? { ...t, recurrence: r } : t)));
+        appliquer(apres);
+        return executer(async () => {
+          try {
+            await depot.changerRecurrence(serie.id, apres);
+          } catch (e) {
+            appliquer(avant);
+            throw e;
+          }
+        });
+      }
       const tache = taches.find((t) => t.id === id);
       if (!tache) return Promise.resolve(false);
       const nouvelEtat = !tache.faite;
@@ -97,6 +118,63 @@ export function useTaches(userId: string) {
         }
       });
     },
+    [taches, executer],
+  );
+
+  /* ---------- Occurrence d'une tâche répétée : modifier ou supprimer ----------
+     portee = "occurrence" : seulement ce jour-là ;
+              "suivantes"  : ce jour-là et tous les suivants (la série est coupée en deux) ;
+              "serie"      : toute la série, passé compris.                              */
+  const remplacer = (maj: Tache) => setTaches((prec) => prec.map((t) => (t.id === maj.id ? maj : t)));
+
+  const supprimerOccurrence = useCallback(
+    (serieId: string, date: string, portee: Portee) => executer(async () => {
+      const serie = taches.find((t) => t.id === serieId);
+      if (!serie?.recurrence) throw new Error("Série introuvable.");
+      if (portee === "serie" || (portee === "suivantes" && date <= serie.date)) {
+        await depot.supprimerTache(serieId);
+        setTaches((prec) => prec.filter((t) => t.id !== serieId));
+      } else {
+        const r = portee === "occurrence" ? rec.ajouterException(serie.recurrence, date) : rec.arreterAvant(serie.recurrence, date);
+        remplacer(await depot.changerRecurrence(serieId, r));
+      }
+    }),
+    [taches, executer],
+  );
+
+  const modifierOccurrence = useCallback(
+    (serieId: string, date: string, portee: Portee, d: DonneesTache) => executer(async () => {
+      const serie = taches.find((t) => t.id === serieId);
+      if (!serie?.recurrence) throw new Error("Série introuvable.");
+      if (portee === "serie" || (portee === "suivantes" && date <= serie.date)) {
+        remplacer(await depot.modifierTache(serieId, d));
+        return;
+      }
+      if (portee === "occurrence") {
+        // L'occurrence devient une tâche unique ordinaire ; sa date est retirée de la série.
+        const etaitFaite = serie.recurrence.faites.includes(date);
+        let unique = await depot.insererTache({ ...d, recurrence: null });
+        if (etaitFaite) { await depot.changerEtat(unique.id, true); unique = { ...unique, faite: true }; }
+        const majSerie = await depot.changerRecurrence(serieId, rec.ajouterException(serie.recurrence, date));
+        setTaches((prec) => [...prec.map((t) => (t.id === serieId ? majSerie : t)), unique]);
+        return;
+      }
+      // « Cette occurrence et les suivantes » : nouvelle série à partir de ce jour,
+      // l'ancienne s'arrête la veille. Les dates cochées/supprimées suivent la bonne série.
+      let regle = d.recurrence;
+      if (regle) {
+        const garder = (liste: string[]) => liste.filter((x) => x >= d.date);
+        regle = { ...regle, exceptions: garder(regle.exceptions), faites: garder(regle.faites) };
+        const ancienne = serie.recurrence.fin;
+        if (regle.fin.type === "nombre" && ancienne.type === "nombre" && regle.fin.nombre === ancienne.nombre) {
+          // « 10 fois » au total : la nouvelle série reprend le compte là où on coupe.
+          regle = { ...regle, fin: { type: "nombre", nombre: Math.max(1, ancienne.nombre - rec.nombreAvant(serie.date, serie.recurrence, date)) } };
+        }
+      }
+      const nouvelle = await depot.insererTache({ ...d, recurrence: regle });
+      const majSerie = await depot.changerRecurrence(serieId, rec.arreterAvant(serie.recurrence, date));
+      setTaches((prec) => [...prec.map((t) => (t.id === serieId ? majSerie : t)), nouvelle]);
+    }),
     [taches, executer],
   );
 
@@ -128,5 +206,6 @@ export function useTaches(userId: string) {
   return {
     taches, charge, erreur, effacerErreur: () => setErreur(null),
     ajouter, modifier, supprimer, basculerFaite, effacerTerminees, importer, recharger, changerHoraires,
+    supprimerOccurrence, modifierOccurrence,
   };
 }

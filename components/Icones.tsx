@@ -54,6 +54,7 @@ export {
   Lightbulb as IconeIdee,
   FolderOpen as IconeProjet,
   CalendarClock as IconeCalendrier,
+  Repeat as IconeRepeter,
   // Messages et statistiques
   CircleCheck as IconeSucces,
   CircleX as IconeEchec,
