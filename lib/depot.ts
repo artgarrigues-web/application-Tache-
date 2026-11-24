@@ -7,6 +7,7 @@
    - application (TypeScript) : camelCase (creeLe, dureeMinutes), heure "14:00" ou "".  */
 
 import { supabase } from "./supabase";
+import { estCouleur } from "./types";
 import type { Categorie, DonneesTache, Groupe, Idee, Priorite, ProjetIdees, Tache } from "./types";
 
 const TABLE = "taches";
@@ -25,6 +26,7 @@ interface Ligne {
   categorie: Categorie;
   priorite: Priorite;
   groupe: Groupe | null;
+  couleur?: string | null; // absente si la migration du 24/11 n'a pas encore été appliquée
   faite: boolean;
   cree_le: string;
 }
@@ -43,22 +45,31 @@ function depuisLigne(l: Ligne): Tache {
     categorie: l.categorie,
     priorite: l.priorite,
     groupe: l.groupe ?? null,
+    couleur: estCouleur(l.couleur) ? l.couleur : null,
     faite: l.faite,
     creeLe: l.cree_le,
   };
 }
 
-/* La colonne "echeance" a été ajoutée le 21/11/2026. Tant que la migration SQL n'a pas
-   été collée dans Supabase, envoyer ce champ ferait échouer TOUTES les sauvegardes.
-   On essaie donc avec ; si la base répond que la colonne n'existe pas, on retient
-   l'information et on renvoie sans (l'échéance n'est alors simplement pas gardée). */
-let colonneEcheance = true;
+/* Colonnes ajoutées après coup (migrations SQL à coller dans Supabase) :
+   - "echeance" le 21/11/2026 (supabase/migration-planification.sql) ;
+   - "couleur"  le 24/11/2026 (supabase/migration-couleur.sql).
+   Tant qu'une migration n'a pas été collée, envoyer la colonne ferait échouer TOUTES
+   les sauvegardes. On essaie donc avec ; si la base répond que la colonne n'existe pas
+   (son nom figure dans le message d'erreur), on retient l'information et on renvoie
+   sans : l'information n'est alors simplement pas gardée, le reste fonctionne. */
+const colonnesOptionnelles = { echeance: true, couleur: true };
+type ColonneOptionnelle = keyof typeof colonnesOptionnelles;
+
 export function echeanceDisponible(): boolean {
-  return colonneEcheance;
+  return colonnesOptionnelles.echeance;
+}
+export function couleurDisponible(): boolean {
+  return colonnesOptionnelles.couleur;
 }
 
 function versLigne(d: DonneesTache) {
-  const ligne = {
+  const ligne: Record<string, unknown> = {
     titre: d.titre,
     description: d.description,
     date: d.date || null,
@@ -70,14 +81,20 @@ function versLigne(d: DonneesTache) {
     priorite: d.priorite,
     groupe: d.groupe,
   };
-  return colonneEcheance ? { ...ligne, echeance: d.echeance || null } : ligne;
+  if (colonnesOptionnelles.echeance) ligne.echeance = d.echeance || null;
+  if (colonnesOptionnelles.couleur) ligne.couleur = d.couleur;
+  return ligne;
 }
 
-// Exécute une requête ; si elle échoue à cause de la colonne echeance absente, la rejoue sans.
+/* Exécute une requête ; si elle échoue à cause d'une colonne optionnelle absente,
+   la désactive et rejoue. Boucle car les DEUX colonnes peuvent manquer (au plus 2 reprises). */
 async function avecRepli<T>(requete: () => PromiseLike<{ data: T; error: { message: string } | null }>): Promise<T> {
   let { data, error } = await requete();
-  if (error && colonneEcheance && error.message.includes("echeance")) {
-    colonneEcheance = false;
+  for (;;) {
+    const manquante = (Object.keys(colonnesOptionnelles) as ColonneOptionnelle[])
+      .find((c) => colonnesOptionnelles[c] && error?.message.includes(c));
+    if (!error || !manquante) break;
+    colonnesOptionnelles[manquante] = false;
     ({ data, error } = await requete());
   }
   verifier(error);

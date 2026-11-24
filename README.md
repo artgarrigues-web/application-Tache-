@@ -165,6 +165,13 @@ Bouton « 🪄 Planifier ma semaine » : place les tâches de la Checklist (sans
 - Code : `components/IdeesProjets.tsx`, `hooks/useIdees.ts`, fonctions « Idées » de `lib/depot.ts`.
 - Données : tables `projets_idees` et `idees` (RLS par utilisateur ; supprimer un projet supprime ses idées). Migration à coller dans Supabase : `supabase/migration-idees.sql`. Tant qu'elle n'est pas appliquée, la catégorie affiche un message au lieu d'une erreur.
 
+### Couleur d'une tâche
+
+- Dans le formulaire (dès le mode simple), une **palette de 8 couleurs** + « aucune » : Bleu, Turquoise, Sauge, Violet, Rose, Orange, Jaune, Ardoise. Pas de rouge (réservé au retard) ni de vert vif (réservé aux tâches faites).
+- La couleur remplace la bande de catégorie à gauche de la carte et teinte légèrement son fond, dans toutes les vues. Une tâche faite reste verte et une tâche en retard reste rouge.
+- On stocke le nom (`bleu`…) dans la colonne `taches.couleur` ; les teintes claires et sombres sont dans `app/globals.css` (`--c-bleu`…). Liste dans `COULEURS` (`lib/types.ts`).
+- Migration à coller dans Supabase : `supabase/migration-couleur.sql`. Tant qu'elle n'est pas appliquée, tout fonctionne mais la couleur n'est pas enregistrée.
+
 ## 4. Limites, en toute honnêteté
 
 - **Synchronisation entre appareils** : les tâches sont rechargées à l'ouverture et chaque fois que tu reviens sur l'onglet. Ce n'est pas du temps réel : si deux appareils sont ouverts en même temps, l'un ne voit les changements de l'autre qu'en revenant sur l'onglet. Supabase Realtime permettrait le vrai temps réel.

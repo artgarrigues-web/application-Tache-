@@ -31,6 +31,7 @@ export {
   X as IconeFermer,
   Undo2 as IconeAnnuler,
   Check as IconeValide,
+  Ban as IconeAucune,
   Search as IconeRecherche,
   Download as IconeExporter,
   Upload as IconeImporter,

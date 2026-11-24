@@ -20,6 +20,7 @@ export interface Tache {
   categorie: Categorie;
   priorite: Priorite;
   groupe: Groupe | null; // groupe choisi à la main dans le formulaire, null = automatique
+  couleur: Couleur | null; // couleur choisie dans la palette du formulaire, null = aucune
   faite: boolean;
   creeLe: string;    // date ISO complète
 }
@@ -76,4 +77,24 @@ export interface Idee {
   texte: string;
   faite: boolean;    // « réalisée » / retenue : cochée = barrée en vert, comme une tâche faite
   creeLe: string;
+}
+
+/* ---------- Couleur d'une tâche (palette du formulaire) ----------
+   On stocke un NOM de couleur ("bleu"), pas un code ("#2563eb") : la teinte exacte
+   est définie dans globals.css (variables --c-bleu…), avec une version claire et une
+   version sombre. Changer une teinte ne demande donc aucune mise à jour de la base.
+   Pas de rouge (réservé aux tâches en retard) ni de vert vif (réservé aux tâches faites). */
+export type Couleur = "bleu" | "turquoise" | "sauge" | "violet" | "rose" | "orange" | "jaune" | "ardoise";
+export const COULEURS: { id: Couleur; libelle: string }[] = [
+  { id: "bleu", libelle: "Bleu" },
+  { id: "turquoise", libelle: "Turquoise" },
+  { id: "sauge", libelle: "Sauge" },
+  { id: "violet", libelle: "Violet" },
+  { id: "rose", libelle: "Rose" },
+  { id: "orange", libelle: "Orange" },
+  { id: "jaune", libelle: "Jaune" },
+  { id: "ardoise", libelle: "Ardoise" },
+];
+export function estCouleur(v: unknown): v is Couleur {
+  return typeof v === "string" && COULEURS.some((c) => c.id === v);
 }

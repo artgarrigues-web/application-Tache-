@@ -14,7 +14,7 @@ function tache(champs: Partial<Tache>): Tache {
   n++;
   return {
     id: `t${n}`, titre: `Tâche ${n}`, description: "", date: "", heure: "", dureeMinutes: null,
-    lieu: "", echeance: "", materiel: "", categorie: "perso", priorite: "moyenne", groupe: null,
+    lieu: "", echeance: "", materiel: "", categorie: "perso", priorite: "moyenne", groupe: null, couleur: null,
     faite: false, creeLe: "2026-11-01T00:00:00Z", ...champs,
   };
 }
