@@ -10,15 +10,17 @@
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import type { User } from "@supabase/supabase-js";
-import { aujourdhui, deplacer, depuisISO, plageVisible, titrePeriode, versISO } from "@/lib/dates";
+import { ajouterJours, aujourdhui, debutSemaine, deplacer, depuisISO, plageVisible, titrePeriode, versISO } from "@/lib/dates";
+import { analyserId, developper, entreesCourantes } from "@/lib/recurrence";
 import { supabase } from "@/lib/supabase";
 import { comparer, passeLesFiltres, validerTaches } from "@/lib/taches";
-import { FILTRES_INITIAUX, VUES, type DonneesTache, type Filtres, type Vue } from "@/lib/types";
+import { FILTRES_INITIAUX, VUES, type DonneesTache, type Filtres, type Portee, type Vue } from "@/lib/types";
 import { useTaches } from "@/hooks/useTaches";
 import { useIdees } from "@/hooks/useIdees";
 import type { ActionsAgenda } from "./CarteTache";
 import { Compteurs } from "./Compteurs";
 import { FormulaireTache } from "./FormulaireTache";
+import { ChoixPortee } from "./ChoixPortee";
 import { SynchroCalendrier } from "./SynchroCalendrier";
 import { Planificateur } from "./Planificateur";
 import type { ChangementHoraire } from "@/lib/depot";
@@ -38,8 +40,8 @@ interface DernierPlanning { nom: string; avant: ChangementHoraire[]; apres: Chan
 interface EtatFormulaire { tacheId: string | null; date?: string }
 
 export function Agenda({ utilisateur }: { utilisateur: User }) {
-  const { taches, charge, erreur, effacerErreur, ajouter, modifier, supprimer, basculerFaite, effacerTerminees, importer, changerHoraires } =
-    useTaches(utilisateur.id);
+  const { taches, charge, erreur, effacerErreur, ajouter, modifier, supprimer, basculerFaite, effacerTerminees, importer, changerHoraires,
+    supprimerOccurrence, modifierOccurrence } = useTaches(utilisateur.id);
   const idees = useIdees(utilisateur.id); // catégorie « Idées de projets » de la Checklist
 
   const [vue, setVue] = useState<Vue>("semaine");
@@ -50,6 +52,8 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   const [planifOuverte, setPlanifOuverte] = useState(false);
   const [dernierPlanning, setDernierPlanning] = useState<DernierPlanning | null>(null);
   const [messagePlanif, setMessagePlanif] = useState("");
+  // Suppression d'une occurrence (icône corbeille) : fenêtre « ce jour / les suivants / la série ».
+  const [suppressionOccurrence, setSuppressionOccurrence] = useState<{ serieId: string; date: string; titre: string } | null>(null);
   const champFichier = useRef<HTMLInputElement>(null);
 
   // Retrouve la dernière vue utilisée…
@@ -75,10 +79,37 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   // Vues « calendrier » sous lesquelles on affiche aussi la Checklist.
   const vueCalendrier = vue === "jour" || vue === "semaine" || vue === "mois";
 
-  // useMemo : ne refait le filtrage/tri que si les tâches ou les filtres changent.
-  const liste = useMemo(
-    () => taches.filter((t) => passeLesFiltres(t, filtres)).sort(comparer),
-    [taches, filtres],
+  /* Tâches répétées : leurs occurrences sont fabriquées ici, à l'affichage (lib/recurrence.ts).
+     - Vues calendrier : toutes les occurrences de la période affichée (pour Mois, toute la
+       grille, qui déborde sur les mois voisins) ;
+     - Liste, Tri, Checklist, compteurs : une seule entrée « à faire » par série.
+     useMemo : ne refait le calcul que si les tâches, les filtres ou la période changent. */
+  const isoAujourdhui = versISO(aujourdhui());
+  const grille = useMemo(() => {
+    if (vue === "mois") {
+      const premier = new Date(dateRef.getFullYear(), dateRef.getMonth(), 1);
+      const dernier = new Date(dateRef.getFullYear(), dateRef.getMonth() + 1, 0);
+      return { debut: versISO(debutSemaine(premier)), fin: versISO(ajouterJours(debutSemaine(dernier), 6)) };
+    }
+    return plage ?? { debut: isoAujourdhui, fin: isoAujourdhui };
+  }, [vue, dateRef, plage?.debut, plage?.fin, isoAujourdhui]); // eslint-disable-line react-hooks/exhaustive-deps
+  const courantes = useMemo(() => entreesCourantes(taches, isoAujourdhui), [taches, isoAujourdhui]);
+  const listeCalendrier = useMemo(
+    () => developper(taches, grille.debut, grille.fin).filter((t) => passeLesFiltres(t, filtres)).sort(comparer),
+    [taches, grille, filtres],
+  );
+  const listeCourante = useMemo(
+    () => courantes.filter((t) => passeLesFiltres(t, filtres)).sort(comparer),
+    [courantes, filtres],
+  );
+  const liste = vueCalendrier ? listeCalendrier : listeCourante;
+  // Compteurs : « restantes » et « en retard » sur les entrées courantes, avancement sur la période.
+  const tachesPeriode = useMemo(() => (plage ? developper(taches, plage.debut, plage.fin) : courantes),
+    [taches, plage?.debut, plage?.fin, courantes]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Planificateur : il doit voir les occurrences des semaines à venir pour éviter leurs créneaux.
+  const tachesPlanif = useMemo(
+    () => (planifOuverte ? developper(taches, versISO(ajouterJours(aujourdhui(), -7)), versISO(ajouterJours(aujourdhui(), 70))) : taches),
+    [taches, planifOuverte],
   );
 
   /* ---------- Actions ---------- */
@@ -92,7 +123,13 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   const actions: ActionsAgenda = {
     cocher: (id) => { basculerFaite(id); },
     modifier: (id) => setFormulaire({ tacheId: id }),
-    supprimer: (id) => { confirmerSuppression(id); },
+    supprimer: (id) => {
+      const occ = analyserId(id);
+      if (occ) {
+        const serie = taches.find((t) => t.id === occ.serieId);
+        if (serie) setSuppressionOccurrence({ ...occ, titre: serie.titre });
+      } else confirmerSuppression(id);
+    },
     ajouterLe: (iso) => setFormulaire({ tacheId: null, date: iso }),
     allerAuJour: (iso) => { setDateRef(depuisISO(iso)); setVue("jour"); },
     planifier: () => setPlanifOuverte(true),
@@ -104,8 +141,10 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
     return supprimer(id);
   }
 
-  async function enregistrer(d: DonneesTache): Promise<boolean> {
-    const ok = formulaire?.tacheId ? await modifier(formulaire.tacheId, d) : await ajouter(d);
+  async function enregistrer(d: DonneesTache, portee: Portee): Promise<boolean> {
+    const occ = formulaire?.tacheId ? analyserId(formulaire.tacheId) : null;
+    const ok = occ ? await modifierOccurrence(occ.serieId, occ.date, portee, d)
+      : formulaire?.tacheId ? await modifier(formulaire.tacheId, d) : await ajouter(d);
     // Si la date choisie n'est pas visible, on déplace l'agenda pour la montrer.
     if (ok && plage && d.date && (d.date < plage.debut || d.date > plage.fin)) setDateRef(depuisISO(d.date));
     return ok;
@@ -202,13 +241,24 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
 
   /* ---------- Affichage ---------- */
   const propsVue = { dateRef, liste, actions };
-  const tacheEnEdition = formulaire?.tacheId ? taches.find((t) => t.id === formulaire.tacheId) ?? null : null;
+  // Pour une occurrence (id "serie~date"), le formulaire reçoit la SÉRIE + la date de l'occurrence.
+  const occEnEdition = formulaire?.tacheId ? analyserId(formulaire.tacheId) : null;
+  const tacheEnEdition = formulaire?.tacheId
+    ? taches.find((t) => t.id === (occEnEdition?.serieId ?? formulaire.tacheId)) ?? null : null;
+
+  async function supprimerDepuisFormulaire(portee: Portee): Promise<boolean> {
+    if (!formulaire?.tacheId) return false;
+    if (!occEnEdition) return confirmerSuppression(formulaire.tacheId);
+    const textes = { occurrence: "ce jour de la série", suivantes: "ce jour et les suivants de la série", serie: "toute la série" };
+    if (!confirm(`Supprimer ${textes[portee]} « ${tacheEnEdition?.titre ?? ""} » ?`)) return false;
+    return supprimerOccurrence(occEnEdition.serieId, occEnEdition.date, portee);
+  }
 
   return (
     <div className="page">
       <header className="entete">
         <h1 className="titre-app"><Logo /> <NomApp /></h1>
-        <Compteurs taches={taches} plage={plage} />
+        <Compteurs taches={courantes} tachesPeriode={tachesPeriode} plage={plage} />
         <button type="button" className="btn" title="Placer automatiquement les tâches de la Checklist dans la semaine"
           onClick={() => setPlanifOuverte(true)}>
           <IconePlanifier /> Planifier ma semaine
@@ -305,7 +355,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
       {charge && vueCalendrier && (
         <section id="checklist" className="checklist-sous-agenda" aria-labelledby="titre-checklist-sous-agenda">
           <h2 id="titre-checklist-sous-agenda"><IconeChecklist /> Checklist</h2>
-          <VueChecklist {...propsVue} sousAgenda idees={idees} />
+          <VueChecklist {...propsVue} liste={listeCourante} sousAgenda idees={idees} />
         </section>
       )}
 
@@ -328,16 +378,22 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
         <FormulaireTache
           key={`${formulaire.tacheId ?? "nouvelle"}-${formulaire.date ?? "defaut"}`}
           tache={tacheEnEdition}
+          occurrence={occEnEdition?.date}
           dateParDefaut={formulaire.date ?? dateParDefaut()}
           categorieParDefaut={filtres.categorie !== "toutes" ? filtres.categorie : "perso"}
           onEnregistrer={enregistrer}
-          onSupprimer={() => (formulaire.tacheId ? confirmerSuppression(formulaire.tacheId) : Promise.resolve(false))}
+          onSupprimer={supprimerDepuisFormulaire}
           onFermer={() => setFormulaire(null)}
         />
       )}
 
       {synchroOuverte && <SynchroCalendrier onFermer={() => setSynchroOuverte(false)} />}
-      {planifOuverte && <Planificateur taches={taches} onAppliquer={appliquerPlanning} onFermer={() => setPlanifOuverte(false)} />}
+      {suppressionOccurrence && (
+        <ChoixPortee titre={suppressionOccurrence.titre} date={suppressionOccurrence.date}
+          onChoisir={(p) => supprimerOccurrence(suppressionOccurrence.serieId, suppressionOccurrence.date, p)}
+          onFermer={() => setSuppressionOccurrence(null)} />
+      )}
+      {planifOuverte && <Planificateur taches={tachesPlanif} onAppliquer={appliquerPlanning} onFermer={() => setPlanifOuverte(false)} />}
     </div>
   );
 }

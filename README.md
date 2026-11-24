@@ -188,3 +188,13 @@ Bouton « 🪄 Planifier ma semaine » : place les tâches de la Checklist (sans
 3. Tâches récurrentes et sous-tâches (nouvelle colonne ou nouvelle table liée).
 4. Glisser-déposer d'une tâche d'un jour à l'autre.
 5. Passer l'authentification côté serveur avec `@supabase/ssr` et les Server Actions de Next.js.
+
+## Répétition des tâches (24/11/2026)
+
+- Dans « Plus de détails », bloc **Répétition** : Jamais / Chaque jour / semaine / mois / année, « tous les N », jours de la semaine (L M M J V S D), pour le mois « le 24 », « le 4e mardi » ou « le dernier mardi », et une fin : jamais, à une date, ou après N fois. Une phrase résume la règle.
+- Une tâche répétée n'est enregistrée qu'**une fois** (colonne `taches.recurrence`, JSON) ; ses occurrences sont calculées à l'affichage (`lib/recurrence.ts`). Les jours cochés et supprimés sont rangés dans la règle (`faites`, `exceptions`).
+- Jour, Semaine, Mois : toutes les occurrences. Liste, Tri, Checklist : une seule entrée « à faire » par série (la plus ancienne non cochée des 7 derniers jours, sinon la prochaine) + les jours cochés récents.
+- Le 31 tombe le dernier jour des mois courts ; le 29 février, le 28 les années non bissextiles.
+- Modifier ou supprimer un jour d'une série : « Ce jour seulement », « Ce jour et les suivants » ou « Toute la série ».
+- Synchro calendrier : la série est exportée en `RRULE` (+ `EXDATE` pour les jours supprimés, et un événement ✓ pour chaque jour coché). Fonction SQL `taches_du_calendrier_v2`.
+- SQL : `supabase/migration-recurrence.sql`. Tests : `tests/recurrence.test.ts`.

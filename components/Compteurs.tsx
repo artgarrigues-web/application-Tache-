@@ -7,16 +7,17 @@ import type { Tache } from "@/lib/types";
 import { NOM_APP } from "@/lib/marque";
 
 interface Props {
-  taches: Tache[];       // toutes les tâches, sans filtre
-  plage: Plage | null;   // période affichée (null = vue Liste)
+  taches: Tache[];         // toutes les tâches, sans filtre (une entrée par tâche répétée)
+  tachesPeriode: Tache[];  // avec toutes les occurrences des tâches répétées de la période
+  plage: Plage | null;     // période affichée (null = vue Liste)
 }
 
-export function Compteurs({ taches, plage }: Props) {
+export function Compteurs({ taches, tachesPeriode, plage }: Props) {
   // Ces valeurs sont recalculées à chaque affichage à partir des données :
   // pas besoin de les stocker dans un état séparé (elles ne peuvent pas se désynchroniser).
   const restantes = taches.filter((t) => !t.faite).length;
   const enRetard = taches.filter(estEnRetard).length;
-  const dansPeriode = plage ? taches.filter((t) => t.date >= plage.debut && t.date <= plage.fin) : taches;
+  const dansPeriode = plage ? tachesPeriode.filter((t) => t.date >= plage.debut && t.date <= plage.fin) : tachesPeriode;
   const faitesPeriode = dansPeriode.filter((t) => t.faite).length;
   const pourcentage = dansPeriode.length ? Math.round((100 * faitesPeriode) / dansPeriode.length) : 0;
 

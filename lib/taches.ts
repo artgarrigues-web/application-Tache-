@@ -4,6 +4,7 @@
    dans lib/depot.ts.                                                         */
 
 import { ajouterJours, aujourdhui, versISO } from "./dates";
+import { JOURS_RATTRAPAGE, validerRecurrence } from "./recurrence";
 import {
   CATEGORIES, DUREE_RAPIDE_MAX, estCouleur, GROUPES, JOURS_URGENCE, PRIORITES, RANG_PRIORITE,
   type Categorie, type DonneesTache, type Filtres, type Groupe, type Priorite, type Tache,
@@ -40,6 +41,7 @@ export function validerTaches(donnees: unknown): Tache[] | null {
       priorite: (typeof t.priorite === "string" && t.priorite in PRIORITES ? t.priorite : "moyenne") as Priorite,
       groupe: (typeof t.groupe === "string" && GROUPES.some((g) => g.id === t.groupe) ? t.groupe : null) as Groupe | null,
       couleur: estCouleur(t.couleur) ? t.couleur : null,
+      recurrence: typeof t.date === "string" && t.date ? validerRecurrence(t.recurrence) : null,
       faite: Boolean(t.faite),
       creeLe: typeof t.creeLe === "string" ? t.creeLe : new Date().toISOString(),
     }));
@@ -56,7 +58,13 @@ export function estSansDate(tache: Tache): boolean {
 
 export function estEnRetard(tache: Tache): boolean {
   // Une tâche sans date (checklist) n'est jamais en retard.
-  return !tache.faite && tache.date !== "" && tache.date < versISO(aujourdhui());
+  if (tache.faite || tache.date === "") return false;
+  const iso = versISO(aujourdhui());
+  if (tache.date >= iso) return false;
+  // Occurrence d'une tâche répétée : en retard seulement pendant 7 jours (ensuite, elle est
+  // simplement passée — sinon une habitude quotidienne oubliée remplirait l'agenda de rouge).
+  if (tache.occurrence) return tache.date >= versISO(ajouterJours(aujourdhui(), -JOURS_RATTRAPAGE));
+  return true;
 }
 
 export function passeLesFiltres(tache: Tache, f: Filtres): boolean {

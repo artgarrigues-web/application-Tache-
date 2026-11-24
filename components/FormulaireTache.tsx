@@ -10,20 +10,35 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { aujourdhui, versISO } from "@/lib/dates";
 import { groupesAutomatiques, listeMateriel } from "@/lib/taches";
-import { IconeAucune, IconeDeplier, IconeOptions, IconeValide } from "./Icones";
-import { COULEURS, GROUPES, type Categorie, type Couleur, type DonneesTache, type Groupe, type Priorite, type Tache } from "@/lib/types";
+import { dateLongue, jourSemaine, normaliserRecurrence, premiereOccurrence } from "@/lib/recurrence";
+import { recurrenceDisponible } from "@/lib/depot";
+import { IconeAucune, IconeDeplier, IconeOptions, IconeRepeter, IconeValide } from "./Icones";
+import { ChampRepetition } from "./ChampRepetition";
+import { COULEURS, GROUPES, type Categorie, type Couleur, type DonneesTache, type Groupe, type Portee, type Priorite, type Tache } from "@/lib/types";
+
+// Les trois portées possibles quand on ouvre UNE occurrence d'une tâche répétée.
+const PORTEES: { id: Portee; libelle: string }[] = [
+  { id: "occurrence", libelle: "Ce jour seulement" },
+  { id: "suivantes", libelle: "Ce jour et les suivants" },
+  { id: "serie", libelle: "Toute la série" },
+];
 
 interface Props {
-  tache: Tache | null;                  // null = nouvelle tâche
+  tache: Tache | null;                  // null = nouvelle tâche ; pour une occurrence : la SÉRIE
+  occurrence?: string;                  // date de l'occurrence ouverte (tâche répétée)
   dateParDefaut: string;
   categorieParDefaut: Categorie;
-  onEnregistrer: (d: DonneesTache) => Promise<boolean>;
-  onSupprimer: () => Promise<boolean>;
+  onEnregistrer: (d: DonneesTache, portee: Portee) => Promise<boolean>;
+  onSupprimer: (portee: Portee) => Promise<boolean>;
   onFermer: () => void;
 }
 
-export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEnregistrer, onSupprimer, onFermer }: Props) {
+export function FormulaireTache({ tache, occurrence, dateParDefaut, categorieParDefaut, onEnregistrer, onSupprimer, onFermer }: Props) {
   const dialogue = useRef<HTMLDialogElement>(null);
+  /* Occurrence d'une tâche répétée : on choisit d'abord ce que vise la modification.
+     Par défaut « ce jour seulement », le choix le moins risqué. */
+  const estOccurrence = Boolean(tache?.recurrence && occurrence);
+  const [portee, setPortee] = useState<Portee>("occurrence");
   const [enCours, setEnCours] = useState(false);
   /* Mode "simple" ou "complet".
      - Nouvelle tâche : simple (titre, date, heure) ; le bouton en bas à droite
@@ -35,14 +50,15 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
   const [valeurs, setValeurs] = useState<DonneesTache>(() =>
     tache
       ? {
-          titre: tache.titre, description: tache.description, date: tache.date, heure: tache.heure,
+          titre: tache.titre, description: tache.description, date: occurrence ?? tache.date, heure: tache.heure,
           dureeMinutes: tache.dureeMinutes, lieu: tache.lieu, echeance: tache.echeance, materiel: tache.materiel,
           categorie: tache.categorie, priorite: tache.priorite, groupe: tache.groupe, couleur: tache.couleur,
+          recurrence: tache.recurrence,
         }
       : {
           titre: "", description: "", date: dateParDefaut, heure: "",
           dureeMinutes: null, lieu: "", echeance: "", materiel: "",
-          categorie: categorieParDefaut, priorite: "moyenne", groupe: null, couleur: null,
+          categorie: categorieParDefaut, priorite: "moyenne", groupe: null, couleur: null, recurrence: null,
         },
   );
 
@@ -78,8 +94,30 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
   // Nombre de détails (champs repliables) déjà remplis, affiché sur la pastille quand elle est fermée.
   const nbDetails = [
     valeurs.description.trim(), valeurs.dureeMinutes, valeurs.lieu.trim(), valeurs.echeance,
-    valeurs.materiel.trim(), valeurs.groupe, valeurs.priorite !== "moyenne",
+    valeurs.materiel.trim(), valeurs.groupe, valeurs.priorite !== "moyenne", valeurs.recurrence && !sansDate,
   ].filter(Boolean).length;
+
+  /* Changer de portée change la date affichée : la date de l'occurrence pour « ce jour »
+     et « les suivants », la date de DÉBUT de la série pour « toute la série ». */
+  function changerPortee(p: Portee) {
+    setPortee(p);
+    if (!tache || !occurrence) return;
+    changer("date", p === "serie" ? tache.date : occurrence);
+  }
+
+  /* Changer la date d'une répétition hebdomadaire « un seul jour » suit la nouvelle date
+     (une tâche du mardi déplacée au jeudi devient « chaque jeudi »). */
+  function changerDate(date: string) {
+    setValeurs((v) => {
+      const r = v.recurrence;
+      if (r && r.frequence === "semaine" && date && v.date && r.joursSemaine.length === 1 && r.joursSemaine[0] === jourSemaine(v.date)) {
+        return { ...v, date, recurrence: { ...r, joursSemaine: [jourSemaine(date)] } };
+      }
+      return { ...v, date };
+    });
+  }
+  // La répétition ne se règle pas pour « ce jour seulement » (il devient une tâche à part).
+  const repetitionModifiable = !sansDate && !(estOccurrence && portee === "occurrence");
 
   useEffect(() => {
     const d = dialogue.current;
@@ -101,15 +139,22 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
       materiel: listeMateriel(valeurs.materiel).join("\n"), // retire les lignes vides
     };
     if (!donnees.titre) return;
+    if (!donnees.date || (estOccurrence && portee === "occurrence")) {
+      donnees.recurrence = null; // sans date, ou jour devenu tâche à part : pas de répétition
+    } else if (donnees.recurrence) {
+      // Règle « propre », et date de début calée sur la règle (ex. : 1er jour choisi de la semaine).
+      donnees.recurrence = normaliserRecurrence(donnees.recurrence, donnees.date);
+      donnees.date = premiereOccurrence(donnees.date, donnees.recurrence);
+    }
     setEnCours(true);
-    const ok = await onEnregistrer(donnees);
+    const ok = await onEnregistrer(donnees, estOccurrence ? portee : "serie");
     setEnCours(false);
     if (ok) dialogue.current?.close();
   }
 
   async function supprimer() {
     setEnCours(true);
-    const ok = await onSupprimer();
+    const ok = await onSupprimer(estOccurrence ? portee : "serie");
     setEnCours(false);
     if (ok) dialogue.current?.close();
   }
@@ -118,6 +163,26 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
     <dialog ref={dialogue} aria-labelledby="titre-dialogue" onClose={onFermer}>
       <form className="formulaire" onSubmit={soumettre}>
         <h2 id="titre-dialogue">{tache ? "Modifier la tâche" : "Nouvelle tâche"}</h2>
+
+        {/* Occurrence d'une tâche répétée : que vise la modification (ou la suppression) ? */}
+        {estOccurrence && occurrence && (
+          <fieldset className="portee-serie">
+            <legend><IconeRepeter /> Tâche répétée — occurrence du {dateLongue(occurrence)}. Modifier :</legend>
+            <div className="choix-pastilles" role="radiogroup">
+              {PORTEES.map((p) => (
+                <label key={p.id} className="choix-pastille">
+                  <input type="radio" name="portee" checked={portee === p.id} onChange={() => changerPortee(p.id)} />
+                  <span>{p.libelle}</span>
+                </label>
+              ))}
+            </div>
+            <p className="indice">
+              {portee === "occurrence" && "Seul ce jour change ; il devient une tâche à part et ne suivra plus les changements de la série."}
+              {portee === "suivantes" && "La série s'arrête la veille et une nouvelle série démarre ce jour-là avec tes changements."}
+              {portee === "serie" && "Tous les jours de la série changent, passés compris. La date ci-dessous est celle du début de la série."}
+            </p>
+          </fieldset>
+        )}
 
         <div className="champ">
           <label htmlFor="champ-titre">Titre *</label>
@@ -135,9 +200,9 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
 
         {!sansDate && <div className="ligne-champs">
           <div className="champ">
-            <label htmlFor="champ-date">Date *</label>
+            <label htmlFor="champ-date">{estOccurrence && portee === "serie" ? "Début de la série *" : "Date *"}</label>
             <input id="champ-date" type="date" required
-              value={valeurs.date} onChange={(e) => changer("date", e.target.value)} />
+              value={valeurs.date} onChange={(e) => changerDate(e.target.value)} />
           </div>
           <div className="champ">
             <label htmlFor="champ-heure">Heure (facultative)</label>
@@ -175,6 +240,11 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
             "inert" rend les champs repliés inaccessibles au clavier (Tab) et aux lecteurs d'écran. */}
         <div id="options-sup" className={`options-sup${complet ? " ouvert" : ""}`} inert={!complet}>
         <div className="options-sup-contenu">
+        {repetitionModifiable
+          ? <ChampRepetition valeur={valeurs.recurrence} date={valeurs.date}
+              onChange={(r) => changer("recurrence", r)} indisponible={!recurrenceDisponible()} />
+          : sansDate && <p className="indice repetition-impossible"><IconeRepeter /> Choisis une date pour pouvoir répéter la tâche.</p>}
+
         <div className="champ">
           <label htmlFor="champ-description">Description</label>
           <textarea id="champ-description" rows={3} placeholder="Détails, liens, sous-étapes…"
@@ -262,7 +332,7 @@ export function FormulaireTache({ tache, dateParDefaut, categorieParDefaut, onEn
         <div className="boutons-dialogue">
           {tache && (
             <button type="button" className="btn btn-danger" id="btn-supprimer-dialogue" disabled={enCours} onClick={supprimer}>
-              Supprimer
+              {estOccurrence ? (portee === "occurrence" ? "Supprimer ce jour" : portee === "suivantes" ? "Supprimer ce jour et les suivants" : "Supprimer la série") : "Supprimer"}
             </button>
           )}
           <button type="button" className="btn" onClick={() => dialogue.current?.close()}>Annuler</button>

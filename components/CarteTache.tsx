@@ -9,7 +9,8 @@ import type { ReactNode } from "react";
 import { aujourdhui, formater, depuisISO, versISO } from "@/lib/dates";
 import { estEnRetard, formaterDuree, groupesDe, heureFin, lienCarte, listeMateriel } from "@/lib/taches";
 import { CATEGORIES, GROUPES, PRIORITES, type Tache } from "@/lib/types";
-import { IconeChecklist, IconeDuree, IconeEcheance, IconeGroupe, IconeLieu, IconeMateriel, IconeModifier, IconeSupprimer } from "./Icones";
+import { decrireRecurrence } from "@/lib/recurrence";
+import { IconeChecklist, IconeRepeter, IconeDuree, IconeEcheance, IconeGroupe, IconeLieu, IconeMateriel, IconeModifier, IconeSupprimer } from "./Icones";
 
 // Les actions possibles depuis une vue de l'agenda, fournies par le composant Agenda.
 export interface ActionsAgenda {
@@ -64,6 +65,12 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false 
             </span>
           )}
           <span>{tache.titre}</span>
+          {/* Petite icône discrète : la tâche fait partie d'une série répétée (détail au survol). */}
+          {tache.recurrence && (
+            <span className="icone-repetition" title={decrireRecurrence(tache.recurrence, serieDebut(tache))}>
+              <IconeRepeter /><span className="visuellement-cache"> (tâche répétée)</span>
+            </span>
+          )}
         </div>
 
         {!compacte && (
@@ -119,6 +126,11 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false 
       )}
     </article>
   );
+}
+
+// Date de début de la série d'une occurrence (pour la phrase « le 4e mardi », « le 24 »…).
+function serieDebut(t: Tache): string {
+  return t.occurrence?.debutSerie ?? t.date;
 }
 
 interface PropsListe {
