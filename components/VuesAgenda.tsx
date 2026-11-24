@@ -11,6 +11,7 @@ import { IconeAjouter, IconeBravo, IconeCalendrier, IconeChecklist, IconeDuree, 
 import { useEffect, useState } from "react";
 import type { DonneesIdees } from "@/hooks/useIdees";
 import { MenuProjets, PanneauProjet } from "./IdeesProjets";
+import { ListeAvecReperes, plageDe, useVarianteReperes } from "./ReperesHeure";
 
 const MAX_TACHES_CASE_MOIS = 3;
 
@@ -25,10 +26,11 @@ export function VueJour({ dateRef, liste, actions }: Props) {
   const iso = versISO(dateRef);
   const taches = liste.filter((t) => t.date === iso);
   const charge = chargeRestante(taches);
+  const variante = useVarianteReperes();
   return (
     <section className="jour-unique">
       {charge > 0 && <p className="charge-jour"><IconeDuree /> Temps prévu restant ce jour : <strong>{formaterDuree(charge)}</strong></p>}
-      <ListeTaches taches={taches} actions={actions} messageVide="Aucune tâche prévue ce jour." />
+      <ListeAvecReperes taches={taches} actions={actions} variante={variante} hauteurHeure={56} messageVide="Aucune tâche prévue ce jour." />
       <button type="button" className="btn-ajouter" onClick={() => actions.ajouterLe(iso)}>
         <IconeAjouter /> Ajouter une tâche ce jour
       </button>
@@ -42,9 +44,11 @@ export function VueSemaine({ dateRef, liste, actions }: Props) {
   const parDate = grouperParDate(liste);
   const isoAujourdhui = versISO(aujourdhui());
   const jours = Array.from({ length: 7 }, (_, i) => ajouterJours(lundi, i));
+  const variante = useVarianteReperes();
+  const plage = plageDe(jours.flatMap((j) => parDate.get(versISO(j)) ?? []));
 
   return (
-    <div className="grille-semaine">
+    <div className={`grille-semaine${variante === "d" ? " reperes-d" : ""}`}>
       {jours.map((jour, i) => {
         const iso = versISO(jour);
         const charge = chargeRestante(parDate.get(iso) ?? []);
@@ -55,7 +59,7 @@ export function VueSemaine({ dateRef, liste, actions }: Props) {
               <span className="num-jour">{jour.getDate()}</span>
               {charge > 0 && <span className="charge-colonne" title="Temps prévu restant"><IconeDuree /> {formaterDuree(charge)}</span>}
             </button>
-            <ListeTaches taches={parDate.get(iso) ?? []} actions={actions} />
+            <ListeAvecReperes taches={parDate.get(iso) ?? []} actions={actions} variante={variante} plage={plage} />
             <button type="button" className="btn-ajouter" title="Ajouter une tâche ce jour" aria-label="Ajouter une tâche ce jour" onClick={() => actions.ajouterLe(iso)}><IconeAjouter /></button>
           </section>
         );
