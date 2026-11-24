@@ -191,12 +191,13 @@ export function FormulaireTache({ tache, occurrence, dateParDefaut, categoriePar
             value={valeurs.titre} onChange={(e) => changer("titre", e.target.value)} />
         </div>
 
-        {/* En mode simple, la case n'apparaît que si la tâche est déjà sans date
-            (ajout depuis la Checklist), pour qu'on comprenne pourquoi la date manque. */}
-        {(complet || sansDate) && <label className="case-sans-date">
+        {/* Case « Sans date » toujours visible, même en mode simple (demande d'Arthur du 24/11) :
+            on peut créer une tâche de Checklist depuis n'importe quelle vue, sans descendre
+            jusqu'au bouton « Ajouter une tâche sans date ». Cocher masque la date et l'heure. */}
+        <label className="case-sans-date">
           <input type="checkbox" checked={sansDate} onChange={(e) => basculerSansDate(e.target.checked)} />
           Sans date ni heure (checklist)
-        </label>}
+        </label>
 
         {!sansDate && <div className="ligne-champs">
           <div className="champ">
