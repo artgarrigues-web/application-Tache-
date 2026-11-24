@@ -280,11 +280,43 @@ dialog::backdrop { background: rgba(10, 15, 25, 0.5); }
 .ligne-champs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .boutons-dialogue { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
 #btn-supprimer-dialogue { margin-right: auto; }
-/* Bouton « Plus d'options » : aligné à droite, juste au-dessus des boutons Annuler / Enregistrer. */
-.bascule-options { display: flex; justify-content: flex-end; }
-.bascule-options .lien { display: inline-flex; align-items: center; gap: 4px; padding: 6px 2px; text-align: right; }
-.bascule-options .indice { color: var(--texte-doux); font-size: 0.8rem; }
-@media (max-width: 480px) { .bascule-options .indice { display: none; } }
+/* Détails repliables du formulaire de tâche.
+   Astuce d'animation : une grille dont l'unique ligne passe de 0fr (hauteur nulle)
+   à 1fr (hauteur du contenu). Contrairement à height: auto, cela s'anime en CSS. */
+.options-sup {
+  display: grid; grid-template-rows: 0fr; opacity: 0;
+  margin-top: -12px;                     /* annule l'écart (gap) du formulaire quand c'est replié */
+  transition: grid-template-rows 0.3s ease, opacity 0.25s ease, margin-top 0.3s ease;
+}
+.options-sup.ouvert { grid-template-rows: 1fr; opacity: 1; margin-top: 0; }
+.options-sup-contenu { min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 12px; }
+/* Petite marge pour que l'anneau de focus des champs ne soit pas coupé par overflow: hidden. */
+.options-sup.ouvert .options-sup-contenu { padding: 3px; margin: -3px; }
+
+/* Ligne fine + pastille alignée à droite (coin bas droit du formulaire). */
+.bascule-options { display: flex; align-items: center; gap: 12px; margin-top: 2px; }
+.bascule-options::before { content: ""; flex: 1; height: 1px; background: var(--bord); }
+.pastille-options {
+  display: inline-flex; align-items: center; gap: 7px;
+  font: inherit; font-size: 0.85rem; font-weight: 500; color: var(--texte);
+  background: var(--surface-2); border: 1px solid var(--bord); border-radius: 999px;
+  padding: 6px 12px 6px 11px; cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s;
+}
+.pastille-options .lucide { color: var(--accent); }
+.pastille-options:hover { border-color: var(--accent); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 18%, transparent); }
+.pastille-options:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pastille-options.ouvert { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); border-color: color-mix(in srgb, var(--accent) 45%, var(--bord)); }
+.pastille-options .chevron { transition: transform 0.3s ease; }
+.pastille-options.ouvert .chevron { transform: rotate(180deg); }
+.pastille-compte {
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  display: inline-grid; place-items: center;
+  background: var(--accent); color: var(--accent-texte); font-size: 0.7rem; font-weight: 600;
+}
+@media (prefers-reduced-motion: reduce) {
+  .options-sup, .pastille-options .chevron { transition: none; }
+}
 
 /* ---------- Pied de page ---------- */
 .pied { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 28px; font-size: 0.85rem; color: var(--texte-doux); }
