@@ -1,6 +1,6 @@
 "use client";
 
-/* Catégorie « Idées de projets » de la Checklist.
+/* Catégorie « Projets » de la Checklist.
 
    Deux morceaux, affichés à deux endroits de la Checklist :
    - <MenuProjets>   : la liste des projets, dans la colonne de gauche (sous la catégorie) ;
@@ -143,7 +143,7 @@ export function PanneauProjet({ donnees, projet }: { donnees: DonneesIdees; proj
   if (migrationManquante) {
     return (
       <div className="bandeau-erreur" role="alert">
-        <span><IconeAlerte /> Les idées de projets ne sont pas encore activées : la mise à jour de la base
+        <span><IconeAlerte /> La catégorie Projets n&apos;est pas encore activée : la mise à jour de la base
           (fichier <code>supabase/migration-idees.sql</code>) doit être collée une fois dans Supabase → SQL Editor.</span>
       </div>
     );

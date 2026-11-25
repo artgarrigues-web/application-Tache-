@@ -540,7 +540,7 @@ dialog.dialogue-large { width: min(760px, calc(100vw - 32px)); }
 .tache-actions .btn-icone:hover { color: var(--accent); }
 .tache-actions .btn-icone[aria-label="Supprimer"]:hover { color: var(--retard); }
 
-/* ---------- Checklist : menu de catégories à gauche (Tâches / Idées de projets) ----------
+/* ---------- Checklist : menu de catégories à gauche (Tâches / Projets) ----------
    Bureau : deux colonnes (menu 240 px | contenu). Téléphone (< 720 px) : le menu passe
    au-dessus du contenu, les deux catégories côte à côte comme des onglets. */
 .checklist-categories {

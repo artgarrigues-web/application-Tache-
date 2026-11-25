@@ -158,10 +158,10 @@ Bouton « 🪄 Planifier ma semaine » : place les tâches de la Checklist (sans
 - Rien n'est écrit avant « Appliquer » ; un bandeau permet ensuite d'**annuler** (seules les tâches non modifiées depuis sont remises en Checklist).
 - Migration à coller dans Supabase : `supabase/migration-planification.sql`.
 
-### Idées de projets (Checklist)
+### Projets (Checklist)
 
-- La Checklist a un **menu de catégories à gauche** (au-dessus sur téléphone) : *Tâches* et *Idées de projets*.
-- *Idées de projets* : autant de projets que tu veux (créer, renommer, supprimer) ; chaque projet a sa liste d'idées (ajouter, modifier d'un clic, cocher quand elle est réalisée, supprimer). Pas de date : ce ne sont pas des tâches.
+- La Checklist a un **menu de catégories à gauche** (au-dessus sur téléphone) : *Tâches* et *Projets* (anciennement « Idées de projets »).
+- *Projets* : autant de projets que tu veux (créer, renommer, supprimer) ; chaque projet a sa liste d'idées (ajouter, modifier d'un clic, cocher quand elle est réalisée, supprimer). Pas de date : ce ne sont pas des tâches.
 - Code : `components/IdeesProjets.tsx`, `hooks/useIdees.ts`, fonctions « Idées » de `lib/depot.ts`.
 - Données : tables `projets_idees` et `idees` (RLS par utilisateur ; supprimer un projet supprime ses idées). Migration à coller dans Supabase : `supabase/migration-idees.sql`. Tant qu'elle n'est pas appliquée, la catégorie affiche un message au lieu d'une erreur.
 

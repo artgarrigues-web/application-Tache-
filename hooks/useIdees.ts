@@ -1,6 +1,6 @@
 "use client";
 
-/* Hook des « Idées de projets » : même rôle que useTaches pour les tâches.
+/* Hook de la catégorie « Projets » : même rôle que useTaches pour les tâches.
    Il garde en mémoire les projets et leurs idées, et propose les fonctions pour
    les ajouter, modifier ou supprimer (chaque changement part aussi dans Supabase). */
 

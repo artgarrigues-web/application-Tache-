@@ -188,7 +188,7 @@ export async function supprimerTerminees(): Promise<void> {
   verifier(error);
 }
 
-/* ---------- Idées de projets (tables projets_idees et idees) ----------
+/* ---------- Projets de la Checklist (tables projets_idees et idees) ----------
    Même principe que les tâches : les règles RLS ne renvoient que les lignes de
    l'utilisateur connecté, et user_id est rempli par la base (default auth.uid()). */
 
