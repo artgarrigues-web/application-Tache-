@@ -198,3 +198,12 @@ Bouton « 🪄 Planifier ma semaine » : place les tâches de la Checklist (sans
 - Modifier ou supprimer un jour d'une série : « Ce jour seulement », « Ce jour et les suivants » ou « Toute la série ».
 - Synchro calendrier : la série est exportée en `RRULE` (+ `EXDATE` pour les jours supprimés, et un événement ✓ pour chaque jour coché). Fonction SQL `taches_du_calendrier_v2`.
 - SQL : `supabase/migration-recurrence.sql`. Tests : `tests/recurrence.test.ts`.
+
+## Glisser-déposer sur l'agenda (`components/Glisser.tsx`)
+
+- **Déplacer une tâche** dans les vues Jour, Semaine et Mois. Semaine et Mois : la tâche change de jour et **garde son heure**. Jour : une réglette de créneaux (toutes les 30 min, repères pointillés toutes les 3 h comme l'option C) apparaît pendant le glissement pour choisir l'heure.
+- **Tâche sans date** (Checklist, rubrique « Sans date ») → déposée sur un jour, elle reçoit cette date. À l'inverse, une tâche de l'agenda déposée sur « Sans date » y retourne.
+- **Projet ou idée** (Checklist, catégorie « Projets ») → déposé sur un jour, il crée une **nouvelle tâche** datée, catégorie « Projets », liée au projet par la colonne `taches.projet_id` (badge sur la carte). Le projet et ses idées ne bougent pas. Migration : `supabase/migration-projet-agenda.sql`.
+- **Tâche répétée** : seul le jour glissé est déplacé (comme « Ce jour seulement » du formulaire).
+- Souris (6 px de mouvement avant de démarrer, un clic ouvre toujours la tâche), **appui long 250 ms au doigt**, **clavier** (Tab jusqu'à la poignée ⋮⋮, Espace, flèches, Espace), **Échap** annule, garder l'élément au-dessus de ‹ › change de période. Après chaque dépôt, un message propose **Annuler**.
+- Bibliothèque : `@dnd-kit/core` (le glisser-déposer natif du navigateur ne marche pas au doigt ni au clavier).

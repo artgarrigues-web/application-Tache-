@@ -13,6 +13,7 @@
 import { useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import type { DonneesIdees } from "@/hooks/useIdees";
 import type { Idee, ProjetIdees } from "@/lib/types";
+import { Poignee, useGlissable } from "./Glisser";
 import { IconeAjouter, IconeAlerte, IconeFermer, IconeIdee, IconeModifier, IconeProjet, IconeSupprimer, IconeValide } from "./Icones";
 
 const LONGUEUR_TITRE = 200;  // mêmes limites que dans la base (check … between 1 and …)
@@ -84,18 +85,10 @@ export function MenuProjets({ donnees, projetActif, choisir }: {
     <div className="menu-projets">
       {projets.length > 0 && (
         <ul>
-          {projets.map((p) => {
-            const n = idees.filter((i) => i.projetId === p.id).length;
-            return (
-              <li key={p.id}>
-                <button type="button" className={`projet-menu${p.id === projetActif ? " actif" : ""}`}
-                  aria-current={p.id === projetActif ? "true" : undefined} onClick={() => choisir(p.id)}>
-                  <IconeProjet /><span className="projet-menu-titre">{p.titre}</span>
-                  <span className="compte-groupe">{n}</span>
-                </button>
-              </li>
-            );
-          })}
+          {projets.map((p) => (
+            <LigneProjet key={p.id} projet={p} actif={p.id === projetActif} choisir={choisir}
+              nombre={idees.filter((i) => i.projetId === p.id).length} />
+          ))}
         </ul>
       )}
       {!migrationManquante && (
@@ -110,11 +103,31 @@ export function MenuProjets({ donnees, projetActif, choisir }: {
   );
 }
 
-/* ---------- Une idée ---------- */
-function LigneIdee({ idee, donnees }: { idee: Idee; donnees: DonneesIdees }) {
-  const [edition, setEdition] = useState(false);
+/* ---------- Un projet du menu : se glisse sur l'agenda (il y devient une tâche datée,
+   liée au projet ; le projet et ses idées restent dans la Checklist). ---------- */
+function LigneProjet({ projet, actif, nombre, choisir }: { projet: ProjetIdees; actif: boolean; nombre: number; choisir: (id: string) => void }) {
+  const g = useGlissable(`projet:${projet.id}`, { type: "projet", projet });
   return (
-    <li className={`idee${idee.faite ? " faite" : ""}`}>
+    <li ref={g.setNodeRef} {...(g.possible ? g.listeners : {})}
+      className={`ligne-projet${g.possible ? " glissable" : ""}${g.isDragging ? " en-glissement" : ""}`}>
+      <Poignee glissable={g} libelle={`le projet « ${projet.titre} » vers l'agenda`} />
+      <button type="button" className={`projet-menu${actif ? " actif" : ""}`}
+        aria-current={actif ? "true" : undefined} onClick={() => choisir(projet.id)}>
+        <IconeProjet /><span className="projet-menu-titre">{projet.titre}</span>
+        <span className="compte-groupe">{nombre}</span>
+      </button>
+    </li>
+  );
+}
+
+/* ---------- Une idée (se glisse aussi sur l'agenda : elle y devient une tâche liée au projet) ---------- */
+function LigneIdee({ idee, donnees, projet }: { idee: Idee; donnees: DonneesIdees; projet: ProjetIdees }) {
+  const [edition, setEdition] = useState(false);
+  const g = useGlissable(`idee:${idee.id}`, { type: "idee", idee, projet }, edition);
+  return (
+    <li ref={g.setNodeRef} {...(g.possible ? g.listeners : {})}
+      className={`idee${idee.faite ? " faite" : ""}${g.possible ? " glissable" : ""}${g.isDragging ? " en-glissement" : ""}`}>
+      <Poignee glissable={g} libelle={`l'idée « ${idee.texte.slice(0, 60)} » vers l'agenda`} />
       <input type="checkbox" checked={idee.faite} onChange={() => donnees.basculerIdee(idee.id)}
         aria-label={`Marquer l'idée « ${idee.texte} » comme ${idee.faite ? "à creuser" : "réalisée"}`} />
       {edition
@@ -202,12 +215,12 @@ export function PanneauProjet({ donnees, projet }: { donnees: DonneesIdees; proj
         onAjouter={(t) => donnees.ajouterIdee(projet.id, t)} />
 
       {aCreuser.length > 0 && (
-        <ul className="liste-idees">{aCreuser.map((i) => <LigneIdee key={i.id} idee={i} donnees={donnees} />)}</ul>
+        <ul className="liste-idees">{aCreuser.map((i) => <LigneIdee key={i.id} idee={i} donnees={donnees} projet={projet} />)}</ul>
       )}
       {realisees.length > 0 && (
         <>
           <h4 className="titre-faites"><IconeValide /> Réalisées ({realisees.length})</h4>
-          <ul className="liste-idees">{realisees.map((i) => <LigneIdee key={i.id} idee={i} donnees={donnees} />)}</ul>
+          <ul className="liste-idees">{realisees.map((i) => <LigneIdee key={i.id} idee={i} donnees={donnees} projet={projet} />)}</ul>
         </>
       )}
     </div>

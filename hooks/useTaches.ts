@@ -9,7 +9,7 @@
    map / filter / [...] : c'est en voyant une nouvelle référence que React
    sait qu'il doit réafficher.                                                 */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as depot from "@/lib/depot";
 import * as rec from "@/lib/recurrence";
 import type { DonneesTache, Portee, Tache } from "@/lib/types";
@@ -22,6 +22,9 @@ export function useTaches(userId: string) {
   const [taches, setTaches] = useState<Tache[]>([]);
   const [charge, setCharge] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
+  // Copie toujours à jour de la liste, pour les « Annuler » appelés plusieurs secondes plus tard.
+  const tachesRef = useRef<Tache[]>([]);
+  tachesRef.current = taches;
 
   // Exécute une opération réseau ; en cas d'échec, mémorise le message à afficher.
   const executer = useCallback(async (operation: () => Promise<void>): Promise<boolean> => {
@@ -195,6 +198,104 @@ export function useTaches(userId: string) {
     [executer],
   );
 
+  /* ---------- Glisser-déposer ----------
+     Chaque fonction met l'écran à jour TOUT DE SUITE (la carte atterrit sans attendre le
+     réseau, ce qui rend l'animation fluide), puis enregistre. Si la base refuse, on remet
+     tout comme avant. Elles renvoient une fonction « Annuler » (bouton du message affiché
+     après le dépôt), ou null en cas d'échec.                                              */
+  type Annuler = () => Promise<boolean>;
+
+  // Changer la date et/ou l'heure d'une tâche (date "" = la remettre dans la Checklist).
+  const deplacer = useCallback(async (id: string, date: string, heure: string): Promise<Annuler | null> => {
+    const occ = rec.analyserId(id);
+    if (occ) return deplacerOccurrence(occ.serieId, occ.date, date, heure);
+    const tache = tachesRef.current.find((t) => t.id === id);
+    if (!tache) return null;
+    const changer = async (d: string, h: string) => {
+      const avant = tachesRef.current.find((t) => t.id === id);
+      setTaches((prec) => prec.map((t) => (t.id === id ? { ...t, date: d, heure: h } : t)));
+      return executer(async () => {
+        try {
+          const [maj] = await depot.changerHoraires([{ id, date: d, heure: h }]);
+          setTaches((prec) => prec.map((t) => (t.id === id ? maj : t)));
+        } catch (e) {
+          if (avant) setTaches((prec) => prec.map((t) => (t.id === id ? avant : t)));
+          throw e;
+        }
+      });
+    };
+    const ok = await changer(date, heure);
+    return ok ? () => changer(tache.date, tache.heure) : null;
+  }, [executer]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* Occurrence d'une tâche répétée : on ne déplace QUE ce jour-là (comme « Ce jour seulement »
+     dans le formulaire) : elle devient une tâche unique à la nouvelle date, et sa date
+     d'origine est retirée de la série. Le reste de la série ne bouge pas. */
+  async function deplacerOccurrence(serieId: string, dateOcc: string, date: string, heure: string): Promise<Annuler | null> {
+    const serie = tachesRef.current.find((t) => t.id === serieId);
+    if (!serie?.recurrence) return null;
+    const regleAvant = serie.recurrence;
+    const faite = regleAvant.faites.includes(dateOcc);
+    const { id: _id, faite: _f, creeLe: _c, occurrence: _o, ...donnees } = serie;
+    const provisoire: Tache = { ...serie, id: `provisoire-${Date.now()}`, date, heure, recurrence: null, faite, occurrence: undefined };
+    const regleApres = rec.ajouterException(regleAvant, dateOcc);
+    setTaches((prec) => [...prec.map((t) => (t.id === serieId ? { ...t, recurrence: regleApres } : t)), provisoire]);
+    let unique: Tache | null = null;
+    const ok = await executer(async () => {
+      try {
+        unique = await depot.insererTache({ ...donnees, date, heure, recurrence: null });
+        if (faite) { await depot.changerEtat(unique.id, true); unique = { ...unique, faite: true }; }
+        const majSerie = await depot.changerRecurrence(serieId, regleApres);
+        const u = unique;
+        setTaches((prec) => prec.map((t) => (t.id === serieId ? majSerie : t.id === provisoire.id ? u : t)));
+      } catch (e) {
+        if (unique) await depot.supprimerTache(unique.id).catch(() => undefined); // pas de doublon à moitié créé
+        setTaches((prec) => prec.filter((t) => t.id !== provisoire.id).map((t) => (t.id === serieId ? { ...t, recurrence: regleAvant } : t)));
+        throw e;
+      }
+    });
+    if (!ok || !unique) return null;
+    const creee: Tache = unique;
+    // Annuler : supprimer la tâche unique et rendre ce jour à la série (en gardant les jours cochés depuis).
+    return () => executer(async () => {
+      const s = tachesRef.current.find((t) => t.id === serieId);
+      const u = tachesRef.current.find((t) => t.id === creee.id);
+      if (!s?.recurrence) throw new Error("Série introuvable.");
+      const r = s.recurrence;
+      const remise = {
+        ...r,
+        exceptions: r.exceptions.filter((d) => d !== dateOcc),
+        faites: u?.faite && !r.faites.includes(dateOcc) ? [...r.faites, dateOcc].sort() : r.faites,
+      };
+      await depot.supprimerTache(creee.id);
+      const majSerie = await depot.changerRecurrence(serieId, remise);
+      setTaches((prec) => prec.filter((t) => t.id !== creee.id).map((t) => (t.id === serieId ? majSerie : t)));
+    });
+  }
+
+  // Projet ou idée déposé sur l'agenda : nouvelle tâche (affichée tout de suite, puis enregistrée).
+  const creerDepuis = useCallback(async (d: DonneesTache): Promise<Annuler | null> => {
+    const provisoire: Tache = { ...d, id: `provisoire-${Date.now()}`, faite: false, creeLe: new Date().toISOString() };
+    setTaches((prec) => [...prec, provisoire]);
+    let creee: Tache | null = null;
+    const ok = await executer(async () => {
+      try {
+        creee = await depot.insererTache(d);
+        const c = creee;
+        setTaches((prec) => prec.map((t) => (t.id === provisoire.id ? c : t)));
+      } catch (e) {
+        setTaches((prec) => prec.filter((t) => t.id !== provisoire.id));
+        throw e;
+      }
+    });
+    if (!ok || !creee) return null;
+    const id = (creee as Tache).id;
+    return () => executer(async () => {
+      await depot.supprimerTache(id);
+      setTaches((prec) => prec.filter((t) => t.id !== id));
+    });
+  }, [executer]);
+
   const importer = useCallback(
     (liste: Tache[]) => executer(async () => {
       const ajoutees = await depot.insererPlusieurs(liste);
@@ -206,6 +307,6 @@ export function useTaches(userId: string) {
   return {
     taches, charge, erreur, effacerErreur: () => setErreur(null),
     ajouter, modifier, supprimer, basculerFaite, effacerTerminees, importer, recharger, changerHoraires,
-    supprimerOccurrence, modifierOccurrence,
+    supprimerOccurrence, modifierOccurrence, deplacer, creerDepuis,
   };
 }

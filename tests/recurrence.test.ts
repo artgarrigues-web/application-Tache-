@@ -16,7 +16,7 @@ const regle = (champs: Partial<Recurrence>): Recurrence => ({ ...recurrenceParDe
 function tache(champs: Partial<Tache>): Tache {
   return {
     id: "s1", titre: "Sport", description: "", date: "2026-11-24", heure: "", dureeMinutes: null,
-    lieu: "", echeance: "", materiel: "", categorie: "perso", priorite: "moyenne", groupe: null, couleur: null,
+    lieu: "", echeance: "", materiel: "", categorie: "perso", priorite: "moyenne", groupe: null, couleur: null, projetId: null,
     recurrence: null, faite: false, creeLe: "2026-11-01T00:00:00Z", ...champs,
   };
 }

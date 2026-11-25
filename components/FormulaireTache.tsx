@@ -53,12 +53,12 @@ export function FormulaireTache({ tache, occurrence, dateParDefaut, categoriePar
           titre: tache.titre, description: tache.description, date: occurrence ?? tache.date, heure: tache.heure,
           dureeMinutes: tache.dureeMinutes, lieu: tache.lieu, echeance: tache.echeance, materiel: tache.materiel,
           categorie: tache.categorie, priorite: tache.priorite, groupe: tache.groupe, couleur: tache.couleur,
-          recurrence: tache.recurrence,
+          recurrence: tache.recurrence, projetId: tache.projetId,
         }
       : {
           titre: "", description: "", date: dateParDefaut, heure: "",
           dureeMinutes: null, lieu: "", echeance: "", materiel: "",
-          categorie: categorieParDefaut, priorite: "moyenne", groupe: null, couleur: null, recurrence: null,
+          categorie: categorieParDefaut, priorite: "moyenne", groupe: null, couleur: null, recurrence: null, projetId: null,
         },
   );
 

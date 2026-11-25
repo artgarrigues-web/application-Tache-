@@ -38,6 +38,8 @@ export {
   CalendarSync as IconeSynchro,
   Menu as IconeMenu,
   WandSparkles as IconePlanifier,
+  GripVertical as IconePoignee,
+  Move as IconeDeplacer,
   // Navigation
   ChevronLeft as IconePrecedent,
   ChevronRight as IconeSuivant,

@@ -5,12 +5,13 @@
    des données. React échappe automatiquement le texte inséré avec {…} :
    un titre contenant "<script>" s'affiche comme du texte (protection XSS).  */
 
-import type { ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
 import { aujourdhui, formater, depuisISO, versISO } from "@/lib/dates";
 import { estEnRetard, formaterDuree, groupesDe, heureFin, lienCarte, listeMateriel } from "@/lib/taches";
 import { CATEGORIES, GROUPES, PRIORITES, type Tache } from "@/lib/types";
 import { decrireRecurrence } from "@/lib/recurrence";
-import { IconeChecklist, IconeRepeter, IconeDuree, IconeEcheance, IconeGroupe, IconeLieu, IconeMateriel, IconeModifier, IconeSupprimer } from "./Icones";
+import { OrigineGlisser, Poignee, useGlissable } from "./Glisser";
+import { IconeChecklist, IconeProjet, IconeRepeter, IconeDuree, IconeEcheance, IconeGroupe, IconeLieu, IconeMateriel, IconeModifier, IconeSupprimer } from "./Icones";
 
 // Les actions possibles depuis une vue de l'agenda, fournies par le composant Agenda.
 export interface ActionsAgenda {
@@ -20,6 +21,7 @@ export interface ActionsAgenda {
   ajouterLe: (dateISO: string) => void;
   allerAuJour: (dateISO: string) => void;
   planifier?: () => void; // ouvre la planification automatique (bouton de l'onglet Checklist)
+  titreProjet?: (id: string) => string | undefined; // nom du projet lié (badge), s'il existe encore
 }
 
 interface Props {
@@ -27,9 +29,15 @@ interface Props {
   actions: ActionsAgenda;
   compacte?: boolean;   // version réduite (vue Mois)
   avecDate?: boolean;
+  fantome?: boolean;    // copie affichée sous le pointeur pendant un glissement (non interactive)
 }
 
-export function CarteTache({ tache, actions, compacte = false, avecDate = false }: Props) {
+export function CarteTache({ tache, actions, compacte = false, avecDate = false, fantome = false }: Props) {
+  /* Glisser-déposer (voir Glisser.tsx) : la carte n'est glissable que si elle est affichée
+     dans une zone qui le permet (OrigineGlisser : calendrier ou rubrique « Sans date »). */
+  const origine = useContext(OrigineGlisser);
+  const glissable = useGlissable(`${fantome ? "fantome" : origine ?? "fixe"}:${tache.id}`,
+    { type: "tache", tache, compacte }, fantome || origine === null);
   const retard = estEnRetard(tache);
   const materiel = listeMateriel(tache.materiel);
   const groupes = groupesDe(tache);
@@ -37,10 +45,14 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false 
     "tache", `cat-${tache.categorie}`, `prio-${tache.priorite}`,
     tache.couleur && `avec-couleur couleur-${tache.couleur}`,
     compacte && "compacte", tache.faite && "faite", retard && "retard",
+    glissable.possible && "glissable", glissable.isDragging && "en-glissement", fantome && "carte-fantome",
+    tache.id.startsWith("provisoire-") && "provisoire", // en cours d'enregistrement (après un dépôt)
   ].filter(Boolean).join(" ");
 
   return (
-    <article className={classes}>
+    <article className={classes} ref={glissable.setNodeRef} {...(glissable.possible ? glissable.listeners : {})}
+      inert={fantome || undefined}>
+      <Poignee glissable={glissable} libelle={`la tâche « ${tache.titre} »`} />
       <input
         type="checkbox"
         checked={tache.faite}
@@ -105,6 +117,9 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false 
                   title="Ouvrir dans Google Maps" onClick={(e) => e.stopPropagation()}>
                   <IconeLieu /> {tache.lieu}
                 </a>
+              )}
+              {tache.projetId && actions.titreProjet?.(tache.projetId) && (
+                <span className="badge badge-projet" title="Tâche placée depuis ce projet"><IconeProjet /> {actions.titreProjet(tache.projetId)}</span>
               )}
               <span className="badge badge-cat">{CATEGORIES[tache.categorie]}</span>
               <span className={`badge badge-prio-${tache.priorite}`}>

@@ -29,6 +29,7 @@ interface Ligne {
   groupe: Groupe | null;
   couleur?: string | null; // absente si la migration du 24/11 n'a pas encore été appliquée
   recurrence?: unknown;    // jsonb, absente si supabase/migration-recurrence.sql n'a pas été appliquée
+  projet_id?: string | null; // absente si supabase/migration-projet-agenda.sql n'a pas été appliquée
   faite: boolean;
   cree_le: string;
 }
@@ -50,6 +51,7 @@ function depuisLigne(l: Ligne): Tache {
     couleur: estCouleur(l.couleur) ? l.couleur : null,
     // Une règle illisible (ou une tâche sans date) est traitée comme une tâche unique.
     recurrence: l.date ? validerRecurrence(l.recurrence) : null,
+    projetId: l.projet_id ?? null,
     faite: l.faite,
     creeLe: l.cree_le,
   };
@@ -58,12 +60,13 @@ function depuisLigne(l: Ligne): Tache {
 /* Colonnes ajoutées après coup (migrations SQL à coller dans Supabase) :
    - "echeance" le 21/11/2026 (supabase/migration-planification.sql) ;
    - "couleur"  le 24/11/2026 (supabase/migration-couleur.sql) ;
-   - "recurrence" le 24/11/2026 (supabase/migration-recurrence.sql).
+   - "recurrence" le 24/11/2026 (supabase/migration-recurrence.sql) ;
+   - "projet_id" le 25/11/2026 (supabase/migration-projet-agenda.sql).
    Tant qu'une migration n'a pas été collée, envoyer la colonne ferait échouer TOUTES
    les sauvegardes. On essaie donc avec ; si la base répond que la colonne n'existe pas
    (son nom figure dans le message d'erreur), on retient l'information et on renvoie
    sans : l'information n'est alors simplement pas gardée, le reste fonctionne. */
-const colonnesOptionnelles = { echeance: true, couleur: true, recurrence: true };
+const colonnesOptionnelles = { echeance: true, couleur: true, recurrence: true, projet_id: true };
 type ColonneOptionnelle = keyof typeof colonnesOptionnelles;
 
 export function echeanceDisponible(): boolean {
@@ -92,6 +95,7 @@ function versLigne(d: DonneesTache) {
   if (colonnesOptionnelles.echeance) ligne.echeance = d.echeance || null;
   if (colonnesOptionnelles.couleur) ligne.couleur = d.couleur;
   if (colonnesOptionnelles.recurrence) ligne.recurrence = d.date ? d.recurrence : null;
+  if (colonnesOptionnelles.projet_id) ligne.projet_id = d.projetId;
   return ligne;
 }
 
