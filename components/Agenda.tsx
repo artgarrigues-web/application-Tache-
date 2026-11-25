@@ -42,7 +42,7 @@ interface EtatFormulaire { tacheId: string | null; date?: string }
 export function Agenda({ utilisateur }: { utilisateur: User }) {
   const { taches, charge, erreur, effacerErreur, ajouter, modifier, supprimer, basculerFaite, effacerTerminees, importer, changerHoraires,
     supprimerOccurrence, modifierOccurrence } = useTaches(utilisateur.id);
-  const idees = useIdees(utilisateur.id); // catégorie « Idées de projets » de la Checklist
+  const idees = useIdees(utilisateur.id); // catégorie « Projets » de la Checklist
 
   const [vue, setVue] = useState<Vue>("semaine");
   const [dateRef, setDateRef] = useState<Date>(() => aujourdhui());

@@ -188,7 +188,7 @@ export function VueTri({ liste, actions }: Props) {
 /* ---------- Checklist ----------
    À gauche (au-dessus sur téléphone), un menu de catégories :
    - « Tâches » : les tâches à cocher (sans date, planifiées, cochées) ;
-   - « Idées de projets » : des projets, chacun avec sa liste d'idées.
+   - « Projets » : des projets, chacun avec sa liste d'idées.
    La catégorie et le projet choisis sont retenus dans le navigateur. */
 type CategorieChecklist = "taches" | "idees";
 const CLE_CATEGORIE = "agendia-checklist-categorie";
@@ -226,7 +226,7 @@ export function VueChecklist({ liste, actions, sousAgenda = false, idees }: Prop
         </button>
         <button type="button" className={`categorie-checklist${categorie === "idees" ? " actif" : ""}`}
           aria-current={categorie === "idees" ? "true" : undefined} onClick={() => changerCategorie("idees")}>
-          <IconeIdee /> <span>Idées de projets</span> <span className="compte-groupe">{idees.projets.length}</span>
+          <IconeIdee /> <span>Projets</span> <span className="compte-groupe">{idees.projets.length}</span>
         </button>
         {categorie === "idees" && <MenuProjets donnees={idees} projetActif={projet?.id ?? null} choisir={choisirProjet} />}
       </nav>

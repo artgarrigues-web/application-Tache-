@@ -106,7 +106,7 @@ export const JOURS_URGENCE = 1;      // 0 = aujourd'hui seulement, 1 = jusqu'à 
 export const DUREE_RAPIDE_MAX = 30;  // en minutes
 export const FILTRES_INITIAUX: Filtres = { recherche: "", categorie: "toutes", priorite: "toutes", statut: "toutes" };
 
-/* ---------- Idées de projets (catégorie de la Checklist) ----------
+/* ---------- Projets (catégorie de la Checklist) ----------
    Un projet = un titre ; ses idées = une liste de notes cochables, sans date.
    Tables Supabase projets_idees et idees (supabase/migration-idees.sql). */
 export interface ProjetIdees {
