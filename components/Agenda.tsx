@@ -29,7 +29,13 @@ import type { ChangementHoraire } from "@/lib/depot";
 import type { Planning } from "@/lib/planification";
 import { VueChecklist, VueJour, VueListe, VueMois, VueSemaine, VueTri } from "./VuesAgenda";
 import { Logo, NomApp } from "./Logo";
-import { IconeAjouter, IconeAnnuler, IconeChecklist, IconeExporter, IconeFermer, IconeImporter, IconePlanifier, IconePrecedent, IconeRecherche, IconeSucces, IconeSuivant, IconeSynchro } from "./Icones";
+import { IconeAjouter, IconeAnnuler, IconeChecklist, IconeExporter, IconeFermer, IconeImporter, IconePlanifier, IconePrecedent, IconeRecherche, IconeSucces, IconeSuivant, IconeSynchro, IconeSupprimer } from "./Icones";
+import { LogOut } from "lucide-react";
+import {
+  BandeauSemaine, BarreBas, BoutonFlottant, EnteteMobile, FilContinu, MenuPlus, SaisieRapide, titreCourt, useBalayage,
+  useVarianteMobile, vueAccueil,
+} from "./Mobile";
+import type { Tache } from "@/lib/types";
 
 const CLE_VUE = "agenda-taches-vue"; // simple préférence d'affichage, gardée dans le navigateur
 const CLE_ANNULATION = "agenda-dernier-planning"; // de quoi annuler le dernier planning appliqué
@@ -59,6 +65,15 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   const champFichier = useRef<HTMLInputElement>(null);
   // Message affiché après un glisser-déposer, avec son bouton « Annuler ».
   const [messageDepot, setMessageDepot] = useState<{ texte: string; detail?: string; annuler: (() => Promise<boolean>) | null; cle: number } | null>(null);
+
+  /* Prototype ergonomie téléphone (components/Mobile.tsx) : null = affichage habituel. */
+  const mobile = useVarianteMobile();
+  const [rechercheOuverte, setRechercheOuverte] = useState(false);
+  const [plusOuvert, setPlusOuvert] = useState(false);
+  const [saisieOuverte, setSaisieOuverte] = useState(false);
+  const [moisOuvert, setMoisOuvert] = useState(false); // option B : calendrier du mois déplié
+  // En passant sur une option téléphone, on arrive sur son écran d'accueil (comme les apps mobiles).
+  useEffect(() => { if (mobile) setVue(vueAccueil(mobile)); }, [mobile]);
 
   // Retrouve la dernière vue utilisée…
   useEffect(() => {
@@ -280,6 +295,28 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
     if (confirm(`Ajouter ${liste.length} tâche(s) à ton agenda ?`)) await importer(liste);
   }
 
+  /* ---------- Prototype téléphone ---------- */
+  // Option C, balayage ←: une tâche en retard revient à aujourd'hui, les autres passent au lendemain.
+  async function reporter(t: Tache) {
+    const iso = versISO(aujourdhui());
+    const cible = t.date < iso ? iso : versISO(ajouterJours(depuisISO(t.date), 1));
+    const annuler = await deplacerTache(t.id, cible, t.heure);
+    if (annuler) afficherDepot(`« ${t.titre} » reportée ${cible === iso ? "à aujourd'hui" : "au " + libelleCible({ date: cible, heure: null })}.`, undefined, annuler);
+  }
+  // Option C, saisie rapide : titre + date + heure, le reste par défaut.
+  async function creerRapide(titre: string, date: string, heure: string): Promise<boolean> {
+    const ok = await ajouter({
+      titre, description: "", date, heure, dureeMinutes: null, lieu: "", echeance: "", materiel: "",
+      categorie: filtres.categorie !== "toutes" ? filtres.categorie : "perso", priorite: "moyenne", groupe: null,
+      couleur: null, recurrence: null, projetId: null,
+    });
+    if (ok) setMessageDepot({ texte: `« ${titre} » ajoutée${date ? "" : " à la Checklist"}.`, annuler: null, cle: Date.now() });
+    return ok;
+  }
+  const balayageJour = useBalayage(() => setDateRef((d) => ajouterJours(d, 1)), () => setDateRef((d) => ajouterJours(d, -1)));
+  const ecranB = mobile === "b" && vue === "jour";
+  const ecranC = mobile === "c" && vue === "liste";
+
   /* ---------- Raccourcis clavier ---------- */
   useEffect(() => {
     function auClavier(e: KeyboardEvent) {
@@ -316,7 +353,20 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
     <FournisseurGlisser actif={charge && vueCalendrier} onDeposer={deposer}
       onNaviguer={(sens) => setDateRef((d) => deplacer(vue, d, sens))}
       rendreTache={(t, compacte) => <div className={`vue-${vue}`}><CarteTache tache={t} actions={actions} compacte={compacte} fantome /></div>}>
-    <div className="page">
+    <div className={`page${mobile ? ` mobile mobile-${mobile}` : ""}${rechercheOuverte ? " recherche-ouverte" : ""}`}>
+      {mobile ? (
+        <EnteteMobile
+          titre={ecranB ? titreCourt("mois", dateRef) : titreCourt(vue, dateRef)}
+          navigable={navigable && !ecranB}
+          onPrecedent={() => setDateRef(deplacer(vue, dateRef, -1))}
+          onSuivant={() => setDateRef(deplacer(vue, dateRef, 1))}
+          onAujourdhui={() => setDateRef(aujourdhui())}
+          rechercheOuverte={rechercheOuverte}
+          onRecherche={() => setRechercheOuverte((o) => !o)}
+          onTitre={ecranB ? () => setMoisOuvert((o) => !o) : undefined}
+          titreDeplie={moisOuvert}
+        />
+      ) : (
       <header className="entete">
         <h1 className="titre-app"><Logo /> <NomApp /></h1>
         <Compteurs taches={courantes} tachesPeriode={tachesPeriode} plage={plage} />
@@ -329,6 +379,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           <IconeAjouter /> Nouvelle tâche
         </button>
       </header>
+      )}
 
       {erreur && (
         <div className="bandeau-erreur" role="alert">
@@ -405,8 +456,14 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
         </select>
       </section>
 
-      <main className={`vue vue-${vue}`}>
+      {ecranB && (
+        <BandeauSemaine dateRef={dateRef} onChoisir={setDateRef} taches={taches} filtres={filtres}
+          moisOuvert={moisOuvert} onFermerMois={() => setMoisOuvert(false)} />
+      )}
+
+      <main className={`vue vue-${vue}`} {...(ecranB ? balayageJour : {})}>
         {!charge ? <p className="vide">Chargement des tâches…</p>
+          : ecranC ? <FilContinu taches={taches} filtres={filtres} actions={actions} onReporter={reporter} />
           : vue === "jour" ? <VueJour {...propsVue} />
           : vue === "semaine" ? <VueSemaine {...propsVue} />
           : vue === "mois" ? <VueMois {...propsVue} />
@@ -437,6 +494,29 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           <button type="button" className="lien" onClick={() => supabase().auth.signOut()}>Se déconnecter</button>
         </span>
       </footer>
+
+      {mobile && (
+        <>
+          <BoutonFlottant onClick={() => (mobile === "c" ? setSaisieOuverte(true) : setFormulaire({ tacheId: null }))} />
+          <BarreBas variante={mobile} vue={vue} onVue={(v) => { setVue(v); if (v === "jour" || v === "liste") setDateRef(aujourdhui()); }}
+            onPlus={() => setPlusOuvert(true)} />
+        </>
+      )}
+      {plusOuvert && mobile && (
+        <MenuPlus variante={mobile} vue={vue} onVue={setVue} onFermer={() => setPlusOuvert(false)}
+          compteurs={<Compteurs taches={courantes} tachesPeriode={tachesPeriode} plage={plage} />}
+          actions={[
+            { libelle: "Planifier ma semaine", icone: <IconePlanifier />, onClick: () => setPlanifOuverte(true) },
+            { libelle: "Synchroniser mon calendrier", icone: <IconeSynchro />, onClick: () => setSynchroOuverte(true) },
+            { libelle: "Exporter (JSON)", icone: <IconeExporter />, onClick: exporter },
+            { libelle: "Importer", icone: <IconeImporter />, onClick: () => champFichier.current?.click() },
+            { libelle: "Effacer les tâches terminées", icone: <IconeSupprimer />, onClick: effacerFaites, danger: true },
+            { libelle: `Se déconnecter (${utilisateur.email ?? ""})`, icone: <LogOut aria-hidden="true" />, onClick: () => supabase().auth.signOut() },
+          ]} />
+      )}
+      {saisieOuverte && (
+        <SaisieRapide onCreer={creerRapide} onDetails={() => setFormulaire({ tacheId: null })} onFermer={() => setSaisieOuverte(false)} />
+      )}
 
       {/* Le formulaire n'existe dans la page que lorsqu'il est ouvert.
           "key" change à chaque ouverture : React recrée alors un formulaire neuf, avec des champs réinitialisés. */}

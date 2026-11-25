@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --test tests/planification.test.ts tests/recurrence.test.ts"
+    "test": "node --test tests/planification.test.ts tests/recurrence.test.ts tests/saisie-rapide.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

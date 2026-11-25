@@ -852,3 +852,160 @@ body.glissement-hors-zone, body.glissement-hors-zone * { cursor: no-drop !import
   .reglette, .toast-depot { animation: none; }
   .zone-depot, .poignee { transition: none; }
 }
+
+/* =====================================================================
+   PROTOTYPE — ergonomie téléphone (components/Mobile.tsx)
+   Tout est préfixé par .mobile : ces règles ne s'appliquent que si une
+   option (?mobile=a|b|c) est choisie ET que l'écran fait ≤ 640 px.
+   ===================================================================== */
+
+/* --- Socle commun --- */
+.page.mobile { padding: 0 12px calc(92px + env(safe-area-inset-bottom)); }
+.entete-mobile {
+  position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 6px;
+  margin: 0 -12px 10px; padding: 10px 12px; background: var(--fond); border-bottom: 1px solid var(--bord);
+}
+.titre-mobile {
+  flex: 1; min-width: 0; margin: 0 0 0 4px; font-size: 1.15rem; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.titre-depliable {
+  display: inline-flex; align-items: center; gap: 4px; border: none; background: none; padding: 0;
+  font: inherit; font-size: 1.15rem; font-weight: 700; color: var(--texte); cursor: pointer; text-align: left;
+}
+.btn-rond {
+  flex: none; width: 36px; height: 36px; display: grid; place-items: center; padding: 0;
+  border: 1px solid var(--bord); border-radius: 999px; background: var(--surface); color: var(--texte);
+  font: inherit; cursor: pointer;
+}
+.btn-rond.btn-auj { width: auto; padding: 0 12px; font-size: 0.85rem; font-weight: 600; }
+.btn-rond.actif { background: var(--accent); color: var(--accent-texte); border-color: transparent; }
+
+.mobile .barre-outils, .mobile .checklist-sous-agenda, .mobile .pied { display: none; }
+.mobile .filtres { display: none; }
+.mobile.recherche-ouverte .filtres { display: flex; }
+.mobile .filtres select { flex: 1 1 30%; min-width: 0; font-size: 0.85rem; }
+
+/* Cartes allégées : la bande colorée dit déjà la catégorie, le point avant le titre la priorité,
+   et « Urgent » (= aujourd'hui ou demain) répète ce que dit déjà la date dans un agenda. */
+.mobile .badge-cat, .mobile [class*="badge-prio-"], .mobile .badge-groupe.groupe-urgent,
+.mobile .tache-actions { display: none; }
+.mobile .tache { padding: 10px 12px; gap: 10px; }
+.mobile .tache input[type="checkbox"] { width: 22px; height: 22px; margin: 0; }
+.mobile .tache-meta { margin-top: 4px; }
+.mobile .colonne-jour > .btn-ajouter { display: none; }   /* le bouton « + » flottant suffit */
+.mobile .haut-case { flex-direction: column; gap: 2px; }   /* le compteur ne chevauche plus le numéro */
+.mobile .toast-depot { bottom: calc(80px + env(safe-area-inset-bottom)); }
+
+/* Barre d'onglets en bas, à portée de pouce. */
+.barre-bas {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+  display: flex; padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(10px);
+  border-top: 1px solid var(--bord);
+}
+.barre-bas button {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0;
+  border: none; background: none; color: var(--texte-doux); font: inherit; font-size: 0.7rem; cursor: pointer;
+}
+.barre-bas button .lucide { width: 22px; height: 22px; }
+.barre-bas button.actif { color: var(--accent); font-weight: 600; }
+.bouton-flottant {
+  position: fixed; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 61;
+  width: 56px; height: 56px; border-radius: 18px; border: none; display: grid; place-items: center;
+  background: var(--accent); color: var(--accent-texte); box-shadow: 0 6px 20px rgba(29, 78, 216, 0.35); cursor: pointer;
+}
+.bouton-flottant .lucide { width: 26px; height: 26px; }
+
+/* Fenêtres = feuilles qui montent du bas (formulaire, menu Plus, saisie rapide). */
+.mobile dialog, dialog.feuille-bas {
+  margin: auto 0 0; width: 100%; max-width: 100%; max-height: 92dvh; overflow-y: auto;
+  border-radius: 18px 18px 0 0; padding-bottom: env(safe-area-inset-bottom);
+  animation: feuille-monte 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.mobile dialog:not(.feuille-bas)::before {
+  content: ""; display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--bord); margin: 8px auto 0;
+}
+.mobile dialog .boutons-dialogue { position: sticky; bottom: 0; background: var(--surface); padding: 8px 0 4px; }
+@keyframes feuille-monte { from { transform: translateY(40%); opacity: 0.4; } to { transform: none; opacity: 1; } }
+.feuille-contenu { padding: 0 16px 16px; }
+.feuille-poignee { width: 36px; height: 4px; border-radius: 2px; background: var(--bord); margin: 8px auto 4px; }
+.feuille-titre { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.feuille-titre h2 { margin: 0; font-size: 1.15rem; }
+.feuille-sous-titre { margin: 16px 0 6px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--texte-doux); }
+.grille-vues { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.grille-vues .btn { text-align: center; text-decoration: none; padding: 8px 4px; }
+.liste-actions { display: flex; flex-direction: column; }
+.ligne-action {
+  display: flex; align-items: center; gap: 12px; padding: 12px 4px; border: none; border-bottom: 1px solid var(--bord);
+  background: none; color: var(--texte); font: inherit; text-align: left; cursor: pointer;
+}
+.ligne-action:last-child { border-bottom: none; }
+.ligne-action.danger { color: var(--retard); }
+@media (prefers-reduced-motion: reduce) { .mobile dialog, dialog.feuille-bas { animation: none; } }
+
+/* --- Option B : bandeau de la semaine --- */
+.bandeau-semaine {
+  position: sticky; top: 57px; z-index: 40; margin: -10px -12px 12px; padding: 6px 8px 10px;
+  background: var(--fond); border-bottom: 1px solid var(--bord);
+}
+.ruban, .mini-mois { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; touch-action: pan-y; }
+.mini-mois .initiale { text-align: center; font-size: 0.7rem; color: var(--texte-doux); padding: 2px 0 4px; }
+.case-ruban {
+  display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 0;
+  border: none; background: none; color: var(--texte); font: inherit; cursor: pointer; border-radius: 12px;
+}
+.case-ruban .initiale { font-size: 0.7rem; color: var(--texte-doux); }
+.case-ruban .numero { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; font-weight: 600; }
+.case-ruban.aujourdhui .numero { color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.case-ruban.choisi .numero { background: var(--accent); color: var(--accent-texte); box-shadow: none; }
+.case-ruban.hors-mois { opacity: 0.4; }
+.points-jour { display: flex; gap: 3px; height: 5px; }
+.points-jour i { width: 5px; height: 5px; border-radius: 50%; background: var(--couleur-tache, var(--couleur-cat)); }
+.points-jour i.fait { opacity: 0.3; }
+.jour-choisi { margin: 8px 4px 0; font-weight: 600; font-size: 0.95rem; }
+.mobile-b main.vue-jour { touch-action: pan-y; min-height: 50vh; }
+
+/* --- Option C : fil « À venir », balayage, saisie rapide --- */
+.fil-continu { display: flex; flex-direction: column; gap: 14px; }
+.titre-fil {
+  position: sticky; top: 57px; z-index: 30; margin: 0 -12px 6px; padding: 6px 12px;
+  background: var(--fond); font-size: 0.95rem;
+}
+.fil-aujourdhui .titre-fil { color: var(--accent); }
+.fil-retard .titre-fil { color: var(--retard); }
+.vide-fil { margin: 0; color: var(--texte-doux); font-size: 0.9rem; display: flex; gap: 6px; align-items: center; }
+.lien-ajout-fil {
+  display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: 6px 2px;
+  border: none; background: none; color: var(--texte-doux); font: inherit; font-size: 0.85rem; cursor: pointer;
+}
+.balayable { position: relative; touch-action: pan-y; border-radius: 8px; overflow: hidden; }
+.fond-action {
+  position: absolute; inset: 0; display: flex; align-items: center; gap: 6px; padding: 0 18px;
+  font-weight: 700; color: #fff; transition: opacity 0.1s;
+}
+.fond-action.gauche { background: #15803d; justify-content: flex-start; }
+.fond-action.droite { background: #c2410c; justify-content: flex-end; }
+.fond-action.pret { font-size: 1.05rem; }
+.balayable-carte { position: relative; transition: transform 0.2s; }
+.balayable.en-cours .balayable-carte { transition: none; }
+.resume-jour {
+  display: flex; align-items: center; gap: 12px; padding: 12px;
+  border: 1px solid var(--bord); border-radius: 14px; background: var(--surface-2);
+}
+.resume-jour p { margin: 0; display: flex; flex-direction: column; gap: 2px; }
+.resume-jour small { color: var(--texte-doux); }
+.anneau {
+  flex: none; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center;
+  background: conic-gradient(var(--fait) var(--part), var(--bord) 0);
+}
+.anneau span { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); font-weight: 700; font-size: 0.85rem; }
+.saisie-rapide { display: flex; flex-direction: column; gap: 10px; }
+.ligne-saisie { display: flex; gap: 8px; }
+.ligne-saisie input { flex: 1; min-width: 0; font: inherit; font-size: 1rem; padding: 12px; border: 1px solid var(--bord); border-radius: 10px; background: var(--surface); color: var(--texte); }
+.ligne-saisie .btn { padding: 0 14px; }
+.puces-date { display: flex; gap: 6px; flex-wrap: wrap; }
+.puces-date button { font: inherit; font-size: 0.85rem; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--bord); background: var(--surface); color: var(--texte); cursor: pointer; }
+.puces-date button.actif { background: var(--accent); color: var(--accent-texte); border-color: transparent; }
+.apercu-saisie { margin: 0; font-size: 0.9rem; color: var(--texte-doux); }
+.saisie-rapide .lien { align-self: flex-start; }
