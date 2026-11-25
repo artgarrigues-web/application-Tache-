@@ -12,6 +12,9 @@ import { useEffect, useState } from "react";
 import type { DonneesIdees } from "@/hooks/useIdees";
 import { MenuProjets, PanneauProjet } from "./IdeesProjets";
 import { ListeAvecReperes, plageDe, useVarianteReperes } from "./ReperesHeure";
+import { OrigineGlisser, RegletteCreneaux, ZoneDepot, useGlisser } from "./Glisser";
+
+const libelleJour = (iso: string) => formater(depuisISO(iso), { weekday: "long", day: "numeric", month: "long" });
 
 const MAX_TACHES_CASE_MOIS = 3;
 
@@ -27,14 +30,25 @@ export function VueJour({ dateRef, liste, actions }: Props) {
   const taches = liste.filter((t) => t.date === iso);
   const charge = chargeRestante(taches);
   const variante = useVarianteReperes();
+  /* Pendant un glissement, la liste laisse place à une réglette de créneaux (:00 / :30) :
+     c'est la seule vue assez large pour choisir l'heure. La liste reste montée (masquée)
+     pour que la carte d'origine ne disparaisse pas en plein glissement. */
+  const { enCours } = useGlisser();
   return (
-    <section className="jour-unique">
+    <OrigineGlisser.Provider value="cal">
+    <section className={`jour-unique${enCours ? " avec-reglette" : ""}`}>
       {charge > 0 && <p className="charge-jour"><IconeDuree /> Temps prévu restant ce jour : <strong>{formaterDuree(charge)}</strong></p>}
-      <ListeAvecReperes taches={taches} actions={actions} variante={variante} hauteurHeure={56} messageVide="Aucune tâche prévue ce jour." />
+      {/* La liste reste AVANT la réglette : repliée à hauteur 0, elle ne bouge pas, et le
+          fantôme (calé sur la position de la carte d'origine) reste sous le pointeur. */}
+      <div className="contenu-jour">
+        <ListeAvecReperes taches={taches} actions={actions} variante={variante} hauteurHeure={56} messageVide="Aucune tâche prévue ce jour." />
+      </div>
+      {enCours && <RegletteCreneaux iso={iso} taches={taches} />}
       <button type="button" className="btn-ajouter" onClick={() => actions.ajouterLe(iso)}>
         <IconeAjouter /> Ajouter une tâche ce jour
       </button>
     </section>
+    </OrigineGlisser.Provider>
   );
 }
 
@@ -48,12 +62,15 @@ export function VueSemaine({ dateRef, liste, actions }: Props) {
   const plage = plageDe(jours.flatMap((j) => parDate.get(versISO(j)) ?? []));
 
   return (
+    <OrigineGlisser.Provider value="cal">
     <div className={`grille-semaine${variante === "d" ? " reperes-d" : ""}`}>
       {jours.map((jour, i) => {
         const iso = versISO(jour);
         const charge = chargeRestante(parDate.get(iso) ?? []);
         return (
-          <section key={iso} className={`colonne-jour${iso === isoAujourdhui ? " aujourdhui" : ""}`}>
+          /* Toute la colonne est une zone de dépôt : la tâche change de jour et garde son heure. */
+          <ZoneDepot as="section" key={iso} id={`jour:${iso}`} cible={{ date: iso, heure: null }} libelle={libelleJour(iso)}
+            className={`colonne-jour${iso === isoAujourdhui ? " aujourdhui" : ""}`}>
             <button type="button" className="entete-jour" title="Voir ce jour" onClick={() => actions.allerAuJour(iso)}>
               <span className="nom-jour">{JOURS_COURTS[i]}</span>
               <span className="num-jour">{jour.getDate()}</span>
@@ -61,10 +78,11 @@ export function VueSemaine({ dateRef, liste, actions }: Props) {
             </button>
             <ListeAvecReperes taches={parDate.get(iso) ?? []} actions={actions} variante={variante} plage={plage} />
             <button type="button" className="btn-ajouter" title="Ajouter une tâche ce jour" aria-label="Ajouter une tâche ce jour" onClick={() => actions.ajouterLe(iso)}><IconeAjouter /></button>
-          </section>
+          </ZoneDepot>
         );
       })}
     </div>
+    </OrigineGlisser.Provider>
   );
 }
 
@@ -82,6 +100,7 @@ export function VueMois({ dateRef, liste, actions }: Props) {
   for (let j = debut; j <= fin; j = ajouterJours(j, 1)) jours.push(j);
 
   return (
+    <OrigineGlisser.Provider value="cal">
     <div className="grille-mois">
       {JOURS_COURTS.map((nom) => <div key={nom} className="nom-colonne">{nom}</div>)}
       {jours.map((jour) => {
@@ -91,7 +110,7 @@ export function VueMois({ dateRef, liste, actions }: Props) {
         const classes = ["case-mois", jour.getMonth() !== mois && "hors-mois", iso === isoAujourdhui && "aujourdhui"]
           .filter(Boolean).join(" ");
         return (
-          <div key={iso} className={classes}>
+          <ZoneDepot key={iso} id={`jour:${iso}`} cible={{ date: iso, heure: null }} libelle={libelleJour(iso)} className={classes}>
             <div className="haut-case">
               <button type="button" className="num-case" title="Voir ce jour" onClick={() => actions.allerAuJour(iso)}>
                 {jour.getDate()}
@@ -105,10 +124,11 @@ export function VueMois({ dateRef, liste, actions }: Props) {
               </button>
             )}
             <button type="button" className="btn-ajouter-mini" title="Ajouter une tâche ce jour" aria-label="Ajouter une tâche ce jour" onClick={() => actions.ajouterLe(iso)}><IconeAjouter /></button>
-          </div>
+          </ZoneDepot>
         );
       })}
     </div>
+    </OrigineGlisser.Provider>
   );
 }
 
@@ -252,10 +272,16 @@ function ChecklistTaches({ liste, actions, sousAgenda }: Omit<Props, "dateRef"> 
         Les tâches planifiées restent aussi dans les vues Jour, Semaine et Mois.
       </p>}
 
-      <h3 className="titre-section-checklist">
-        <IconeChecklist /> Sans date <span className="compte-groupe">{sansDate.length}</span>
-      </h3>
-      <ListeTaches taches={sansDate} actions={actions} messageVide={<><IconeBravo /> Aucune tâche sans date.</>} />
+      {/* Rubrique « Sans date » : ses cartes se glissent sur l'agenda, et une tâche de
+          l'agenda déposée ici perd sa date (elle redevient « à faire quand tu peux »). */}
+      <ZoneDepot id="sans-date" cible={{ date: "", heure: "" }} libelle="Sans date (checklist)" className="zone-sans-date">
+        <h3 className="titre-section-checklist">
+          <IconeChecklist /> Sans date <span className="compte-groupe">{sansDate.length}</span>
+        </h3>
+        <OrigineGlisser.Provider value="chk">
+          <ListeTaches taches={sansDate} actions={actions} messageVide={<><IconeBravo /> Aucune tâche sans date.</>} />
+        </OrigineGlisser.Provider>
+      </ZoneDepot>
       {sansDate.length > 0 && actions.planifier && (
         <button type="button" className="btn btn-principal" onClick={actions.planifier}>
           <IconePlanifier /> Placer ces tâches dans ma semaine

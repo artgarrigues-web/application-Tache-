@@ -22,6 +22,7 @@ export interface Tache {
   groupe: Groupe | null; // groupe choisi à la main dans le formulaire, null = automatique
   couleur: Couleur | null; // couleur choisie dans la palette du formulaire, null = aucune
   recurrence: Recurrence | null; // règle de répétition (voir lib/recurrence.ts), null = tâche unique
+  projetId: string | null; // projet de la Checklist dont vient la tâche (glissé sur l'agenda), null = aucun
   faite: boolean;
   creeLe: string;    // date ISO complète
   /* Rempli UNIQUEMENT pour une occurrence d'une tâche répétée, fabriquée à l'affichage

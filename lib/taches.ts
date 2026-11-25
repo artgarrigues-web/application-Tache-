@@ -42,6 +42,7 @@ export function validerTaches(donnees: unknown): Tache[] | null {
       groupe: (typeof t.groupe === "string" && GROUPES.some((g) => g.id === t.groupe) ? t.groupe : null) as Groupe | null,
       couleur: estCouleur(t.couleur) ? t.couleur : null,
       recurrence: typeof t.date === "string" && t.date ? validerRecurrence(t.recurrence) : null,
+      projetId: null, // un projet d'un autre compte ou supprimé n'aurait pas de sens ici
       faite: Boolean(t.faite),
       creeLe: typeof t.creeLe === "string" ? t.creeLe : new Date().toISOString(),
     }));

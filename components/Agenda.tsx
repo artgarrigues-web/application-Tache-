@@ -9,6 +9,8 @@
      clic ─► fonction reçue en prop ─► mise à jour de l'état ─► React réaffiche   */
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { CarteTache } from "./CarteTache";
+import { FournisseurGlisser, ZoneDepot, libelleCible, type Cible, type Glisse } from "./Glisser";
 import type { User } from "@supabase/supabase-js";
 import { ajouterJours, aujourdhui, debutSemaine, deplacer, depuisISO, plageVisible, titrePeriode, versISO } from "@/lib/dates";
 import { analyserId, developper, entreesCourantes } from "@/lib/recurrence";
@@ -41,7 +43,7 @@ interface EtatFormulaire { tacheId: string | null; date?: string }
 
 export function Agenda({ utilisateur }: { utilisateur: User }) {
   const { taches, charge, erreur, effacerErreur, ajouter, modifier, supprimer, basculerFaite, effacerTerminees, importer, changerHoraires,
-    supprimerOccurrence, modifierOccurrence } = useTaches(utilisateur.id);
+    supprimerOccurrence, modifierOccurrence, deplacer: deplacerTache, creerDepuis } = useTaches(utilisateur.id);
   const idees = useIdees(utilisateur.id); // catégorie « Projets » de la Checklist
 
   const [vue, setVue] = useState<Vue>("semaine");
@@ -55,6 +57,8 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   // Suppression d'une occurrence (icône corbeille) : fenêtre « ce jour / les suivants / la série ».
   const [suppressionOccurrence, setSuppressionOccurrence] = useState<{ serieId: string; date: string; titre: string } | null>(null);
   const champFichier = useRef<HTMLInputElement>(null);
+  // Message affiché après un glisser-déposer, avec son bouton « Annuler ».
+  const [messageDepot, setMessageDepot] = useState<{ texte: string; detail?: string; annuler: (() => Promise<boolean>) | null; cle: number } | null>(null);
 
   // Retrouve la dernière vue utilisée…
   useEffect(() => {
@@ -133,7 +137,59 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
     ajouterLe: (iso) => setFormulaire({ tacheId: null, date: iso }),
     allerAuJour: (iso) => { setDateRef(depuisISO(iso)); setVue("jour"); },
     planifier: () => setPlanifOuverte(true),
+    titreProjet: (id) => idees.projets.find((p) => p.id === id)?.titre,
   };
+
+  /* ---------- Glisser-déposer ----------
+     - une tâche (ou une occurrence) : change de jour (et d'heure dans la vue Jour) ;
+       une tâche répétée : seul CE jour est déplacé, la série ne bouge pas ;
+     - déposée sur « Sans date » : la tâche retourne dans la Checklist ;
+     - un projet ou une idée : devient une NOUVELLE tâche datée, catégorie « Projets »,
+       liée au projet (badge sur la carte). Le projet et ses idées restent inchangés. */
+  async function deposer(g: Glisse, c: Cible) {
+    const lieu = libelleCible(c, g);
+    if (g.type === "tache") {
+      const t = g.tache;
+      const heure = c.date === "" ? "" : c.heure ?? t.heure;
+      if (t.date === c.date && t.heure === heure) return; // reposée au même endroit
+      const annuler = await deplacerTache(t.id, c.date, heure);
+      if (annuler) afficherDepot(
+        c.date ? `« ${t.titre} » déplacée : ${lieu}.` : `« ${t.titre} » remise dans la Checklist (sans date).`,
+        t.occurrence ? "Tâche répétée : seul ce jour a été déplacé, le reste de la série ne change pas." : undefined,
+        annuler);
+      return;
+    }
+    const projet = g.projet;
+    const texte = g.type === "projet" ? g.projet.titre : g.idee.texte.trim();
+    const premiereLigne = texte.split("\n")[0].slice(0, 120);
+    const annuler = await creerDepuis({
+      titre: premiereLigne, description: texte !== premiereLigne ? texte : "",
+      date: c.date, heure: c.heure ?? "", dureeMinutes: null, lieu: "", echeance: "", materiel: "",
+      categorie: "projets", priorite: "moyenne", groupe: null, couleur: null, recurrence: null,
+      projetId: projet?.id ?? null,
+    });
+    if (annuler) afficherDepot(
+      `${g.type === "projet" ? "Projet" : "Idée"} « ${premiereLigne} » ajouté${g.type === "idee" ? "e" : ""} ${c.date ? `à l'agenda : ${lieu}` : "à la Checklist (sans date)"}.`,
+      "Une tâche liée au projet a été créée ; le projet et ses idées restent dans la Checklist.",
+      annuler);
+  }
+
+  function afficherDepot(texte: string, detail: string | undefined, annuler: () => Promise<boolean>) {
+    setMessageDepot({ texte, detail, annuler, cle: Date.now() });
+  }
+  // Le message disparaît seul après 8 s (ou au dépôt suivant, qui le remplace).
+  useEffect(() => {
+    if (!messageDepot) return;
+    const minuterie = setTimeout(() => setMessageDepot(null), 8000);
+    return () => clearTimeout(minuterie);
+  }, [messageDepot]);
+  async function annulerDepot() {
+    const a = messageDepot?.annuler;
+    if (!a) return;
+    setMessageDepot({ ...messageDepot, annuler: null, texte: "Annulation…", detail: undefined });
+    const ok = await a();
+    setMessageDepot(ok ? { texte: "C'est annulé : tout est revenu comme avant.", annuler: null, cle: Date.now() } : null);
+  }
 
   async function confirmerSuppression(id: string): Promise<boolean> {
     const tache = taches.find((t) => t.id === id);
@@ -228,6 +284,8 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   useEffect(() => {
     function auClavier(e: KeyboardEvent) {
       if (formulaire || synchroOuverte || planifOuverte || e.ctrlKey || e.metaKey || e.altKey) return;
+      // Pendant un glissement au clavier, les flèches choisissent la zone de dépôt (pas la période).
+      if (e.defaultPrevented || document.body.classList.contains("glissement-en-cours")) return;
       const cible = e.target as HTMLElement;
       if (["INPUT", "TEXTAREA", "SELECT"].includes(cible.tagName)) return;
       if (e.key === "n" || e.key === "N") { e.preventDefault(); setFormulaire({ tacheId: null }); }
@@ -255,6 +313,9 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   }
 
   return (
+    <FournisseurGlisser actif={charge && vueCalendrier} onDeposer={deposer}
+      onNaviguer={(sens) => setDateRef((d) => deplacer(vue, d, sens))}
+      rendreTache={(t, compacte) => <div className={`vue-${vue}`}><CarteTache tache={t} actions={actions} compacte={compacte} fantome /></div>}>
     <div className="page">
       <header className="entete">
         <h1 className="titre-app"><Logo /> <NomApp /></h1>
@@ -294,9 +355,14 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
       <section className="barre-outils">
         {navigable && (
           <div className="navigation">
-            <button type="button" className="btn" aria-label="Période précédente" onClick={() => setDateRef(deplacer(vue, dateRef, -1))}><IconePrecedent /></button>
+            {/* Pendant un glissement, garder l'élément au-dessus de ‹ ou › change de période. */}
+            <ZoneDepot id="nav:-1" nav={-1} libelle="Période précédente" className="zone-nav">
+              <button type="button" className="btn" aria-label="Période précédente" onClick={() => setDateRef(deplacer(vue, dateRef, -1))}><IconePrecedent /></button>
+            </ZoneDepot>
             <button type="button" className="btn" onClick={() => setDateRef(aujourdhui())}>Aujourd&apos;hui</button>
-            <button type="button" className="btn" aria-label="Période suivante" onClick={() => setDateRef(deplacer(vue, dateRef, 1))}><IconeSuivant /></button>
+            <ZoneDepot id="nav:1" nav={1} libelle="Période suivante" className="zone-nav">
+              <button type="button" className="btn" aria-label="Période suivante" onClick={() => setDateRef(deplacer(vue, dateRef, 1))}><IconeSuivant /></button>
+            </ZoneDepot>
           </div>
         )}
         <h2>{titrePeriode(vue, dateRef)}</h2>
@@ -365,7 +431,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
         <button type="button" className="btn" onClick={() => champFichier.current?.click()}><IconeImporter /> Importer</button>
         <input ref={champFichier} type="file" accept="application/json,.json" hidden onChange={importerFichier} />
         <button type="button" className="btn btn-danger" onClick={effacerFaites}>Effacer les tâches terminées</button>
-        <span className="aide">Raccourcis : <kbd>N</kbd> nouvelle tâche · <kbd>←</kbd> <kbd>→</kbd> naviguer · <kbd>T</kbd> aujourd&apos;hui</span>
+        <span className="aide">Raccourcis : <kbd>N</kbd> nouvelle tâche · <kbd>←</kbd> <kbd>→</kbd> naviguer · <kbd>T</kbd> aujourd&apos;hui · glisser une carte pour la déplacer (<kbd>Échap</kbd> annule)</span>
         <span className="utilisateur">
           {utilisateur.email}
           <button type="button" className="lien" onClick={() => supabase().auth.signOut()}>Se déconnecter</button>
@@ -394,6 +460,19 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           onFermer={() => setSuppressionOccurrence(null)} />
       )}
       {planifOuverte && <Planificateur taches={tachesPlanif} onAppliquer={appliquerPlanning} onFermer={() => setPlanifOuverte(false)} />}
+
+      {messageDepot && (
+        <div key={messageDepot.cle} className="toast-depot" role="status">
+          <IconeSucces />
+          <span className="toast-texte">
+            {messageDepot.texte}
+            {messageDepot.detail && <small>{messageDepot.detail}</small>}
+          </span>
+          {messageDepot.annuler && <button type="button" className="btn" onClick={annulerDepot}><IconeAnnuler /> Annuler</button>}
+          <button type="button" className="btn-icone" aria-label="Fermer" onClick={() => setMessageDepot(null)}><IconeFermer /></button>
+        </div>
+      )}
     </div>
+    </FournisseurGlisser>
   );
 }
