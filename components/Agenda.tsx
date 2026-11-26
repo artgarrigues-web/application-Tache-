@@ -49,7 +49,7 @@ import { Rappels } from "./Rappels";
 import { Corbeille } from "./Corbeille";
 import { AgendasExternes } from "./AgendasExternes";
 import { MaJournee, journeePrepareeAujourdhui, masquerInvitationAujourdhui } from "./MaJournee";
-import { EtatConnexion } from "./EtatConnexion";
+import { EtatConnexion, IndicateurConnexion } from "./EtatConnexion";
 import { nombreEnAttente } from "@/lib/hors-ligne";
 
 /* Se déconnecter efface la copie hors connexion de l'appareil : si des changements faits
@@ -462,6 +462,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
     <div className={`page${mobile ? ` mobile mobile-${mobile}` : ""}${rechercheOuverte ? " recherche-ouverte" : ""}`}>
       {mobile ? (
         <EnteteMobile
+          indicateur={<IndicateurConnexion />}
           titre={ecranB ? titreCourt("mois", dateRef) : titreCourt(vue, dateRef)}
           navigable={navigable && !ecranB}
           onPrecedent={() => setDateRef(deplacer(vue, dateRef, -1))}

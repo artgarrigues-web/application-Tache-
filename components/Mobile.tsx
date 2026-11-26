@@ -77,6 +77,7 @@ export function titreCourt(vue: Vue, d: Date): string {
 
 /* ---------- En-tête sur une ligne ---------- */
 interface PropsEntete {
+  indicateur?: ReactNode; // hors connexion : pastille toujours visible dans l'en-tête
   titre: string;
   navigable: boolean;
   onPrecedent: () => void;
@@ -108,6 +109,7 @@ export function EnteteMobile(p: PropsEntete) {
           <button type="button" className="btn-rond" aria-label="Période suivante" onClick={p.onSuivant}><IconeSuivant /></button>
         </>
       )}
+      {p.indicateur}
       <button type="button" className={`btn-rond${p.rechercheOuverte ? " actif" : ""}`} aria-label="Rechercher et filtrer"
         aria-expanded={p.rechercheOuverte} onClick={p.onRecherche}><IconeRecherche /></button>
     </header>

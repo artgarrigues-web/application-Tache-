@@ -71,9 +71,12 @@ export function EtatConnexion() {
         <span className="etat-texte">
           <strong>Hors connexion</strong>
           <span className="etat-detail">
-            {hl.aDesDonnees()
-              ? <>Tâches enregistrées sur cet appareil{e.derniereSynchro ? <> · mises à jour {depuis(e.derniereSynchro)}</> : null}. Tes changements seront envoyés au retour du réseau.</>
-              : "Aucune copie de tes tâches sur cet appareil pour l'instant : ouvre AgendIA une fois avec du réseau."}
+            {hl.aDesDonnees() ? (
+              <>
+                <span className="libelle-long">Tâches enregistrées sur cet appareil{e.derniereSynchro ? <> · mises à jour {depuis(e.derniereSynchro)}</> : null}. Tes changements seront envoyés au retour du réseau.</span>
+                <span className="libelle-court">Copie de l&apos;appareil{e.derniereSynchro ? <>, {depuis(e.derniereSynchro)}</> : null}. Envoi au retour du réseau.</span>
+              </>
+            ) : "Aucune copie de tes tâches sur cet appareil pour l'instant : ouvre AgendIA une fois avec du réseau."}
           </span>
         </span>
         {enAttente && <span className="pastille-attente">{enAttente}</span>}
@@ -141,5 +144,23 @@ export function EtatConnexion() {
         </dialog>
       )}
     </>
+  );
+}
+
+/* Téléphone : l'en-tête reste en haut de l'écran quand on fait défiler, mais le bandeau,
+   lui, part avec la page. Cette pastille ronde dans l'en-tête garde l'état visible ;
+   la toucher remonte en haut, sur le bandeau qui explique. */
+export function IndicateurConnexion() {
+  const e = useSyncExternalStore(hl.abonner, hl.lireEtat, () => ETAT_SERVEUR);
+  if (e.enLigne && e.enAttente === 0) return null;
+  const libelle = !e.enLigne
+    ? `Hors connexion${e.enAttente ? ` : ${pluriel(e.enAttente, "changement")} en attente` : ""}`
+    : `Envoi de ${pluriel(e.enAttente, "changement")}`;
+  return (
+    <button type="button" className={`btn-rond indicateur-connexion${e.enLigne ? " envoi" : ""}`} aria-label={libelle} title={libelle}
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+      {e.enLigne ? <CloudUpload aria-hidden="true" className="tourne" /> : <CloudOff aria-hidden="true" />}
+      {e.enAttente > 0 && <span className="compte-attente">{e.enAttente > 99 ? "99+" : e.enAttente}</span>}
+    </button>
   );
 }

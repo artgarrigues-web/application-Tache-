@@ -1467,12 +1467,27 @@ dialog.dialogue-avis { width: min(560px, calc(100vw - 32px)); }
 .liste-avis small { color: var(--texte-doux); }
 .dialogue-avis .titre-dialogue-ligne h2 .lucide { color: var(--important); }
 
-/* Téléphone : bandeau compact (le texte d'explication passe sous le titre, en plus petit). */
-.mobile .etat-connexion { margin: 0 0 10px; padding: 8px 10px; gap: 8px; font-size: 0.85rem; }
+/* Téléphone : bandeau compact, en grille : icône | texte | bouton ; la pastille « n en attente »
+   passe sous le texte. Les phrases longues sont remplacées par une version courte. */
+.libelle-court { display: none; }
+.mobile .etat-connexion {
+  display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; column-gap: 10px; row-gap: 6px;
+  margin: 0 0 10px; padding: 8px 10px; font-size: 0.85rem;
+}
 .mobile .etat-texte { flex-direction: column; align-items: flex-start; }
 .mobile .etat-detail { font-size: 0.8rem; line-height: 1.3; }
 .mobile .etat-connexion .libelle-long { display: none; }
-.mobile .etat-connexion .btn-petit { min-width: 44px; min-height: 44px; justify-content: center; padding: 0 10px; }
+.mobile .etat-connexion .libelle-court { display: inline; }
+.mobile .etat-connexion .btn-petit { grid-column: 3; grid-row: 1; min-width: 44px; min-height: 44px; justify-content: center; padding: 0 10px; }
+.mobile .pastille-attente { grid-column: 2; grid-row: 2; justify-self: start; }
 .mobile .etat-connexion.avis .btn-petit .libelle-long { display: inline; }
-.mobile .pastille-attente { order: 3; }
+.mobile .etat-connexion.avis { grid-template-columns: 20px minmax(0, 1fr); }
+.mobile .etat-connexion.avis .btn-petit { grid-column: 2; grid-row: auto; justify-self: start; min-height: 40px; }
 .mobile dialog.dialogue-avis { width: 100%; max-width: 100%; }
+.indicateur-connexion { position: relative; color: var(--texte-doux); background: var(--surface-2); }
+.indicateur-connexion.envoi { color: var(--accent); }
+.indicateur-connexion .lucide { width: 20px; height: 20px; }
+.compte-attente {
+  position: absolute; top: -2px; right: -2px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  background: var(--accent); color: var(--accent-texte); font-size: 0.7rem; font-weight: 700; line-height: 18px; text-align: center;
+}
