@@ -17,6 +17,7 @@
    pour ne jamais subir de décalage d'heure d'été/hiver.                              */
 
 import type { FinRecurrence, Frequence, ModeMois, Recurrence, Tache } from "./types";
+import { casesDuJour, filtrerCases, validerCases } from "./etapes";
 
 /* Les occurrences non cochées des 7 derniers jours restent « à rattraper » (en retard)
    dans les vues Liste, Tri et Checklist ; au-delà, on considère qu'elles sont passées. */
@@ -89,9 +90,11 @@ export function validerRecurrence(v: unknown): Recurrence | null {
   const f = r.fin as Record<string, unknown> | undefined;
   if (f && f.type === "date" && typeof f.date === "string" && FORMAT_DATE.test(f.date)) fin = { type: "date", date: f.date };
   else if (f && f.type === "nombre" && typeof f.nombre === "number" && f.nombre >= 1) fin = { type: "nombre", nombre: Math.min(999, Math.round(f.nombre)) };
+  const cases = validerCases(r.cases);
   return {
     frequence: r.frequence as Frequence, intervalle, joursSemaine: jours.length ? jours : [0],
     modeMois, fin, exceptions: listeDates(r.exceptions), faites: listeDates(r.faites),
+    ...(cases ? { cases } : {}),
   };
 }
 
@@ -224,8 +227,10 @@ function occurrence(serie: Tache, date: string): Tache {
   const r = serie.recurrence!;
   // L'échéance suit l'occurrence : « à rendre 2 jours après » reste vrai chaque semaine.
   const echeance = serie.echeance ? decalerJours(date, ecartJours(serie.date, serie.echeance)) : "";
+  // Étapes et matériel : la liste de la série, avec les cases cochées CE jour-là (lib/etapes.ts).
+  const cases = serie.etapes?.length || serie.materiel || r.cases?.[date] ? casesDuJour(serie, date) : {};
   return {
-    ...serie, id: idOccurrence(serie.id, date), date, echeance,
+    ...serie, ...cases, id: idOccurrence(serie.id, date), date, echeance,
     faite: r.faites.includes(date), occurrence: { serieId: serie.id, date, debutSerie: serie.date },
   };
 }
@@ -278,16 +283,17 @@ export function basculerFaite(r: Recurrence, date: string): Recurrence {
 
 // Retire une date de la série (suppression d'une occurrence, ou occurrence modifiée à part).
 export function ajouterException(r: Recurrence, date: string): Recurrence {
-  return { ...r, exceptions: [...new Set([...r.exceptions, date])].sort(), faites: r.faites.filter((d) => d !== date) };
+  return filtrerCases({ ...r, exceptions: [...new Set([...r.exceptions, date])].sort(), faites: r.faites.filter((d) => d !== date) },
+    (d) => d !== date);
 }
 
 // Arrête la série la veille d'une date (« cette occurrence et les suivantes »).
 export function arreterAvant(r: Recurrence, date: string): Recurrence {
   const veille = decalerJours(date, -1);
-  return {
+  return filtrerCases({
     ...r, fin: { type: "date", date: veille },
     exceptions: r.exceptions.filter((d) => d <= veille), faites: r.faites.filter((d) => d <= veille),
-  };
+  }, (d) => d <= veille);
 }
 
 /* ---------- Phrase lisible (« Toutes les 2 semaines le lundi et le jeudi ») ---------- */

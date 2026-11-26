@@ -30,7 +30,7 @@ import type { ChangementHoraire } from "@/lib/depot";
 import type { Planning } from "@/lib/planification";
 import { VueChecklist, VueJour, VueListe, VueMois, VueSemaine, VueTri } from "./VuesAgenda";
 import { Logo, NomApp } from "./Logo";
-import { IconeAjouter, IconeAnnuler, IconeChecklist, IconeExporter, IconeFermer, IconeImporter, IconePlanifier, IconePrecedent, IconeRecherche, IconeSucces, IconeSuivant, IconeSynchro, IconeSupprimer } from "./Icones";
+import { IconeAjouter, IconeAnnuler, IconeChecklist, IconeExporter, IconeFermer, IconeImporter, IconePlanifier, IconePrecedent, IconeRecherche, IconeSucces, IconeSuivant, IconeSynchro, IconeSupprimer, IconeValide } from "./Icones";
 import { LogOut } from "lucide-react";
 import {
   AstuceBalayage, BandeauSemaine, BarreBas, BoutonFlottant, EnteteMobile, FilContinu, InvitationJournee, LigneRetard, MenuPlus, titreCourt, useBalayage,
@@ -64,7 +64,7 @@ interface EtatFormulaire { tacheId: string | null; date?: string; brouillon?: Br
 export function Agenda({ utilisateur }: { utilisateur: User }) {
   const { taches, charge, erreur, effacerErreur, ajouter, modifier, supprimer, basculerFaite, effacerTerminees, importer, changerHoraires,
     supprimerOccurrence, modifierOccurrence, deplacer: deplacerTache, creerDepuis,
-    listerCorbeille, restaurer, supprimerDefinitivement } = useTaches(utilisateur.id);
+    listerCorbeille, restaurer, supprimerDefinitivement, cocherCase } = useTaches(utilisateur.id);
   const idees = useIdees(utilisateur.id); // catégorie « Projets » de la Checklist
 
   const [vue, setVue] = useState<Vue>("semaine");
@@ -79,7 +79,8 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   const [suppressionOccurrence, setSuppressionOccurrence] = useState<{ serieId: string; date: string; titre: string } | null>(null);
   const champFichier = useRef<HTMLInputElement>(null);
   // Message affiché après un glisser-déposer, avec son bouton « Annuler ».
-  const [messageDepot, setMessageDepot] = useState<{ texte: string; detail?: string; annuler: (() => Promise<boolean>) | null; cle: number } | null>(null);
+  const [messageDepot, setMessageDepot] = useState<{ texte: string; detail?: string; annuler: (() => Promise<boolean>) | null; cle: number;
+    action?: { libelle: string; faire: () => void } } | null>(null);
 
   /* Prototype ergonomie téléphone (components/Mobile.tsx) : null = affichage habituel. */
   const mobile = useVarianteMobile();
@@ -199,6 +200,18 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
 
   const actions: ActionsAgenda = {
     cocher: (id) => { basculerFaite(id); },
+    /* Cocher une étape ou un élément du matériel. Quand la DERNIÈRE étape est cochée, on
+       propose de cocher la tâche (sans le faire d'office : on peut avoir ajouté une étape
+       en route, ou vouloir relire avant de clore). */
+    cocherCase: async (id, genre, cle) => {
+      const apres = await cocherCase(id, genre, cle);
+      const etapes = apres?.etapes ?? [];
+      if (!apres || genre !== "etape" || apres.faite || etapes.length === 0 || etapes.some((e) => !e.faite)) return;
+      setMessageDepot({
+        texte: `Toutes les étapes de « ${apres.titre} » sont faites.`, annuler: null, cle: Date.now(),
+        action: { libelle: "Cocher la tâche", faire: () => { basculerFaite(id); setMessageDepot({ texte: `« ${apres.titre} » est faite.`, annuler: null, cle: Date.now() }); } },
+      });
+    },
     modifier: (id) => setFormulaire({ tacheId: id }),
     supprimer: (id) => {
       const occ = analyserId(id);
@@ -686,6 +699,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
             {messageDepot.detail && <small>{messageDepot.detail}</small>}
           </span>
           {messageDepot.annuler && <button type="button" className="btn" onClick={annulerDepot}><IconeAnnuler /> Annuler</button>}
+          {messageDepot.action && <button type="button" className="btn btn-principal" onClick={messageDepot.action.faire}><IconeValide /> {messageDepot.action.libelle}</button>}
           <button type="button" className="btn-icone" aria-label="Fermer" onClick={() => setMessageDepot(null)}><IconeFermer /></button>
         </div>
       )}

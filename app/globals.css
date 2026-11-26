@@ -430,7 +430,7 @@ kbd { font: inherit; font-size: 0.8rem; border: 1px solid var(--bord); border-bo
 button:disabled { opacity: 0.6; cursor: wait; }
 
 /* ---------- Durée, lieu, matériel ---------- */
-.tache-materiel { margin: 4px 0 0; font-size: 0.85rem; color: var(--texte-doux); overflow-wrap: anywhere; }
+
 .badge-info { color: var(--texte-doux); text-decoration: none; }
 a.badge-lieu:hover { color: var(--accent); }
 .duree-champs { display: flex; align-items: center; gap: 6px; }
@@ -1330,3 +1330,101 @@ dialog.dialogue-corbeille, dialog.dialogue-rappels { width: min(560px, calc(100v
 .mobile .ligne-dispo { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px 10px; }
 .mobile .ligne-dispo > span:first-child { grid-column: 1 / -1; }
 .mobile .ligne-dispo input { width: 100%; }
+
+/* ---------- Étapes (sous-tâches) et matériel cochables (26/11/2026) ----------
+   Sur la carte : une liste de cases pour les étapes, des pastilles « bascule » pour le
+   matériel (plus compact : on coche « Calculatrice » comme on la met dans le sac).
+   Coché = vert (couleur du « fait »), comme une tâche terminée. */
+.cases-carte { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; cursor: default; }
+.bloc-cases { display: flex; flex-direction: column; gap: 3px; }
+.cases-entete {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--texte-doux);
+}
+.cases-compte { font-variant-numeric: tabular-nums; font-weight: 600; text-transform: none; letter-spacing: 0; }
+.cases-compte.complet { color: var(--fait); display: inline-flex; align-items: center; gap: 2px; }
+.mini-barre { flex: 0 1 64px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--texte-doux) 22%, transparent); overflow: hidden; }
+.mini-barre > span { display: block; height: 100%; background: var(--fait); border-radius: 2px; transition: width 0.25s ease; }
+
+.liste-etapes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.etape {
+  display: flex; align-items: flex-start; gap: 8px; padding: 3px 6px; margin: 0 -6px;
+  border-radius: 6px; font-size: 0.9rem; cursor: pointer; overflow-wrap: anywhere;
+}
+.etape:hover { background: color-mix(in srgb, var(--texte-doux) 9%, transparent); }
+.tache .etape input[type="checkbox"] { width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--fait); }
+.etape.cochee .etape-texte { color: var(--texte-doux); text-decoration: line-through; text-decoration-color: var(--fait); }
+.etape input:disabled { cursor: default; }
+.voir-plus {
+  align-self: flex-start; font: inherit; font-size: 0.8rem; color: var(--accent); background: none; border: none;
+  cursor: pointer; padding: 2px 0;
+}
+.voir-plus:hover { text-decoration: underline; }
+
+.pastilles-materiel { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px; }
+.pastille-materiel {
+  display: inline-flex; align-items: center; gap: 5px; max-width: 100%;
+  font: inherit; font-size: 0.82rem; color: var(--texte); text-align: left; overflow-wrap: anywhere;
+  background: var(--surface); border: 1px solid var(--bord); border-radius: 999px; padding: 2px 10px 2px 4px;
+  cursor: pointer; transition: background 0.15s, border-color 0.15s;
+}
+.pastille-materiel:hover { border-color: var(--texte-doux); }
+.coche-pastille {
+  flex: none; width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--texte-doux);
+  display: inline-grid; place-items: center;
+}
+.coche-pastille .lucide { width: 11px; height: 11px; stroke-width: 3; }
+.pastille-materiel.pris { background: var(--fait-fond); border-color: color-mix(in srgb, var(--fait) 55%, var(--bord)); color: var(--texte-doux); }
+.pastille-materiel.pris .coche-pastille { background: var(--fait); border-color: var(--fait); color: var(--surface); }
+.pastille-materiel:disabled { cursor: default; }
+
+/* Carte réduite (vue Mois, repères d'heure) : simple décompte « 2/5 ». */
+.compteur-cases {
+  display: inline-flex; align-items: center; gap: 2px; margin-left: 5px; vertical-align: 0;
+  font-size: 0.72rem; font-weight: 500; color: var(--texte-doux); font-variant-numeric: tabular-nums;
+}
+.compteur-cases .lucide { width: 12px; height: 12px; }
+.compteur-cases.complet { color: var(--fait); }
+
+/* Tâche faite : les listes restent lisibles mais passent au second plan. */
+.tache.faite .etape-texte, .tache.faite .pastille-materiel { color: var(--texte-doux); }
+
+/* Téléphone : chaque étape et chaque pastille réagit sur au moins 44 px de haut,
+   sans que la liste paraisse aérée à l'excès (marges négatives). */
+.mobile .etape { min-height: 44px; align-items: center; padding: 6px 8px; margin: 0 -8px; font-size: 0.95rem; gap: 12px; }
+.mobile .tache .etape input[type="checkbox"] { width: 20px; height: 20px; margin: 0; }
+.mobile .liste-etapes { gap: 0; }
+.mobile .pastilles-materiel { gap: 8px; }
+.mobile .pastille-materiel { min-height: 36px; padding: 4px 12px 4px 6px; font-size: 0.88rem; position: relative; }
+.mobile .pastille-materiel::after { content: ""; position: absolute; inset: -4px 0; } /* zone de toucher : 44 px */
+.mobile .coche-pastille { width: 20px; height: 20px; }
+.mobile .voir-plus { min-height: 44px; padding: 0; }
+@media (hover: none) { .etape:hover { background: none; } .etape:active { background: color-mix(in srgb, var(--texte-doux) 12%, transparent); } }
+
+/* ---------- Éditeur de liste du formulaire (étapes, matériel) ---------- */
+.editeur-liste { display: flex; flex-direction: column; border: 1px solid var(--bord); border-radius: 8px; background: var(--surface); overflow: hidden; }
+.editeur-liste ul { list-style: none; margin: 0; padding: 0; }
+.ligne-editeur { display: flex; align-items: center; gap: 4px; padding: 0 4px 0 10px; border-bottom: 1px solid var(--bord); }
+.ligne-editeur input[type="text"] {
+  flex: 1; min-width: 0; border: none; background: transparent; padding: 8px 4px; font: inherit; color: var(--texte); border-radius: 4px;
+}
+.ligne-editeur input[type="text"]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.ligne-editeur.cochee input[type="text"] { color: var(--texte-doux); text-decoration: line-through; text-decoration-color: var(--fait); }
+.zone-case-editeur { display: grid; place-items: center; cursor: pointer; }
+.zone-case-editeur input { width: 16px; height: 16px; margin: 0; accent-color: var(--fait); cursor: pointer; }
+.ligne-editeur .btn-icone { opacity: 0.55; }
+.ligne-editeur:hover .btn-icone, .ligne-editeur:focus-within .btn-icone { opacity: 1; }
+.ajout-editeur { display: flex; align-items: center; gap: 6px; padding: 0 10px; color: var(--texte-doux); }
+.ajout-editeur input {
+  flex: 1; min-width: 0; border: none; background: transparent; padding: 9px 2px; font: inherit; color: var(--texte);
+}
+.ajout-editeur input:focus-visible { outline: none; }
+.ajout-editeur:focus-within { color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); border-radius: 0 0 8px 8px; }
+.editeur-liste ul:empty + .ajout-editeur:focus-within, .editeur-liste > .ajout-editeur:only-child:focus-within { border-radius: 8px; }
+@media (pointer: coarse) {
+  .ligne-editeur, .ajout-editeur { min-height: 48px; }
+  .ligne-editeur input[type="text"], .ajout-editeur input { font-size: 16px; } /* 16 px : iPhone ne zoome pas sur le champ */
+  .zone-case-editeur { min-width: 40px; min-height: 44px; margin-left: -10px; }
+  .zone-case-editeur input { width: 20px; height: 20px; }
+  .ligne-editeur .btn-icone { min-width: 44px; min-height: 44px; opacity: 0.8; }
+}

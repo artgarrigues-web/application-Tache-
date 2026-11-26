@@ -12,6 +12,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as depot from "@/lib/depot";
 import * as rec from "@/lib/recurrence";
+import { basculerCaseSerie, basculerCaseTache, casesDuJour, cleMateriel, filtrerCases, type GenreCase } from "@/lib/etapes";
+import { aujourdhui, versISO } from "@/lib/dates";
 import type { DonneesTache, Portee, Tache } from "@/lib/types";
 
 function messageErreur(e: unknown): string {
@@ -123,7 +125,7 @@ export function useTaches(userId: string) {
     (id: string) => {
       const occ = rec.analyserId(id);
       if (occ) {
-        const serie = taches.find((t) => t.id === occ.serieId);
+        const serie = tachesRef.current.find((t) => t.id === occ.serieId);
         if (!serie?.recurrence) return Promise.resolve(false);
         const avant = serie.recurrence;
         const apres = rec.basculerFaite(avant, occ.date);
@@ -139,7 +141,7 @@ export function useTaches(userId: string) {
           }
         });
       }
-      const tache = taches.find((t) => t.id === id);
+      const tache = tachesRef.current.find((t) => t.id === id);
       if (!tache) return Promise.resolve(false);
       const nouvelEtat = !tache.faite;
       const appliquer = (faite: boolean) =>
@@ -154,7 +156,55 @@ export function useTaches(userId: string) {
         }
       });
     },
-    [taches, executer],
+    [executer], // tachesRef (et non taches) : toujours la version à jour, même appelée plus tard depuis un message
+
+  );
+
+  /* ---------- Étapes et matériel : cocher une case ----------
+     Même principe que basculerFaite (optimiste, retour en arrière si la base refuse).
+     - tâche unique : on change ses colonnes etapes / materiel_pris ;
+     - occurrence d'une tâche répétée : on coche pour CE jour seulement, dans
+       recurrence.cases de la série (voir lib/etapes.ts pour le pourquoi).
+     Renvoie la tâche telle qu'elle est après le changement (null si échec), pour que
+     l'écran puisse proposer de cocher la tâche quand toutes ses étapes sont faites. */
+  const cocherCase = useCallback(
+    async (id: string, genre: GenreCase, cle: string): Promise<Tache | null> => {
+      const occ = rec.analyserId(id);
+      if (occ) {
+        const serie = tachesRef.current.find((t) => t.id === occ.serieId);
+        if (!serie?.recurrence) return null;
+        const avant = serie.recurrence;
+        const apres = basculerCaseSerie(avant, occ.date, genre, cle, versISO(aujourdhui()));
+        const appliquer = (r: typeof avant) =>
+          setTaches((prec) => prec.map((t) => (t.id === serie.id ? { ...t, recurrence: r } : t)));
+        appliquer(apres);
+        const ok = await executer(async () => {
+          try {
+            await depot.changerRecurrence(serie.id, apres);
+          } catch (e) {
+            appliquer(avant);
+            throw e;
+          }
+        });
+        return ok ? { ...serie, ...casesDuJour({ ...serie, recurrence: apres }, occ.date), faite: apres.faites.includes(occ.date) } : null;
+      }
+      const tache = tachesRef.current.find((t) => t.id === id);
+      if (!tache) return null;
+      const avant = { etapes: tache.etapes ?? [], materielPris: tache.materielPris ?? [] };
+      const apres = basculerCaseTache(tache, genre, cle);
+      const appliquer = (c: typeof avant) => setTaches((prec) => prec.map((t) => (t.id === id ? { ...t, ...c } : t)));
+      appliquer(apres);
+      const ok = await executer(async () => {
+        try {
+          await depot.changerCases(id, apres);
+        } catch (e) {
+          appliquer(avant);
+          throw e;
+        }
+      });
+      return ok ? { ...tache, ...apres } : null;
+    },
+    [executer],
   );
 
   /* ---------- Occurrence d'une tâche répétée : modifier ou supprimer ----------
@@ -190,7 +240,7 @@ export function useTaches(userId: string) {
       if (portee === "occurrence") {
         // L'occurrence devient une tâche unique ordinaire ; sa date est retirée de la série.
         const etaitFaite = serie.recurrence.faites.includes(date);
-        let unique = await depot.insererTache({ ...d, recurrence: null });
+        let unique = await depot.insererTache({ ...d, ...casesReprises(serie, date, d), recurrence: null });
         if (etaitFaite) { await depot.changerEtat(unique.id, true); unique = { ...unique, faite: true }; }
         const majSerie = await depot.changerRecurrence(serieId, rec.ajouterException(serie.recurrence, date));
         setTaches((prec) => [...prec.map((t) => (t.id === serieId ? majSerie : t)), unique]);
@@ -201,7 +251,7 @@ export function useTaches(userId: string) {
       let regle = d.recurrence;
       if (regle) {
         const garder = (liste: string[]) => liste.filter((x) => x >= d.date);
-        regle = { ...regle, exceptions: garder(regle.exceptions), faites: garder(regle.faites) };
+        regle = filtrerCases({ ...regle, exceptions: garder(regle.exceptions), faites: garder(regle.faites) }, (x) => x >= d.date);
         const ancienne = serie.recurrence.fin;
         if (regle.fin.type === "nombre" && ancienne.type === "nombre" && regle.fin.nombre === ancienne.nombre) {
           // « 10 fois » au total : la nouvelle série reprend le compte là où on coupe.
@@ -267,13 +317,13 @@ export function useTaches(userId: string) {
     const regleAvant = serie.recurrence;
     const faite = regleAvant.faites.includes(dateOcc);
     const { id: _id, faite: _f, creeLe: _c, occurrence: _o, ...donnees } = serie;
-    const provisoire: Tache = { ...serie, id: `provisoire-${Date.now()}`, date, heure, recurrence: null, faite, occurrence: undefined };
+    const provisoire: Tache = { ...serie, ...casesDuJour(serie, dateOcc), id: `provisoire-${Date.now()}`, date, heure, recurrence: null, faite, occurrence: undefined };
     const regleApres = rec.ajouterException(regleAvant, dateOcc);
     setTaches((prec) => [...prec.map((t) => (t.id === serieId ? { ...t, recurrence: regleApres } : t)), provisoire]);
     let unique: Tache | null = null;
     const ok = await executer(async () => {
       try {
-        unique = await depot.insererTache({ ...donnees, date, heure, recurrence: null });
+        unique = await depot.insererTache({ ...donnees, ...casesDuJour(serie, dateOcc), date, heure, recurrence: null });
         if (faite) { await depot.changerEtat(unique.id, true); unique = { ...unique, faite: true }; }
         const majSerie = await depot.changerRecurrence(serieId, regleApres);
         const u = unique;
@@ -336,8 +386,19 @@ export function useTaches(userId: string) {
 
   return {
     taches, charge, erreur, effacerErreur: () => setErreur(null),
-    ajouter, modifier, supprimer, basculerFaite, effacerTerminees, importer, recharger, changerHoraires,
+    ajouter, modifier, supprimer, basculerFaite, cocherCase, effacerTerminees, importer, recharger, changerHoraires,
     supprimerOccurrence, modifierOccurrence, deplacer, creerDepuis,
     listerCorbeille, restaurer, supprimerDefinitivement,
+  };
+}
+
+/* « Ce jour seulement » : le jour devient une tâche unique ; il garde ce qui avait été coché
+   CE jour-là, appliqué à la liste telle qu'elle vient d'être (peut-être) modifiée dans le formulaire. */
+function casesReprises(serie: Tache, date: string, d: DonneesTache) {
+  const jour = serie.recurrence?.cases?.[date];
+  const cles = new Set((d.materiel ?? "").split("\n").map((l) => cleMateriel(l)).filter(Boolean));
+  return {
+    etapes: (d.etapes ?? []).map((e) => ({ ...e, faite: jour ? jour.etapes.includes(e.id) : e.faite })),
+    materielPris: (jour?.materiel ?? []).filter((k) => cles.has(k)),
   };
 }

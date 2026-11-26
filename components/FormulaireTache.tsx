@@ -11,11 +11,13 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { aujourdhui, versISO } from "@/lib/dates";
 import { groupesAutomatiques, listeMateriel } from "@/lib/taches";
 import { dateLongue, jourSemaine, normaliserRecurrence, premiereOccurrence } from "@/lib/recurrence";
-import { rappelsDisponibles, recurrenceDisponible } from "@/lib/depot";
+import { etapesDisponibles, rappelsDisponibles, recurrenceDisponible } from "@/lib/depot";
 import { CHOIX_RAPPEL, HEURE_SANS_HEURE, libelleRappel } from "@/lib/rappels";
 import { Bell, BellOff } from "lucide-react";
 import { IconeAucune, IconeDeplier, IconeOptions, IconeRepeter, IconeValide } from "./Icones";
 import { ChampRepetition } from "./ChampRepetition";
+import { EditeurListe, type ElementListe } from "./ListesCochables";
+import { cleMateriel, creerEtape, MAX_ETAPES, nettoyer, nouvelIdEtape } from "@/lib/etapes";
 import { COULEURS, GROUPES, type Categorie, type Couleur, type DonneesTache, type Groupe, type Portee, type Priorite, type Tache } from "@/lib/types";
 
 // Les trois portées possibles quand on ouvre UNE occurrence d'une tâche répétée.
@@ -63,11 +65,13 @@ export function FormulaireTache({ tache, occurrence, dateParDefaut, categoriePar
           dureeMinutes: tache.dureeMinutes, lieu: tache.lieu, echeance: tache.echeance, materiel: tache.materiel,
           categorie: tache.categorie, priorite: tache.priorite, groupe: tache.groupe, couleur: tache.couleur,
           recurrence: tache.recurrence, projetId: tache.projetId, rappelMinutes: tache.rappelMinutes,
+          etapes: tache.etapes ?? [], materielPris: tache.materielPris ?? [],
         }
       : {
           titre: "", description: "", date: dateParDefaut, heure: "",
           dureeMinutes: null, lieu: "", echeance: "", materiel: "",
           categorie: categorieParDefaut, priorite: "moyenne", groupe: null, couleur: null, recurrence: null, projetId: null, rappelMinutes: null,
+          etapes: [], materielPris: [],
           ...brouillon,
           ...(brouillon?.heure ? { rappelMinutes: rappelDefaut } : {}),
         },
@@ -115,7 +119,7 @@ export function FormulaireTache({ tache, occurrence, dateParDefaut, categoriePar
   // Nombre de détails (champs repliables) déjà remplis, affiché sur la pastille quand elle est fermée.
   const nbDetails = [
     valeurs.description.trim(), valeurs.dureeMinutes, valeurs.lieu.trim(), valeurs.echeance,
-    valeurs.materiel.trim(), valeurs.groupe, valeurs.priorite !== "moyenne", valeurs.recurrence && !sansDate,
+    valeurs.materiel.trim(), valeurs.etapes?.length, valeurs.groupe, valeurs.priorite !== "moyenne", valeurs.recurrence && !sansDate,
   ].filter(Boolean).length;
 
   /* Changer de portée change la date affichée : la date de l'occurrence pour « ce jour »
@@ -140,6 +144,26 @@ export function FormulaireTache({ tache, occurrence, dateParDefaut, categoriePar
   // La répétition ne se règle pas pour « ce jour seulement » (il devient une tâche à part).
   const repetitionModifiable = !sansDate && !(estOccurrence && portee === "occurrence");
 
+  /* Étapes et matériel : les cases se cochent ici seulement pour une tâche UNIQUE.
+     Une tâche répétée a une case par jour : on la coche sur la carte du jour voulu. */
+  const repetee = Boolean(valeurs.recurrence && !sansDate && !(estOccurrence && portee === "occurrence"));
+  const elementsEtapes: ElementListe[] = (valeurs.etapes ?? []).map((e) => ({ cle: e.id, texte: e.texte, coche: e.faite }));
+  const lignesMateriel = valeurs.materiel === "" ? [] : valeurs.materiel.split("\n");
+  const pris = new Set(valeurs.materielPris ?? []);
+  const elementsMateriel: ElementListe[] = lignesMateriel.map((texte, i) => ({ cle: String(i), texte, coche: pris.has(cleMateriel(texte)) }));
+  const [brouillonEtape, setBrouillonEtape] = useState("");
+  const [brouillonMateriel, setBrouillonMateriel] = useState("");
+  function changerEtapes(liste: ElementListe[]) {
+    changer("etapes", liste.map((e) => ({ id: e.cle, texte: e.texte, faite: e.coche })));
+  }
+  function changerMateriel(liste: ElementListe[]) {
+    setValeurs((v) => ({
+      ...v,
+      materiel: liste.map((e) => e.texte.replace(/\n/g, " ")).join("\n").slice(0, 2000),
+      materielPris: [...new Set(liste.filter((e) => e.coche && e.texte.trim()).map((e) => cleMateriel(e.texte)))],
+    }));
+  }
+
   useEffect(() => {
     const d = dialogue.current;
     if (d && !d.open) d.showModal();
@@ -152,13 +176,17 @@ export function FormulaireTache({ tache, occurrence, dateParDefaut, categoriePar
 
   async function soumettre(e: FormEvent) {
     e.preventDefault(); // empêche le rechargement de la page
+    // Texte tapé dans « Ajouter une étape / un élément » sans Entrée : on l'ajoute quand même.
+    const etapesSaisies = [...(valeurs.etapes ?? []), ...(brouillonEtape.trim() ? [creerEtape(brouillonEtape)] : [])];
+    const materielSaisi = [valeurs.materiel, brouillonMateriel.trim()].filter(Boolean).join("\n");
     const donnees = {
       ...valeurs,
       titre: valeurs.titre.trim(),
       description: valeurs.description.trim(),
       lieu: valeurs.lieu.trim(),
-      materiel: listeMateriel(valeurs.materiel).join("\n"), // retire les lignes vides
+      materiel: listeMateriel(materielSaisi).join("\n"), // retire les lignes vides
     };
+    Object.assign(donnees, nettoyer(etapesSaisies, donnees.materiel, valeurs.materielPris ?? []));
     if (!donnees.titre) return;
     if (!donnees.date || (estOccurrence && portee === "occurrence")) {
       donnees.recurrence = null; // sans date, ou jour devenu tâche à part : pas de répétition
@@ -293,8 +321,19 @@ export function FormulaireTache({ tache, occurrence, dateParDefaut, categoriePar
 
         <div className="champ">
           <label htmlFor="champ-description">Description</label>
-          <textarea id="champ-description" rows={3} placeholder="Détails, liens, sous-étapes…"
+          <textarea id="champ-description" rows={3} placeholder="Détails, liens…"
             value={valeurs.description} onChange={(e) => changer("description", e.target.value)} />
+        </div>
+
+        <div className="champ">
+          <label htmlFor="champ-etapes">Étapes <span className="indice">
+            {repetee ? "(la liste vaut pour toute la série ; les cases se cochent jour par jour, sur la carte)" : "(sous-tâches à cocher une par une)"}
+          </span></label>
+          {etapesDisponibles()
+            ? <EditeurListe id="champ-etapes" elements={elementsEtapes} onChange={changerEtapes} creerCle={nouvelIdEtape}
+                cochable={!repetee} placeholder="Ajouter une étape" nomElement="l'étape" max={MAX_ETAPES}
+                brouillon={brouillonEtape} onBrouillon={setBrouillonEtape} />
+            : <p className="indice">Les étapes seront disponibles dès que la base de données aura été mise à jour.</p>}
         </div>
 
         <div className="ligne-champs">
@@ -325,9 +364,11 @@ export function FormulaireTache({ tache, occurrence, dateParDefaut, categoriePar
         </div>
 
         <div className="champ">
-          <label htmlFor="champ-materiel">Matériel nécessaire <span className="indice">(un élément par ligne)</span></label>
-          <textarea id="champ-materiel" rows={2} maxLength={2000} placeholder={"Calculatrice\nBlouse\nClé USB"}
-            value={valeurs.materiel} onChange={(e) => changer("materiel", e.target.value)} />
+          <label htmlFor="champ-materiel">Matériel nécessaire <span className="indice">(Entrée pour ajouter ; une liste collée donne un élément par ligne)</span></label>
+          <EditeurListe id="champ-materiel" elements={elementsMateriel} onChange={changerMateriel}
+            creerCle={() => String(lignesMateriel.length)} cochable={!repetee && etapesDisponibles()}
+            placeholder="Ex. : Calculatrice" nomElement="l'élément" max={40}
+            brouillon={brouillonMateriel} onBrouillon={setBrouillonMateriel} />
         </div>
 
         <div className="ligne-champs">

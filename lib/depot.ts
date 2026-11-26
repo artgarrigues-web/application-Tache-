@@ -9,6 +9,7 @@
 import { supabase } from "./supabase";
 import { estCouleur } from "./types";
 import { validerRecurrence } from "./recurrence";
+import { validerCles, validerEtapes } from "./etapes";
 import type { Categorie, Couleur, DonneesTache, Groupe, Idee, Priorite, ProjetIdees, Recurrence, Tache } from "./types";
 
 const TABLE = "taches";
@@ -32,6 +33,8 @@ interface Ligne {
   projet_id?: string | null; // absente si supabase/migration-projet-agenda.sql n'a pas été appliquée
   rappel_minutes?: number | null; // absentes si supabase/migration-rappels-corbeille-agendas.sql
   supprimee_le?: string | null;   // n'a pas encore été appliquée
+  etapes?: unknown;          // jsonb, absentes si supabase/migration-etapes.sql
+  materiel_pris?: unknown;   // n'a pas encore été appliquée
   faite: boolean;
   cree_le: string;
 }
@@ -55,6 +58,8 @@ function depuisLigne(l: Ligne): Tache {
     recurrence: l.date ? validerRecurrence(l.recurrence) : null,
     projetId: l.projet_id ?? null,
     rappelMinutes: l.rappel_minutes ?? null,
+    etapes: validerEtapes(l.etapes),
+    materielPris: validerCles(l.materiel_pris),
     faite: l.faite,
     creeLe: l.cree_le,
     ...(l.supprimee_le ? { supprimeeLe: l.supprimee_le } : {}),
@@ -66,12 +71,13 @@ function depuisLigne(l: Ligne): Tache {
    - "couleur"  le 24/11/2026 (supabase/migration-couleur.sql) ;
    - "recurrence" le 24/11/2026 (supabase/migration-recurrence.sql) ;
    - "projet_id" le 25/11/2026 (supabase/migration-projet-agenda.sql) ;
-   - "rappel_minutes" et "supprimee_le" le 26/11/2026 (supabase/migration-rappels-corbeille-agendas.sql).
+   - "rappel_minutes" et "supprimee_le" le 26/11/2026 (supabase/migration-rappels-corbeille-agendas.sql) ;
+   - "etapes" et "materiel_pris" le 26/11/2026 (supabase/migration-etapes.sql).
    Tant qu'une migration n'a pas été collée, envoyer la colonne ferait échouer TOUTES
    les sauvegardes. On essaie donc avec ; si la base répond que la colonne n'existe pas
    (son nom figure dans le message d'erreur), on retient l'information et on renvoie
    sans : l'information n'est alors simplement pas gardée, le reste fonctionne. */
-const colonnesOptionnelles = { echeance: true, couleur: true, recurrence: true, projet_id: true, rappel_minutes: true, supprimee_le: true };
+const colonnesOptionnelles = { echeance: true, couleur: true, recurrence: true, projet_id: true, rappel_minutes: true, supprimee_le: true, etapes: true, materiel_pris: true };
 type ColonneOptionnelle = keyof typeof colonnesOptionnelles;
 
 export function echeanceDisponible(): boolean {
@@ -88,6 +94,9 @@ export function rappelsDisponibles(): boolean {
 }
 export function corbeilleDisponible(): boolean {
   return colonnesOptionnelles.supprimee_le;
+}
+export function etapesDisponibles(): boolean {
+  return colonnesOptionnelles.etapes;
 }
 
 function versLigne(d: DonneesTache) {
@@ -108,6 +117,11 @@ function versLigne(d: DonneesTache) {
   if (colonnesOptionnelles.recurrence) ligne.recurrence = d.date ? d.recurrence : null;
   if (colonnesOptionnelles.projet_id) ligne.projet_id = d.projetId;
   if (colonnesOptionnelles.rappel_minutes) ligne.rappel_minutes = d.date ? d.rappelMinutes : null;
+  /* Tâche répétée : on enregistre la LISTE des étapes, jamais leur état (décochées) ; ce qui
+     est coché chaque jour est dans recurrence.cases (voir lib/etapes.ts). */
+  const serie = Boolean(d.date && d.recurrence);
+  if (colonnesOptionnelles.etapes) ligne.etapes = (d.etapes ?? []).map((e) => ({ id: e.id, texte: e.texte, faite: serie ? false : e.faite }));
+  if (colonnesOptionnelles.materiel_pris) ligne.materiel_pris = serie ? [] : d.materielPris ?? [];
   return ligne;
 }
 
@@ -190,6 +204,13 @@ export async function changerRecurrence(id: string, recurrence: Recurrence): Pro
   const { data, error } = await supabase().from(TABLE).update({ recurrence }).eq("id", id).select().single();
   verifier(error);
   return depuisLigne(data as Ligne);
+}
+
+/* Cocher une étape ou un élément du matériel d'une tâche unique : seules ces deux colonnes changent. */
+export async function changerCases(id: string, c: { etapes: Tache["etapes"]; materielPris: string[] }): Promise<void> {
+  if (!colonnesOptionnelles.etapes) throw new Error("Les étapes ne sont pas encore activées dans la base (supabase/migration-etapes.sql).");
+  const { error } = await supabase().from(TABLE).update({ etapes: c.etapes ?? [], materiel_pris: c.materielPris }).eq("id", id);
+  verifier(error);
 }
 
 export async function changerEtat(id: string, faite: boolean): Promise<void> {

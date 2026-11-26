@@ -7,18 +7,21 @@
 
 import { useContext, type ReactNode } from "react";
 import { aujourdhui, formater, depuisISO, versISO } from "@/lib/dates";
-import { estEnRetard, formaterDuree, groupesDe, heureFin, lienCarte, listeMateriel } from "@/lib/taches";
+import { estEnRetard, formaterDuree, groupesDe, heureFin, lienCarte } from "@/lib/taches";
+import type { GenreCase } from "@/lib/etapes";
 import { CATEGORIES, GROUPES, PRIORITES, type Tache } from "@/lib/types";
 import { decrireRecurrence } from "@/lib/recurrence";
 import { libelleRappel } from "@/lib/rappels";
 import { Bell } from "lucide-react";
 import { OrigineGlisser, Poignee, useGlissable } from "./Glisser";
 import { Balayable, ContexteBalayage } from "./Balayable";
-import { IconeChecklist, IconeProjet, IconeRepeter, IconeDuree, IconeEcheance, IconeGroupe, IconeLieu, IconeMateriel, IconeModifier, IconeSupprimer } from "./Icones";
+import { CasesCarte, CompteurCases } from "./ListesCochables";
+import { IconeChecklist, IconeProjet, IconeRepeter, IconeDuree, IconeEcheance, IconeGroupe, IconeLieu, IconeModifier, IconeSupprimer } from "./Icones";
 
 // Les actions possibles depuis une vue de l'agenda, fournies par le composant Agenda.
 export interface ActionsAgenda {
   cocher: (id: string) => void;
+  cocherCase?: (id: string, genre: GenreCase, cle: string) => void; // une étape ou un élément du matériel
   modifier: (id: string) => void;
   supprimer: (id: string) => void;
   ajouterLe: (dateISO: string) => void;
@@ -42,7 +45,6 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false,
   const glissable = useGlissable(`${fantome ? "fantome" : origine ?? "fixe"}:${tache.id}`,
     { type: "tache", tache, compacte }, fantome || origine === null);
   const retard = estEnRetard(tache);
-  const materiel = listeMateriel(tache.materiel);
   const groupes = groupesDe(tache);
   const classes = [
     "tache", `cat-${tache.categorie}`, `prio-${tache.priorite}`,
@@ -93,6 +95,7 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false,
               <IconeRepeter /><span className="visuellement-cache"> (tâche répétée)</span>
             </span>
           )}
+          {compacte && <CompteurCases tache={tache} />}
           {tache.rappelMinutes !== null && !tache.faite && (
             <span className="icone-repetition icone-rappel" title={`Rappel : ${libelleRappel(tache.rappelMinutes).toLowerCase()}`}>
               <Bell aria-hidden="true" /><span className="visuellement-cache"> (rappel {libelleRappel(tache.rappelMinutes).toLowerCase()})</span>
@@ -103,12 +106,8 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false,
         {!compacte && (
           <>
             {tache.description && <p className="tache-description">{tache.description}</p>}
-            {materiel.length > 0 && (
-              <p className="tache-materiel">
-                <IconeMateriel />{" "}
-                <strong>Matériel :</strong> {materiel.join(" · ")}
-              </p>
-            )}
+            {/* Étapes et matériel : cochables directement sur la carte (fantôme : affichage seul). */}
+            <CasesCarte tache={tache} cocher={fantome || !actions.cocherCase ? undefined : (genre, cle) => actions.cocherCase!(tache.id, genre, cle)} />
             <div className="tache-meta">
               {GROUPES.filter((g) => groupes.includes(g.id)).map((g) => (
                 <span key={g.id} className={`badge badge-groupe groupe-${g.id}`} title={tache.groupe ? "Groupe choisi à la main" : g.regle}><IconeGroupe groupe={g.id} /> {g.libelle}</span>
