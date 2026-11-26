@@ -61,6 +61,9 @@ export interface EntreePlanification {
   lundi: string;            // "AAAA-MM-JJ" : lundi de la semaine à planifier
   plages: PlageDispo[];
   maintenant: Date;         // pour ne rien placer dans le passé
+  /* Créneaux déjà pris par les agendas externes (Google, Outlook…) : cours, rendez-vous.
+     Ils sont retirés des plages libres comme les tâches datées avec heure. */
+  occupe?: { date: string; debut: string; fin: string }[];
 }
 
 /* ---------- Réglages ---------- */
@@ -175,6 +178,11 @@ function construireJours(entree: EntreePlanification): Jour[] {
         const debut = versMinutes(t.heure);
         libres = soustraire(libres, debut, debut + duree);
       }
+    }
+    for (const o of entree.occupe ?? []) {
+      if (o.date !== date) continue;
+      const fin = o.fin === "24:00" ? 24 * 60 : versMinutes(o.fin);
+      libres = soustraire(libres, versMinutes(o.debut), Math.max(fin, versMinutes(o.debut) + 1));
     }
     // Pas de planification dans le passé : jours écoulés vidés, aujourd'hui coupé à l'heure actuelle.
     if (date < maintenantISO) libres = [];

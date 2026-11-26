@@ -9,7 +9,7 @@
 import { supabase } from "./supabase";
 import { estCouleur } from "./types";
 import { validerRecurrence } from "./recurrence";
-import type { Categorie, DonneesTache, Groupe, Idee, Priorite, ProjetIdees, Recurrence, Tache } from "./types";
+import type { Categorie, Couleur, DonneesTache, Groupe, Idee, Priorite, ProjetIdees, Recurrence, Tache } from "./types";
 
 const TABLE = "taches";
 
@@ -30,6 +30,8 @@ interface Ligne {
   couleur?: string | null; // absente si la migration du 24/11 n'a pas encore été appliquée
   recurrence?: unknown;    // jsonb, absente si supabase/migration-recurrence.sql n'a pas été appliquée
   projet_id?: string | null; // absente si supabase/migration-projet-agenda.sql n'a pas été appliquée
+  rappel_minutes?: number | null; // absentes si supabase/migration-rappels-corbeille-agendas.sql
+  supprimee_le?: string | null;   // n'a pas encore été appliquée
   faite: boolean;
   cree_le: string;
 }
@@ -52,8 +54,10 @@ function depuisLigne(l: Ligne): Tache {
     // Une règle illisible (ou une tâche sans date) est traitée comme une tâche unique.
     recurrence: l.date ? validerRecurrence(l.recurrence) : null,
     projetId: l.projet_id ?? null,
+    rappelMinutes: l.rappel_minutes ?? null,
     faite: l.faite,
     creeLe: l.cree_le,
+    ...(l.supprimee_le ? { supprimeeLe: l.supprimee_le } : {}),
   };
 }
 
@@ -61,12 +65,13 @@ function depuisLigne(l: Ligne): Tache {
    - "echeance" le 21/11/2026 (supabase/migration-planification.sql) ;
    - "couleur"  le 24/11/2026 (supabase/migration-couleur.sql) ;
    - "recurrence" le 24/11/2026 (supabase/migration-recurrence.sql) ;
-   - "projet_id" le 25/11/2026 (supabase/migration-projet-agenda.sql).
+   - "projet_id" le 25/11/2026 (supabase/migration-projet-agenda.sql) ;
+   - "rappel_minutes" et "supprimee_le" le 26/11/2026 (supabase/migration-rappels-corbeille-agendas.sql).
    Tant qu'une migration n'a pas été collée, envoyer la colonne ferait échouer TOUTES
    les sauvegardes. On essaie donc avec ; si la base répond que la colonne n'existe pas
    (son nom figure dans le message d'erreur), on retient l'information et on renvoie
    sans : l'information n'est alors simplement pas gardée, le reste fonctionne. */
-const colonnesOptionnelles = { echeance: true, couleur: true, recurrence: true, projet_id: true };
+const colonnesOptionnelles = { echeance: true, couleur: true, recurrence: true, projet_id: true, rappel_minutes: true, supprimee_le: true };
 type ColonneOptionnelle = keyof typeof colonnesOptionnelles;
 
 export function echeanceDisponible(): boolean {
@@ -77,6 +82,12 @@ export function couleurDisponible(): boolean {
 }
 export function recurrenceDisponible(): boolean {
   return colonnesOptionnelles.recurrence;
+}
+export function rappelsDisponibles(): boolean {
+  return colonnesOptionnelles.rappel_minutes;
+}
+export function corbeilleDisponible(): boolean {
+  return colonnesOptionnelles.supprimee_le;
 }
 
 function versLigne(d: DonneesTache) {
@@ -96,6 +107,7 @@ function versLigne(d: DonneesTache) {
   if (colonnesOptionnelles.couleur) ligne.couleur = d.couleur;
   if (colonnesOptionnelles.recurrence) ligne.recurrence = d.date ? d.recurrence : null;
   if (colonnesOptionnelles.projet_id) ligne.projet_id = d.projetId;
+  if (colonnesOptionnelles.rappel_minutes) ligne.rappel_minutes = d.date ? d.rappelMinutes : null;
   return ligne;
 }
 
@@ -121,8 +133,11 @@ function verifier(error: { message: string } | null) {
 
 export async function listerTaches(): Promise<Tache[]> {
   // Pas besoin de filtrer par utilisateur : les règles RLS ne renvoient que ses lignes.
-  const { data, error } = await supabase().from(TABLE).select("*").order("date");
-  verifier(error);
+  // Les tâches de la corbeille (supprimee_le rempli) sont écartées.
+  const data = await avecRepli(() => {
+    const q = supabase().from(TABLE).select("*");
+    return (colonnesOptionnelles.supprimee_le ? q.is("supprimee_le", null) : q).order("date");
+  });
   return (data as Ligne[]).map(depuisLigne);
 }
 
@@ -182,13 +197,117 @@ export async function changerEtat(id: string, faite: boolean): Promise<void> {
   verifier(error);
 }
 
+// Effacement DÉFINITIF (sans corbeille) : sert à annuler une création, et à vider la corbeille.
 export async function supprimerTache(id: string): Promise<void> {
   const { error } = await supabase().from(TABLE).delete().eq("id", id);
   verifier(error);
 }
 
-export async function supprimerTerminees(): Promise<void> {
-  const { error } = await supabase().from(TABLE).delete().eq("faite", true);
+/* ---------- Corbeille ----------
+   « Supprimer » une tâche la met à la corbeille : on note la date dans supprimee_le.
+   Elle disparaît de l'agenda et du calendrier synchronisé, mais reste récupérable
+   30 jours ; ensuite la base l'efface toute seule (tâche planifiée chaque nuit).
+   Tant que la colonne n'existe pas (migration non appliquée), on efface pour de vrai. */
+export const JOURS_CORBEILLE = 30;
+
+export async function mettreALaCorbeille(ids: string[]): Promise<boolean> {
+  if (ids.length === 0) return true;
+  if (colonnesOptionnelles.supprimee_le) {
+    const { error } = await supabase().from(TABLE).update({ supprimee_le: new Date().toISOString() }).in("id", ids);
+    if (!error) return true;
+    if (!error.message.includes("supprimee_le")) throw new Error(error.message);
+    colonnesOptionnelles.supprimee_le = false;
+  }
+  const { error } = await supabase().from(TABLE).delete().in("id", ids);
+  verifier(error);
+  return false; // effacée définitivement (pas de corbeille disponible)
+}
+
+export async function listerCorbeille(): Promise<Tache[]> {
+  if (!colonnesOptionnelles.supprimee_le) return [];
+  const { data, error } = await supabase().from(TABLE).select("*").not("supprimee_le", "is", null).order("supprimee_le", { ascending: false });
+  if (error?.message.includes("supprimee_le")) { colonnesOptionnelles.supprimee_le = false; return []; }
+  verifier(error);
+  return (data as Ligne[]).map(depuisLigne);
+}
+
+export async function restaurer(ids: string[]): Promise<Tache[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase().from(TABLE).update({ supprimee_le: null }).in("id", ids).select();
+  verifier(error);
+  return (data as Ligne[]).map(depuisLigne);
+}
+
+export async function supprimerDefinitivement(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await supabase().from(TABLE).delete().in("id", ids);
+  verifier(error);
+}
+
+// « Effacer les tâches terminées » : elles partent aussi à la corbeille (renvoie leurs ids).
+export async function supprimerTerminees(ids: string[]): Promise<boolean> {
+  return mettreALaCorbeille(ids);
+}
+
+/* ---------- Réglages des rappels (table reglages_rappels, une ligne par compte) ---------- */
+export interface ReglagesRappels { rappelDefaut: number | null; resumeMatin: string } // resumeMatin "HH:MM" ou ""
+
+export async function lireReglagesRappels(): Promise<ReglagesRappels | null> {
+  const { data, error } = await supabase().from("reglages_rappels").select("rappel_defaut, resume_matin").maybeSingle();
+  if (error) return null; // table absente : réglages par défaut
+  const l = data as { rappel_defaut: number | null; resume_matin: string | null } | null;
+  return { rappelDefaut: l?.rappel_defaut ?? null, resumeMatin: l?.resume_matin ? l.resume_matin.slice(0, 5) : "" };
+}
+
+export async function enregistrerReglagesRappels(r: ReglagesRappels): Promise<void> {
+  const { error } = await supabase().from("reglages_rappels").upsert(
+    { rappel_defaut: r.rappelDefaut, resume_matin: r.resumeMatin || null, modifie_le: new Date().toISOString() },
+    { onConflict: "user_id" });
+  verifier(error);
+}
+
+/* ---------- Appareils qui reçoivent les notifications (table abonnements_push) ---------- */
+export async function enregistrerAbonnement(a: { endpoint: string; p256dh: string; auth: string; appareil: string }): Promise<void> {
+  const { error } = await supabase().rpc("enregistrer_abonnement_push",
+    { p_endpoint: a.endpoint, p_p256dh: a.p256dh, p_auth: a.auth, p_appareil: a.appareil });
+  verifier(error);
+}
+
+export async function retirerAbonnement(endpoint: string): Promise<void> {
+  const { error } = await supabase().from("abonnements_push").delete().eq("endpoint", endpoint);
+  verifier(error);
+}
+
+export async function compterAppareils(): Promise<number> {
+  const { count, error } = await supabase().from("abonnements_push").select("id", { count: "exact", head: true });
+  verifier(error);
+  return count ?? 0;
+}
+
+/* ---------- Agendas externes (table agendas_externes) ---------- */
+export interface AgendaExterne { id: string; nom: string; url: string; couleur: Couleur | null }
+
+export async function listerAgendas(): Promise<AgendaExterne[]> {
+  const { data, error } = await supabase().from("agendas_externes").select("id, nom, url, couleur").order("cree_le");
+  verifier(error);
+  return (data as { id: string; nom: string; url: string; couleur: string | null }[])
+    .map((l) => ({ ...l, couleur: estCouleur(l.couleur) ? l.couleur : null }));
+}
+
+export async function ajouterAgenda(a: Omit<AgendaExterne, "id">): Promise<AgendaExterne> {
+  const { data, error } = await supabase().from("agendas_externes").insert(a).select("id, nom, url, couleur").single();
+  verifier(error);
+  const l = data as AgendaExterne;
+  return { ...l, couleur: estCouleur(l.couleur) ? l.couleur : null };
+}
+
+export async function modifierAgenda(id: string, champs: Partial<Omit<AgendaExterne, "id">>): Promise<void> {
+  const { error } = await supabase().from("agendas_externes").update(champs).eq("id", id);
+  verifier(error);
+}
+
+export async function retirerAgenda(id: string): Promise<void> {
+  const { error } = await supabase().from("agendas_externes").delete().eq("id", id);
   verifier(error);
 }
 

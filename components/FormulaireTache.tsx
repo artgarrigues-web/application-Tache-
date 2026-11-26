@@ -11,7 +11,9 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { aujourdhui, versISO } from "@/lib/dates";
 import { groupesAutomatiques, listeMateriel } from "@/lib/taches";
 import { dateLongue, jourSemaine, normaliserRecurrence, premiereOccurrence } from "@/lib/recurrence";
-import { recurrenceDisponible } from "@/lib/depot";
+import { rappelsDisponibles, recurrenceDisponible } from "@/lib/depot";
+import { CHOIX_RAPPEL, HEURE_SANS_HEURE, libelleRappel } from "@/lib/rappels";
+import { Bell, BellOff } from "lucide-react";
 import { IconeAucune, IconeDeplier, IconeOptions, IconeRepeter, IconeValide } from "./Icones";
 import { ChampRepetition } from "./ChampRepetition";
 import { COULEURS, GROUPES, type Categorie, type Couleur, type DonneesTache, type Groupe, type Portee, type Priorite, type Tache } from "@/lib/types";
@@ -31,9 +33,13 @@ interface Props {
   onEnregistrer: (d: DonneesTache, portee: Portee) => Promise<boolean>;
   onSupprimer: (portee: Portee) => Promise<boolean>;
   onFermer: () => void;
+  rappelDefaut?: number | null;        // rappel proposé quand on donne une heure à une nouvelle tâche
+  notificationsActives?: boolean;      // cet appareil reçoit-il les rappels ?
+  onReglerRappels?: () => void;        // ouvre la fenêtre « Rappels et notifications »
 }
 
-export function FormulaireTache({ tache, occurrence, dateParDefaut, categorieParDefaut, onEnregistrer, onSupprimer, onFermer }: Props) {
+export function FormulaireTache({ tache, occurrence, dateParDefaut, categorieParDefaut, onEnregistrer, onSupprimer, onFermer,
+  rappelDefaut = null, notificationsActives = false, onReglerRappels }: Props) {
   const dialogue = useRef<HTMLDialogElement>(null);
   /* Occurrence d'une tâche répétée : on choisit d'abord ce que vise la modification.
      Par défaut « ce jour seulement », le choix le moins risqué. */
@@ -53,14 +59,24 @@ export function FormulaireTache({ tache, occurrence, dateParDefaut, categoriePar
           titre: tache.titre, description: tache.description, date: occurrence ?? tache.date, heure: tache.heure,
           dureeMinutes: tache.dureeMinutes, lieu: tache.lieu, echeance: tache.echeance, materiel: tache.materiel,
           categorie: tache.categorie, priorite: tache.priorite, groupe: tache.groupe, couleur: tache.couleur,
-          recurrence: tache.recurrence, projetId: tache.projetId,
+          recurrence: tache.recurrence, projetId: tache.projetId, rappelMinutes: tache.rappelMinutes,
         }
       : {
           titre: "", description: "", date: dateParDefaut, heure: "",
           dureeMinutes: null, lieu: "", echeance: "", materiel: "",
-          categorie: categorieParDefaut, priorite: "moyenne", groupe: null, couleur: null, recurrence: null, projetId: null,
+          categorie: categorieParDefaut, priorite: "moyenne", groupe: null, couleur: null, recurrence: null, projetId: null, rappelMinutes: null,
         },
   );
+
+  /* Rappel : pour une NOUVELLE tâche, le rappel par défaut (réglé dans « Rappels et
+     notifications ») est proposé dès qu'on lui donne une heure, tant qu'on n'a pas
+     choisi soi-même dans la liste. */
+  const rappelChoisi = useRef(tache !== null);
+  function changerHeure(heure: string) {
+    setValeurs((v) => ({ ...v, heure, rappelMinutes: rappelChoisi.current ? v.rappelMinutes : heure ? rappelDefaut : null }));
+  }
+  const choixRappel = CHOIX_RAPPEL.some((c) => c.minutes === valeurs.rappelMinutes) || valeurs.rappelMinutes === null
+    ? CHOIX_RAPPEL : [...CHOIX_RAPPEL, { minutes: valeurs.rappelMinutes, libelle: libelleRappel(valeurs.rappelMinutes), court: "" }];
 
   /* Tâche sans date (checklist) : date = "" et pas d'heure.
      On garde la dernière date saisie pour la remettre si on décoche la case. */
@@ -208,9 +224,33 @@ export function FormulaireTache({ tache, occurrence, dateParDefaut, categoriePar
           <div className="champ">
             <label htmlFor="champ-heure">Heure (facultative)</label>
             <input id="champ-heure" type="time"
-              value={valeurs.heure} onChange={(e) => changer("heure", e.target.value)} />
+              value={valeurs.heure} onChange={(e) => changerHeure(e.target.value)} />
           </div>
         </div>}
+
+        {!sansDate && rappelsDisponibles() && (
+          <div className="champ champ-rappel">
+            <label htmlFor="champ-rappel">Rappel</label>
+            <div className="ligne-rappel">
+              <span className={`icone-champ${valeurs.rappelMinutes !== null ? " actif" : ""}`} aria-hidden="true">
+                {valeurs.rappelMinutes !== null ? <Bell /> : <BellOff />}
+              </span>
+              <select id="champ-rappel" value={valeurs.rappelMinutes ?? ""}
+                onChange={(e) => { rappelChoisi.current = true; changer("rappelMinutes", e.target.value === "" ? null : Number(e.target.value)); }}>
+                <option value="">Aucun rappel</option>
+                {choixRappel.map((c) => <option key={c.minutes} value={c.minutes}>{c.libelle}</option>)}
+              </select>
+            </div>
+            {valeurs.rappelMinutes !== null && (
+              <p className="indice indice-rappel">
+                {!valeurs.heure && `Sans heure, le rappel se base sur ${HEURE_SANS_HEURE.replace(":", " h ").replace(" 00", "")}. `}
+                {!notificationsActives && onReglerRappels && (
+                  <>Les rappels ne sont pas activés sur cet appareil. <button type="button" className="lien" onClick={onReglerRappels}>Activer</button></>
+                )}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Palette de couleurs : visible dès le mode simple.
             Ce sont de vrais boutons radio (un seul choix possible), cachés visuellement

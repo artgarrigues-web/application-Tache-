@@ -13,6 +13,7 @@ import type { DonneesIdees } from "@/hooks/useIdees";
 import { MenuProjets, PanneauProjet } from "./IdeesProjets";
 import { ListeAvecReperes, plageDe, useVarianteReperes } from "./ReperesHeure";
 import { OrigineGlisser, RegletteCreneaux, ZoneDepot, useGlisser } from "./Glisser";
+import type { EvenementExterne } from "@/lib/ics-lecture";
 
 const libelleJour = (iso: string) => formater(depuisISO(iso), { weekday: "long", day: "numeric", month: "long" });
 
@@ -22,10 +23,11 @@ interface Props {
   dateRef: Date;
   liste: Tache[];
   actions: ActionsAgenda;
+  evenements?: Map<string, EvenementExterne[]>; // agendas externes (Google, Outlook…), par date
 }
 
 /* ---------- Vue Jour ---------- */
-export function VueJour({ dateRef, liste, actions }: Props) {
+export function VueJour({ dateRef, liste, actions, evenements }: Props) {
   const iso = versISO(dateRef);
   const taches = liste.filter((t) => t.date === iso);
   const charge = chargeRestante(taches);
@@ -41,7 +43,8 @@ export function VueJour({ dateRef, liste, actions }: Props) {
       {/* La liste reste AVANT la réglette : repliée à hauteur 0, elle ne bouge pas, et le
           fantôme (calé sur la position de la carte d'origine) reste sous le pointeur. */}
       <div className="contenu-jour">
-        <ListeAvecReperes taches={taches} actions={actions} variante={variante} hauteurHeure={56} messageVide="Aucune tâche prévue ce jour." />
+        <ListeAvecReperes taches={taches} actions={actions} variante={variante} hauteurHeure={56} messageVide="Aucune tâche prévue ce jour."
+          evenements={evenements?.get(iso)} />
       </div>
       {enCours && <RegletteCreneaux iso={iso} taches={taches} />}
       <button type="button" className="btn-ajouter" onClick={() => actions.ajouterLe(iso)}>
@@ -53,7 +56,7 @@ export function VueJour({ dateRef, liste, actions }: Props) {
 }
 
 /* ---------- Vue Semaine : 7 colonnes du lundi au dimanche ---------- */
-export function VueSemaine({ dateRef, liste, actions }: Props) {
+export function VueSemaine({ dateRef, liste, actions, evenements }: Props) {
   const lundi = debutSemaine(dateRef);
   const parDate = grouperParDate(liste);
   const isoAujourdhui = versISO(aujourdhui());
@@ -76,7 +79,8 @@ export function VueSemaine({ dateRef, liste, actions }: Props) {
               <span className="num-jour">{jour.getDate()}</span>
               {charge > 0 && <span className="charge-colonne" title="Temps prévu restant"><IconeDuree /> {formaterDuree(charge)}</span>}
             </button>
-            <ListeAvecReperes taches={parDate.get(iso) ?? []} actions={actions} variante={variante} plage={plage} />
+            <ListeAvecReperes taches={parDate.get(iso) ?? []} actions={actions} variante={variante} plage={plage}
+              evenements={evenements?.get(iso)} compactEvenements />
             <button type="button" className="btn-ajouter" title="Ajouter une tâche ce jour" aria-label="Ajouter une tâche ce jour" onClick={() => actions.ajouterLe(iso)}><IconeAjouter /></button>
           </ZoneDepot>
         );

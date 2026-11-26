@@ -23,6 +23,7 @@ export interface Tache {
   couleur: Couleur | null; // couleur choisie dans la palette du formulaire, null = aucune
   recurrence: Recurrence | null; // règle de répétition (voir lib/recurrence.ts), null = tâche unique
   projetId: string | null; // projet de la Checklist dont vient la tâche (glissé sur l'agenda), null = aucun
+  rappelMinutes: number | null; // notification N minutes avant l'heure (0 = à l'heure), null = aucun rappel
   faite: boolean;
   creeLe: string;    // date ISO complète
   /* Rempli UNIQUEMENT pour une occurrence d'une tâche répétée, fabriquée à l'affichage
@@ -30,10 +31,11 @@ export interface Tache {
      date de début de la série.
      L'id de l'occurrence vaut alors "<serieId>~<date>". */
   occurrence?: { serieId: string; date: string; debutSerie: string };
+  supprimeeLe?: string; // date ISO de mise à la corbeille (rempli seulement dans la liste de la corbeille)
 }
 
 // Les champs saisis dans le formulaire (le reste est généré automatiquement).
-export type DonneesTache = Omit<Tache, "id" | "faite" | "creeLe" | "occurrence">;
+export type DonneesTache = Omit<Tache, "id" | "faite" | "creeLe" | "occurrence" | "supprimeeLe">;
 
 /* ---------- Répétition (récurrence) d'une tâche ----------
    Une tâche répétée n'est enregistrée qu'UNE fois en base (la « série ») ; ses

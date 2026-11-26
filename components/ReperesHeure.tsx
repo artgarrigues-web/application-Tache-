@@ -14,6 +14,8 @@
 import { Fragment, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import type { Tache } from "@/lib/types";
 import { CarteTache, ListeTaches, type ActionsAgenda } from "./CarteTache";
+import { CarteEvenement, EvenementsJournee } from "./Evenements";
+import type { EvenementExterne } from "@/lib/ics-lecture";
 
 export type VarianteReperes = "aucune" | "a" | "b" | "c" | "d";
 
@@ -52,16 +54,37 @@ interface Props {
   messageVide?: ReactNode;
   plage?: Plage;
   hauteurHeure?: number; // pixels par heure (variante d)
+  evenements?: EvenementExterne[]; // événements des agendas externes (Google, Outlook…) de ce jour
+  compactEvenements?: boolean;     // vue Semaine : colonnes étroites
 }
 
-export function ListeAvecReperes({ taches, actions, variante, messageVide, plage, hauteurHeure = 44 }: Props) {
-  if (variante === "aucune") return <ListeTaches taches={taches} actions={actions} messageVide={messageVide} />;
-  if (variante === "d") return <GrilleHoraire taches={taches} actions={actions} plage={plage ?? plageDe(taches)} hauteurHeure={hauteurHeure} messageVide={messageVide} />;
+/* Un élément de la journée, rangé par heure : une tâche OU un événement d'un agenda externe. */
+interface Element { cle: string; heure: string; rendu: ReactNode }
 
-  const avecHeure = taches.filter((t) => t.heure);
+export function ListeAvecReperes({ taches, actions, variante, messageVide, plage, hauteurHeure = 44, evenements = [], compactEvenements = false }: Props) {
+  const journee = evenements.filter((e) => e.journee);
+  const horaires = evenements.filter((e) => !e.journee);
+  const toutVide = taches.length === 0 && evenements.length === 0;
+  if (variante === "aucune" || variante === "d") {
+    return (
+      <>
+        <EvenementsJournee evenements={journee} />
+        {horaires.length > 0 && <div className="liste-taches">{horaires.map((e) => <CarteEvenement key={e.id} evenement={e} compact={compactEvenements} />)}</div>}
+        {variante === "aucune"
+          ? <ListeTaches taches={taches} actions={actions} messageVide={toutVide ? messageVide : undefined} />
+          : <GrilleHoraire taches={taches} actions={actions} plage={plage ?? plageDe(taches)} hauteurHeure={hauteurHeure} messageVide={toutVide ? messageVide : undefined} />}
+      </>
+    );
+  }
+
   const sansHeure = taches.filter((t) => !t.heure);
   const elements: ReactNode[] = [];
   const carte = (t: Tache) => <CarteTache key={t.id} tache={t} actions={actions} />;
+  // Tâches avec heure et événements, mélangés dans l'ordre chronologique.
+  const avecHeure: Element[] = [
+    ...taches.filter((t) => t.heure).map((t) => ({ cle: t.id, heure: t.heure, rendu: carte(t) })),
+    ...horaires.map((e) => ({ cle: e.id, heure: e.heure, rendu: <CarteEvenement key={e.id} evenement={e} compact={compactEvenements} /> })),
+  ].sort((a, b) => a.heure.localeCompare(b.heure));
 
   if (variante === "a") {
     const reperes = [8, 12, 16, 20];
@@ -72,7 +95,7 @@ export function ListeAvecReperes({ taches, actions, variante, messageVide, plage
         i++;
       }
     };
-    for (const t of avecHeure) { poser(enMinutes(t.heure)); elements.push(carte(t)); }
+    for (const t of avecHeure) { poser(enMinutes(t.heure)); elements.push(t.rendu); }
     poser(24 * 60);
   } else if (variante === "b") {
     const moment = (m: number) => (m < 12 * 60 ? "Matin" : m < 18 * 60 ? "Après-midi" : "Soir");
@@ -80,7 +103,7 @@ export function ListeAvecReperes({ taches, actions, variante, messageVide, plage
     for (const t of avecHeure) {
       const nom = moment(enMinutes(t.heure));
       if (nom !== courant) { elements.push(<div key={`m${nom}`} className="repere repere-b"><span>{nom}</span></div>); courant = nom; }
-      elements.push(carte(t));
+      elements.push(t.rendu);
     }
   } else {
     let precedente = -1;
@@ -92,14 +115,15 @@ export function ListeAvecReperes({ taches, actions, variante, messageVide, plage
         for (let h = 3; h < 24; h += 3) if (precedente < h * 60 && h * 60 <= m) franchies.push(h);
         if (franchies.length > 0) elements.push(<div key={`c${franchies[0]}`} className="repere repere-c"><span>{franchies.map((h) => `${h}h`).join(" · ")}</span></div>);
       }
-      elements.push(carte(t));
+      elements.push(t.rendu);
       precedente = m;
     }
   }
 
   return (
     <div className="liste-taches">
-      {taches.length === 0 && messageVide && <p className="vide">{messageVide}</p>}
+      <EvenementsJournee evenements={journee} />
+      {toutVide && messageVide && <p className="vide">{messageVide}</p>}
       {elements}
       {sansHeure.length > 0 && avecHeure.length > 0 && <div className="repere repere-sans"><span>Sans heure</span></div>}
       {sansHeure.map(carte)}

@@ -23,7 +23,7 @@
    ===================================================================== */
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent as EvPointeur, type ReactNode } from "react";
-import { CalendarDays, CalendarRange, Calendar, Ellipsis, Inbox, Send, ChevronUp, Rows3 } from "lucide-react";
+import { CalendarDays, CalendarRange, Calendar, Ellipsis, Inbox, Send, ChevronUp, Rows3, Sunrise } from "lucide-react";
 import { ajouterJours, aujourdhui, debutSemaine, depuisISO, formater, majuscule, versISO } from "@/lib/dates";
 import { developper } from "@/lib/recurrence";
 import { comparer, estEnRetard, passeLesFiltres } from "@/lib/taches";
@@ -185,13 +185,25 @@ export function FeuilleBas({ titre, onFermer, children, className = "" }: { titr
 }
 
 /* Menu « Plus » : compteurs, autres vues, actions rares, et (prototype) choix de l'option. */
-export function MenuPlus({ vue, compteurs, onVue, actions, onFermer }: {
+export function MenuPlus({ vue, compteurs, onVue, actions, onFermer, raccourcis = [] }: {
   vue: Vue; compteurs: ReactNode; onVue: (v: Vue) => void; onFermer: () => void;
-  actions: { libelle: string; icone: ReactNode; onClick: () => void; danger?: boolean }[];
+  actions: { libelle: string; icone: ReactNode; onClick: () => void; danger?: boolean; detail?: string }[];
+  // Grandes tuiles en haut du menu (Ma journée, Rappels, Agendas, Corbeille).
+  raccourcis?: { libelle: string; detail: string; icone: ReactNode; onClick: () => void; accent?: boolean }[];
 }) {
   const fermerPuis = (f: () => void) => () => { onFermer(); f(); };
   return (
     <FeuilleBas titre="Plus" onFermer={onFermer}>
+      {raccourcis.length > 0 && (
+        <div className="tuiles-plus">
+          {raccourcis.map((r) => (
+            <button key={r.libelle} type="button" className={`tuile-plus${r.accent ? " accent" : ""}`} onClick={fermerPuis(r.onClick)}>
+              <span className="tuile-icone">{r.icone}</span>
+              <span className="tuile-texte"><strong>{r.libelle}</strong><small>{r.detail}</small></span>
+            </button>
+          ))}
+        </div>
+      )}
       {compteurs}
       <h3 className="feuille-sous-titre">Toutes les vues</h3>
       <div className="grille-vues">
@@ -203,7 +215,7 @@ export function MenuPlus({ vue, compteurs, onVue, actions, onFermer }: {
       <div className="liste-actions">
         {actions.map((a) => (
           <button key={a.libelle} type="button" className={`ligne-action${a.danger ? " danger" : ""}`} onClick={fermerPuis(a.onClick)}>
-            {a.icone}<span>{a.libelle}</span>
+            {a.icone}<span>{a.libelle}{a.detail && <small className="detail-action">{a.detail}</small>}</span>
           </button>
         ))}
       </div>
@@ -266,6 +278,26 @@ export function AstuceBalayage({ actif }: { actif: boolean }) {
   );
 }
 
+/* ---------- Invitation « Ma journée » (en haut d'aujourd'hui, une fois par jour) ----------
+   Un rituel s'installe mieux quand l'application le propose au bon moment (Microsoft
+   To Do, Sunsama) : le matin, au premier coup d'œil. « Plus tard » la masque jusqu'à demain. */
+export function InvitationJournee({ enRetard, suggestions, onOuvrir, onMasquer }: {
+  enRetard: number; suggestions: number; onOuvrir: () => void; onMasquer: () => void;
+}) {
+  const morceaux = [enRetard ? `${enRetard} en retard` : "", suggestions ? `${suggestions} dans la Checklist` : ""].filter(Boolean);
+  return (
+    <section className="invitation-journee" aria-label="Préparer ma journée">
+      <span className="invitation-icone" aria-hidden="true"><Sunrise /></span>
+      <button type="button" className="invitation-texte" onClick={onOuvrir}>
+        <strong>Prépare ta journée</strong>
+        <small>{morceaux.length ? morceaux.join(" · ") : "Choisis tes tâches et place-les dans ta journée"} · 1 min</small>
+      </button>
+      <button type="button" className="btn btn-principal invitation-go" onClick={onOuvrir}>Go</button>
+      <button type="button" className="btn-icone" aria-label="Plus tard (masquer jusqu'à demain)" title="Plus tard" onClick={onMasquer}><IconeFermer /></button>
+    </section>
+  );
+}
+
 /* ---------- Ligne « En retard » (au-dessus de la journée d'aujourd'hui) ---------- */
 export function LigneRetard({ taches, actions }: { taches: Tache[]; actions: ActionsAgenda }) {
   const [ouverte, setOuverte] = useState(true);
@@ -286,18 +318,20 @@ export function LigneRetard({ taches, actions }: { taches: Tache[]; actions: Act
 }
 
 /* ---------- Option B : bandeau de la semaine + calendrier du mois dépliable ---------- */
-function points(taches: Tache[]) {
+function points(taches: Tache[], nbEvenements = 0) {
   return (
     <span className="points-jour" aria-hidden="true">
-      {taches.slice(0, 3).map((t) => (
+      {taches.slice(0, nbEvenements ? 2 : 3).map((t) => (
         <i key={t.id} className={`${t.faite ? "fait" : ""}${t.couleur ? ` couleur-${t.couleur}` : ` cat-${t.categorie}`}`} />
       ))}
+      {nbEvenements > 0 && <i className="point-evenement" />}
     </span>
   );
 }
 
-export function BandeauSemaine({ dateRef, onChoisir, taches, filtres, moisOuvert, onFermerMois }: {
+export function BandeauSemaine({ dateRef, onChoisir, taches, filtres, moisOuvert, onFermerMois, evenements }: {
   dateRef: Date; onChoisir: (d: Date) => void; taches: Tache[]; filtres: Filtres; moisOuvert: boolean; onFermerMois: () => void;
+  evenements?: Map<string, unknown[]>; // agendas externes : un point gris le jour où il y a des événements
 }) {
   const iso = versISO(dateRef);
   const isoAuj = versISO(aujourdhui());
@@ -326,7 +360,7 @@ export function BandeauSemaine({ dateRef, onChoisir, taches, filtres, moisOuvert
         onClick={() => { onChoisir(j); onFermerMois(); }}>
         {!moisOuvert && <span className="initiale">{JOURS_COURTS[i][0]}</span>}
         <span className="numero">{j.getDate()}</span>
-        {points(parDate.get(isoJ) ?? [])}
+        {points(parDate.get(isoJ) ?? [], evenements?.get(isoJ)?.length ?? 0)}
       </button>
     );
   };

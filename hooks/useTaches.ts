@@ -74,13 +74,46 @@ export function useTaches(userId: string) {
     [executer],
   );
 
-  const supprimer = useCallback(
-    (id: string) => executer(async () => {
-      await depot.supprimerTache(id);
-      setTaches((prec) => prec.filter((t) => t.id !== id));
-    }),
-    [executer],
-  );
+  /* ---------- Suppression = mise à la corbeille ----------
+     La tâche disparaît tout de suite de l'écran ; elle reste 30 jours dans la corbeille.
+     Les fonctions renvoient « Annuler » (bouton du message affiché après la suppression),
+     ou null en cas d'échec. enCorbeille vaut false si la base n'a pas encore de corbeille
+     (effacement définitif). */
+  type Annuler = () => Promise<boolean>;
+  interface ResultatSuppression { annuler: Annuler; enCorbeille: boolean }
+
+  const mettreEnCorbeille = useCallback(async (ids: string[]): Promise<ResultatSuppression | null> => {
+    const avant = tachesRef.current.filter((t) => ids.includes(t.id));
+    setTaches((prec) => prec.filter((t) => !ids.includes(t.id)));
+    let enCorbeille = false;
+    const ok = await executer(async () => {
+      try {
+        enCorbeille = await depot.mettreALaCorbeille(ids);
+      } catch (e) {
+        setTaches((prec) => [...prec, ...avant]);
+        throw e;
+      }
+    });
+    if (!ok) return null;
+    return {
+      enCorbeille,
+      annuler: () => executer(async () => {
+        if (!enCorbeille) throw new Error("Cette tâche a été effacée définitivement (corbeille pas encore activée dans la base).");
+        const remises = await depot.restaurer(ids);
+        setTaches((prec) => [...prec.filter((t) => !ids.includes(t.id)), ...remises]);
+      }),
+    };
+  }, [executer]);
+
+  const supprimer = useCallback((id: string) => mettreEnCorbeille([id]), [mettreEnCorbeille]);
+
+  // Corbeille : la lire, en sortir des tâches, ou les effacer pour de bon.
+  const listerCorbeille = useCallback(() => depot.listerCorbeille(), []);
+  const restaurer = useCallback(async (ids: string[]) => executer(async () => {
+    const remises = await depot.restaurer(ids);
+    setTaches((prec) => [...prec.filter((t) => !ids.includes(t.id)), ...remises]);
+  }), [executer]);
+  const supprimerDefinitivement = useCallback((ids: string[]) => executer(() => depot.supprimerDefinitivement(ids)), [executer]);
 
   /* Mise à jour "optimiste" : on coche tout de suite à l'écran (réactivité),
      puis on envoie à la base. Si la base refuse, on annule le changement.
@@ -130,19 +163,20 @@ export function useTaches(userId: string) {
               "serie"      : toute la série, passé compris.                              */
   const remplacer = (maj: Tache) => setTaches((prec) => prec.map((t) => (t.id === maj.id ? maj : t)));
 
+  /* Toute la série : elle part à la corbeille. Un jour (ou les suivants) : seule la règle
+     change ; « Annuler » remet la règle d'avant. */
   const supprimerOccurrence = useCallback(
-    (serieId: string, date: string, portee: Portee) => executer(async () => {
-      const serie = taches.find((t) => t.id === serieId);
-      if (!serie?.recurrence) throw new Error("Série introuvable.");
-      if (portee === "serie" || (portee === "suivantes" && date <= serie.date)) {
-        await depot.supprimerTache(serieId);
-        setTaches((prec) => prec.filter((t) => t.id !== serieId));
-      } else {
-        const r = portee === "occurrence" ? rec.ajouterException(serie.recurrence, date) : rec.arreterAvant(serie.recurrence, date);
-        remplacer(await depot.changerRecurrence(serieId, r));
-      }
-    }),
-    [taches, executer],
+    async (serieId: string, date: string, portee: Portee): Promise<ResultatSuppression | null> => {
+      const serie = tachesRef.current.find((t) => t.id === serieId);
+      if (!serie?.recurrence) return null;
+      if (portee === "serie" || (portee === "suivantes" && date <= serie.date)) return mettreEnCorbeille([serieId]);
+      const avant = serie.recurrence;
+      const r = portee === "occurrence" ? rec.ajouterException(avant, date) : rec.arreterAvant(avant, date);
+      const ok = await executer(async () => remplacer(await depot.changerRecurrence(serieId, r)));
+      if (!ok) return null;
+      return { enCorbeille: true, annuler: () => executer(async () => remplacer(await depot.changerRecurrence(serieId, avant))) };
+    },
+    [executer, mettreEnCorbeille],
   );
 
   const modifierOccurrence = useCallback(
@@ -181,12 +215,10 @@ export function useTaches(userId: string) {
     [taches, executer],
   );
 
+  // « Effacer les tâches terminées » : toutes les tâches cochées partent à la corbeille.
   const effacerTerminees = useCallback(
-    () => executer(async () => {
-      await depot.supprimerTerminees();
-      setTaches((prec) => prec.filter((t) => !t.faite));
-    }),
-    [executer],
+    () => mettreEnCorbeille(tachesRef.current.filter((t) => t.faite).map((t) => t.id)),
+    [mettreEnCorbeille],
   );
 
   // Planification automatique (et son annulation) : nouvelle date + heure pour plusieurs tâches.
@@ -203,8 +235,6 @@ export function useTaches(userId: string) {
      réseau, ce qui rend l'animation fluide), puis enregistre. Si la base refuse, on remet
      tout comme avant. Elles renvoient une fonction « Annuler » (bouton du message affiché
      après le dépôt), ou null en cas d'échec.                                              */
-  type Annuler = () => Promise<boolean>;
-
   // Changer la date et/ou l'heure d'une tâche (date "" = la remettre dans la Checklist).
   const deplacer = useCallback(async (id: string, date: string, heure: string): Promise<Annuler | null> => {
     const occ = rec.analyserId(id);
@@ -308,5 +338,6 @@ export function useTaches(userId: string) {
     taches, charge, erreur, effacerErreur: () => setErreur(null),
     ajouter, modifier, supprimer, basculerFaite, effacerTerminees, importer, recharger, changerHoraires,
     supprimerOccurrence, modifierOccurrence, deplacer, creerDepuis,
+    listerCorbeille, restaurer, supprimerDefinitivement,
   };
 }
