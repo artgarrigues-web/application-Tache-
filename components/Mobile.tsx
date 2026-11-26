@@ -23,11 +23,10 @@
    ===================================================================== */
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent as EvPointeur, type ReactNode } from "react";
-import { CalendarDays, CalendarRange, Calendar, Ellipsis, Inbox, Send, ChevronUp, Rows3, Sunrise } from "lucide-react";
+import { CalendarDays, CalendarRange, Calendar, Ellipsis, Inbox, ChevronUp, Rows3, Sunrise } from "lucide-react";
 import { ajouterJours, aujourdhui, debutSemaine, depuisISO, formater, majuscule, versISO } from "@/lib/dates";
 import { developper } from "@/lib/recurrence";
 import { comparer, estEnRetard, passeLesFiltres } from "@/lib/taches";
-import { analyserSaisie } from "@/lib/saisie-rapide";
 import { JOURS_COURTS, VUES, type Filtres, type Tache, type Vue } from "@/lib/types";
 import { CarteTache, type ActionsAgenda } from "./CarteTache";
 import { Logo } from "./Logo";
@@ -448,55 +447,5 @@ export function FilContinu({ taches, filtres, actions }: { taches: Tache[]; filt
   );
 }
 
-/* ---------- Option C : saisie rapide ---------- */
-type ChoixDate = "auj" | "demain" | "jour" | "sans";
-
-export function SaisieRapide({ onCreer, onDetails, onFermer, jourAffiche }: {
-  onCreer: (titre: string, date: string, heure: string) => Promise<boolean>; onDetails: () => void; onFermer: () => void;
-  jourAffiche?: string; // "AAAA-MM-JJ" : jour affiché dans l'agenda, proposé par défaut s'il n'est ni aujourd'hui ni demain
-}) {
-  const auj = aujourdhui();
-  const isoAuj = versISO(auj), isoDemain = versISO(ajouterJours(auj, 1));
-  const autreJour = jourAffiche && jourAffiche !== isoAuj && jourAffiche !== isoDemain ? jourAffiche : null;
-  const [texte, setTexte] = useState("");
-  const [choix, setChoix] = useState<ChoixDate>(autreJour ? "jour" : jourAffiche === isoDemain ? "demain" : "auj");
-  const [envoi, setEnvoi] = useState(false);
-  const a = analyserSaisie(texte, auj);
-  const dateChip = choix === "auj" ? isoAuj : choix === "demain" ? isoDemain : choix === "jour" && autreJour ? autreJour : "";
-  const date = a.date ?? dateChip;
-  const apercu = date ? majuscule(formater(depuisISO(date), { weekday: "long", day: "numeric", month: "long" })) : "Checklist (sans date)";
-
-  async function valider() {
-    if (!a.titre || envoi) return;
-    setEnvoi(true);
-    const ok = await onCreer(a.titre, date, date ? a.heure : "");
-    setEnvoi(false);
-    if (ok) setTexte("");
-  }
-
-  return (
-    <FeuilleBas titre="Ajout rapide" onFermer={onFermer} className="feuille-saisie">
-      <form className="saisie-rapide" onSubmit={(e) => { e.preventDefault(); valider(); }}>
-        <div className="ligne-saisie">
-          {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
-          <input autoFocus value={texte} onChange={(e) => setTexte(e.target.value)} placeholder="Ex. : Réviser maths demain 14h"
-            aria-label="Nouvelle tâche" enterKeyHint="send" />
-          <button type="submit" className="btn btn-principal" aria-label="Ajouter" disabled={!a.titre || envoi}><Send aria-hidden="true" /></button>
-        </div>
-        <div className="puces-date" role="radiogroup" aria-label="Date">
-          {([
-            ...(autreJour ? [["jour", majuscule(formater(depuisISO(autreJour), { weekday: "short", day: "numeric", month: "short" }))] as const] : []),
-            ["auj", "Aujourd'hui"], ["demain", "Demain"], ["sans", "Sans date"],
-          ] as const).map(([id, lib]) => (
-            <button key={id} type="button" role="radio" aria-checked={a.date === null && choix === id}
-              className={a.date === null && choix === id ? "actif" : ""} onClick={() => setChoix(id)}>{lib}</button>
-          ))}
-        </div>
-        <p className="apercu-saisie">
-          {a.titre ? <>« <strong>{a.titre}</strong> » → {apercu}{date && a.heure ? ` à ${a.heure}` : ""}</> : "Écris la tâche ; « demain », « vendredi », « 14h » sont compris."}
-        </p>
-        <button type="button" className="lien" onClick={() => { onFermer(); onDetails(); }}>Plus de détails (durée, lieu, couleur…)</button>
-      </form>
-    </FeuilleBas>
-  );
-}
+/* ---------- Option C : saisie rapide ----------
+   Déplacée dans components/SaisieRapide.tsx (pastilles de correction, version ordinateur). */

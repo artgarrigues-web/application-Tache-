@@ -22,6 +22,7 @@ import { useIdees } from "@/hooks/useIdees";
 import type { ActionsAgenda } from "./CarteTache";
 import { Compteurs } from "./Compteurs";
 import { FormulaireTache } from "./FormulaireTache";
+import { BarreSaisieRapide, SaisieRapide, libelleRepetition, type BrouillonSaisie } from "./SaisieRapide";
 import { ChoixPortee } from "./ChoixPortee";
 import { SynchroCalendrier } from "./SynchroCalendrier";
 import { Planificateur } from "./Planificateur";
@@ -32,7 +33,7 @@ import { Logo, NomApp } from "./Logo";
 import { IconeAjouter, IconeAnnuler, IconeChecklist, IconeExporter, IconeFermer, IconeImporter, IconePlanifier, IconePrecedent, IconeRecherche, IconeSucces, IconeSuivant, IconeSynchro, IconeSupprimer } from "./Icones";
 import { LogOut } from "lucide-react";
 import {
-  AstuceBalayage, BandeauSemaine, BarreBas, BoutonFlottant, EnteteMobile, FilContinu, InvitationJournee, LigneRetard, MenuPlus, SaisieRapide, titreCourt, useBalayage,
+  AstuceBalayage, BandeauSemaine, BarreBas, BoutonFlottant, EnteteMobile, FilContinu, InvitationJournee, LigneRetard, MenuPlus, titreCourt, useBalayage,
   useVarianteMobile, vueAccueil,
 } from "./Mobile";
 import type { Tache } from "@/lib/types";
@@ -57,7 +58,8 @@ const CLE_ANNULATION = "agenda-dernier-planning"; // de quoi annuler le dernier 
 interface DernierPlanning { nom: string; avant: ChangementHoraire[]; apres: ChangementHoraire[] }
 
 // date : "AAAA-MM-JJ" imposée, "" = sans date (checklist), undefined = date par défaut de la vue.
-interface EtatFormulaire { tacheId: string | null; date?: string }
+// brouillon : valeurs comprises par l'ajout en une phrase, pour pré-remplir le formulaire.
+interface EtatFormulaire { tacheId: string | null; date?: string; brouillon?: BrouillonSaisie }
 
 export function Agenda({ utilisateur }: { utilisateur: User }) {
   const { taches, charge, erreur, effacerErreur, ajouter, modifier, supprimer, basculerFaite, effacerTerminees, importer, changerHoraires,
@@ -380,15 +382,20 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
     if (annuler) afficherDepot(`« ${t.titre} » reportée ${cible === iso ? "à aujourd'hui" : "au " + libelleCible({ date: cible, heure: null })}.`, undefined, annuler);
   }
   // Option C, saisie rapide : titre + date + heure, le reste par défaut.
-  async function creerRapide(titre: string, date: string, heure: string): Promise<boolean> {
+  async function creerRapide(b: BrouillonSaisie): Promise<boolean> {
     const ok = await ajouter({
-      titre, description: "", date, heure, dureeMinutes: null, lieu: "", echeance: "", materiel: "",
-      categorie: filtres.categorie !== "toutes" ? filtres.categorie : "perso", priorite: "moyenne", groupe: null,
-      couleur: null, recurrence: null, projetId: null, rappelMinutes: heure ? reglages.rappelDefaut : null,
+      description: "", echeance: "", materiel: "", priorite: "moyenne", ...b,
+      categorie: filtres.categorie !== "toutes" ? filtres.categorie : "perso", groupe: null,
+      couleur: null, projetId: null, rappelMinutes: b.heure ? reglages.rappelDefaut : null,
     });
-    if (ok) setMessageDepot({ texte: `« ${titre} » ajoutée${date ? "" : " à la Checklist"}.`, annuler: null, cle: Date.now() });
+    if (ok) {
+      const ou = !b.date ? " à la Checklist" : b.recurrence ? ` (${libelleRepetition(b.recurrence, b.date).toLowerCase()})` : "";
+      setMessageDepot({ texte: `« ${b.titre} » ajoutée${ou}.`, annuler: null, cle: Date.now() });
+    }
     return ok;
   }
+  // « Corriger dans le formulaire » : le formulaire complet s'ouvre avec ce qui a été compris.
+  const ouvrirDepuisSaisie = (b: BrouillonSaisie | null) => setFormulaire(b ? { tacheId: null, date: b.date, brouillon: b } : { tacheId: null });
   const balayageJour = useBalayage(() => setDateRef((d) => ajouterJours(d, 1)), () => setDateRef((d) => ajouterJours(d, -1)));
   const ecranB = mobile === "b" && vue === "jour";
   const ecranC = mobile === "c" && vue === "liste";
@@ -467,6 +474,11 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
         </button>
         </div>
       </header>
+      )}
+
+      {/* Ordinateur : ajout en une phrase toujours visible (sur téléphone : bouton « + »). */}
+      {!mobile && (
+        <BarreSaisieRapide key={dateParDefaut()} dateDefaut={dateParDefaut()} onCreer={creerRapide} onDetails={ouvrirDepuisSaisie} />
       )}
 
       {erreur && (
@@ -590,7 +602,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
         <button type="button" className="btn" onClick={() => champFichier.current?.click()}><IconeImporter /> Importer</button>
         <input ref={champFichier} type="file" accept="application/json,.json" hidden onChange={importerFichier} />
         <button type="button" className="btn btn-danger" onClick={effacerFaites}>Effacer les tâches terminées</button>
-        <span className="aide">Raccourcis : <kbd>N</kbd> nouvelle tâche · <kbd>←</kbd> <kbd>→</kbd> naviguer · <kbd>T</kbd> aujourd&apos;hui · glisser une carte pour la déplacer (<kbd>Échap</kbd> annule)</span>
+        <span className="aide">Raccourcis : <kbd>A</kbd> ajout en une phrase · <kbd>N</kbd> nouvelle tâche · <kbd>←</kbd> <kbd>→</kbd> naviguer · <kbd>T</kbd> aujourd&apos;hui · glisser une carte pour la déplacer (<kbd>Échap</kbd> annule)</span>
         <span className="utilisateur">
           {utilisateur.email}
           <button type="button" className="lien" onClick={() => supabase().auth.signOut()}>Se déconnecter</button>
@@ -624,7 +636,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           ]} />
       )}
       {saisieOuverte && (
-        <SaisieRapide onCreer={creerRapide} onDetails={() => setFormulaire({ tacheId: null })} onFermer={() => setSaisieOuverte(false)}
+        <SaisieRapide onCreer={creerRapide} onDetails={ouvrirDepuisSaisie} onFermer={() => setSaisieOuverte(false)}
           jourAffiche={ecranB ? versISO(dateRef) : undefined} />
       )}
 
@@ -632,7 +644,8 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           "key" change à chaque ouverture : React recrée alors un formulaire neuf, avec des champs réinitialisés. */}
       {formulaire && (
         <FormulaireTache
-          key={`${formulaire.tacheId ?? "nouvelle"}-${formulaire.date ?? "defaut"}`}
+          key={`${formulaire.tacheId ?? "nouvelle"}-${formulaire.date ?? "defaut"}-${formulaire.brouillon?.titre ?? ""}`}
+          brouillon={formulaire.brouillon}
           tache={tacheEnEdition}
           occurrence={occEnEdition?.date}
           dateParDefaut={formulaire.date ?? dateParDefaut()}

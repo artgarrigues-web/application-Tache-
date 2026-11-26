@@ -30,6 +30,7 @@ interface Props {
   occurrence?: string;                  // date de l'occurrence ouverte (tâche répétée)
   dateParDefaut: string;
   categorieParDefaut: Categorie;
+  brouillon?: Partial<DonneesTache>;    // nouvelle tâche pré-remplie (ajout en une phrase → « Corriger »)
   onEnregistrer: (d: DonneesTache, portee: Portee) => Promise<boolean>;
   onSupprimer: (portee: Portee) => Promise<boolean>;
   onFermer: () => void;
@@ -38,7 +39,7 @@ interface Props {
   onReglerRappels?: () => void;        // ouvre la fenêtre « Rappels et notifications »
 }
 
-export function FormulaireTache({ tache, occurrence, dateParDefaut, categorieParDefaut, onEnregistrer, onSupprimer, onFermer,
+export function FormulaireTache({ tache, occurrence, dateParDefaut, categorieParDefaut, brouillon, onEnregistrer, onSupprimer, onFermer,
   rappelDefaut = null, notificationsActives = false, onReglerRappels }: Props) {
   const dialogue = useRef<HTMLDialogElement>(null);
   /* Occurrence d'une tâche répétée : on choisit d'abord ce que vise la modification.
@@ -52,7 +53,9 @@ export function FormulaireTache({ tache, occurrence, dateParDefaut, categoriePar
      - Modification d'une tâche existante : complet d'emblée, pour tout voir.
      Replier ne vide pas les champs : leurs valeurs restent dans "valeurs"
      et sont enregistrées (valeurs par défaut si on n'y a pas touché). */
-  const [complet, setComplet] = useState(tache !== null);
+  // Pré-rempli depuis une phrase avec des détails (durée, lieu…) : complet aussi, pour les voir.
+  const [complet, setComplet] = useState(tache !== null || Boolean(
+    brouillon && (brouillon.dureeMinutes || brouillon.lieu || brouillon.recurrence || (brouillon.priorite && brouillon.priorite !== "moyenne"))));
   const [valeurs, setValeurs] = useState<DonneesTache>(() =>
     tache
       ? {
@@ -65,6 +68,8 @@ export function FormulaireTache({ tache, occurrence, dateParDefaut, categoriePar
           titre: "", description: "", date: dateParDefaut, heure: "",
           dureeMinutes: null, lieu: "", echeance: "", materiel: "",
           categorie: categorieParDefaut, priorite: "moyenne", groupe: null, couleur: null, recurrence: null, projetId: null, rappelMinutes: null,
+          ...brouillon,
+          ...(brouillon?.heure ? { rappelMinutes: rappelDefaut } : {}),
         },
   );
 

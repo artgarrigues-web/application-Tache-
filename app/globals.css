@@ -1041,6 +1041,54 @@ body:has(.page.mobile) :is(.badge-cat, [class*="badge-prio-"], .badge-groupe.gro
 .apercu-saisie { margin: 0; font-size: 0.9rem; color: var(--texte-doux); }
 .saisie-rapide .lien { align-self: flex-start; }
 
+/* Ajout en une phrase enrichi (26/11/2026) : pastilles « ce que j'ai compris ».
+   Une couleur douce par type d'information ; le « × » remet les mots dans le titre.
+   Téléphone : grandes zones de toucher (44 px pour le ×) ; ordinateur : barre sous l'en-tête. */
+.pastilles-saisie { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.pastille-saisie {
+  --teinte: var(--accent);
+  display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 2px 0 10px; border-radius: 999px;
+  font-size: 0.86rem; font-weight: 600; line-height: 1.2;
+  color: color-mix(in srgb, var(--teinte) 78%, var(--texte));
+  background: color-mix(in srgb, var(--teinte) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--teinte) 30%, transparent);
+  animation: apparition-pastille 160ms ease-out;
+}
+.pastille-saisie .lucide { width: 15px; height: 15px; flex: none; }
+.pastille-saisie button {
+  display: grid; place-items: center; width: 28px; height: 28px; margin-left: -2px; padding: 0; border: 0; border-radius: 50%;
+  background: transparent; color: inherit; cursor: pointer; opacity: 0.75;
+}
+.pastille-saisie button:hover, .pastille-saisie button:focus-visible { opacity: 1; background: color-mix(in srgb, var(--teinte) 20%, transparent); }
+.pastille-saisie button .lucide { width: 14px; height: 14px; }
+.pastille-date, .pastille-heure { --teinte: var(--accent); }
+.pastille-recurrence { --teinte: var(--c-violet, #7c3aed); }
+.pastille-duree { --teinte: var(--c-turquoise, #0d9488); }
+.pastille-lieu { --teinte: var(--c-rose, #db2777); }
+.pastille-priorite-haute { --teinte: var(--urgent); } /* orange : le rouge reste réservé au retard */
+.pastille-priorite-basse, .pastille-priorite-moyenne { --teinte: var(--c-ardoise, #64748b); }
+.pastille-saisie.pastille-deduite { font-weight: 500; border-style: dashed; padding-right: 10px; }
+.avertissement-saisie { color: var(--urgent, #b45309); }
+.apercu-saisie em { font-style: normal; padding: 0 4px; border-radius: 4px; background: var(--surface-2); color: var(--texte); white-space: nowrap; }
+@keyframes apparition-pastille { from { opacity: 0; transform: scale(0.92); } }
+@media (prefers-reduced-motion: reduce) { .pastille-saisie { animation: none; } }
+.mobile .pastille-saisie { min-height: 36px; font-size: 0.92rem; }
+.mobile .pastille-saisie button { width: 44px; height: 44px; margin: -4px -6px -4px -8px; }
+.feuille-saisie .apercu-saisie { line-height: 1.5; }
+
+/* Ordinateur : barre « Ajout rapide » sous l'en-tête. */
+.barre-saisie {
+  display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; padding: 8px; border-radius: 12px;
+  border: 1px solid var(--bord); background: var(--surface); transition: border-color 120ms, box-shadow 120ms;
+}
+.barre-saisie:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.barre-saisie .ligne-saisie input { border: 0; padding: 8px 10px; background: transparent; }
+.barre-saisie .ligne-saisie input:focus { outline: none; }
+.barre-saisie .ligne-saisie .btn { padding: 0 14px; }
+.details-saisie { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 2px 4px 4px; }
+.details-saisie .apercu-saisie { flex: 1 1 220px; }
+.details-saisie .lien { margin-left: auto; }
+
 /* =====================================================================
    Ajouts du 26/11/2026 : rappels, corbeille, agendas externes, « Ma journée »
    Même langage visuel que le reste : cartes à coins de 10-14 px, bleu = action,
