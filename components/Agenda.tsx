@@ -32,7 +32,7 @@ import { Logo, NomApp } from "./Logo";
 import { IconeAjouter, IconeAnnuler, IconeChecklist, IconeExporter, IconeFermer, IconeImporter, IconePlanifier, IconePrecedent, IconeRecherche, IconeSucces, IconeSuivant, IconeSynchro, IconeSupprimer } from "./Icones";
 import { LogOut } from "lucide-react";
 import {
-  BandeauSemaine, BarreBas, BoutonFlottant, EnteteMobile, FilContinu, LigneRetard, MenuPlus, SaisieRapide, titreCourt, useBalayage,
+  AstuceBalayage, BandeauSemaine, BarreBas, BoutonFlottant, EnteteMobile, FilContinu, LigneRetard, MenuPlus, SaisieRapide, titreCourt, useBalayage,
   useVarianteMobile, vueAccueil,
 } from "./Mobile";
 import type { Tache } from "@/lib/types";
@@ -367,6 +367,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           onRecherche={() => setRechercheOuverte((o) => !o)}
           onTitre={ecranB ? () => setMoisOuvert((o) => !o) : undefined}
           titreDeplie={moisOuvert}
+          boutonAujourdhui={ecranB && versISO(dateRef) !== versISO(aujourdhui())}
         />
       ) : (
       <header className="entete">
@@ -467,6 +468,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
       {ecranB && charge && versISO(dateRef) === versISO(aujourdhui()) && (
         <LigneRetard taches={listeCourante.filter(estEnRetard)} actions={actions} />
       )}
+      <AstuceBalayage actif={!!mobile && charge && vue === "jour"} />
       <main className={`vue vue-${vue}`} {...(ecranB ? balayageJour : {})}>
         {!charge ? <p className="vide">Chargement des tâches…</p>
           : ecranC ? <FilContinu taches={taches} filtres={filtres} actions={actions} />
@@ -504,7 +506,8 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
 
       {mobile && (
         <>
-          <BoutonFlottant onClick={() => (mobile === "c" ? setSaisieOuverte(true) : setFormulaire({ tacheId: null }))} />
+          {/* « + » : ajout en une phrase (le formulaire complet reste à un toucher, « Plus de détails »). */}
+          <BoutonFlottant onClick={() => (mobile === "a" ? setFormulaire({ tacheId: null }) : setSaisieOuverte(true))} />
           <BarreBas variante={mobile} vue={vue} onVue={(v) => { setVue(v); if (v === "jour" || v === "liste") setDateRef(aujourdhui()); }}
             onPlus={() => setPlusOuvert(true)} />
         </>
@@ -522,7 +525,8 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           ]} />
       )}
       {saisieOuverte && (
-        <SaisieRapide onCreer={creerRapide} onDetails={() => setFormulaire({ tacheId: null })} onFermer={() => setSaisieOuverte(false)} />
+        <SaisieRapide onCreer={creerRapide} onDetails={() => setFormulaire({ tacheId: null })} onFermer={() => setSaisieOuverte(false)}
+          jourAffiche={ecranB ? versISO(dateRef) : undefined} />
       )}
 
       {/* Le formulaire n'existe dans la page que lorsqu'il est ouvert.

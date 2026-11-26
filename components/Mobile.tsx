@@ -23,7 +23,7 @@
    ===================================================================== */
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent as EvPointeur, type ReactNode } from "react";
-import { CalendarDays, CalendarRange, Calendar, Ellipsis, Inbox, Send, ChevronUp } from "lucide-react";
+import { CalendarDays, CalendarRange, Calendar, Ellipsis, Inbox, Send, ChevronUp, Rows3 } from "lucide-react";
 import { ajouterJours, aujourdhui, debutSemaine, depuisISO, formater, majuscule, versISO } from "@/lib/dates";
 import { developper } from "@/lib/recurrence";
 import { comparer, estEnRetard, passeLesFiltres } from "@/lib/taches";
@@ -33,7 +33,7 @@ import { CarteTache, type ActionsAgenda } from "./CarteTache";
 import { Logo } from "./Logo";
 import {
   IconeAjouter, IconeChecklist, IconeFermer, IconePrecedent, IconeRecherche, IconeSuivant,
-  IconeDeplier, IconeBravo, IconeAlerte,
+  IconeDeplier, IconeBravo, IconeAlerte, IconeIdee,
 } from "./Icones";
 
 export type VarianteMobile = "a" | "b" | "c";
@@ -87,6 +87,7 @@ interface PropsEntete {
   onRecherche: () => void;
   onTitre?: () => void;      // option B : le titre (mois) déplie le calendrier du mois
   titreDeplie?: boolean;
+  boutonAujourdhui?: boolean; // option B : « Auj. » seul, quand le jour affiché n'est pas aujourd'hui
 }
 
 export function EnteteMobile(p: PropsEntete) {
@@ -98,6 +99,9 @@ export function EnteteMobile(p: PropsEntete) {
           {p.titre} {p.titreDeplie ? <ChevronUp aria-hidden="true" /> : <IconeDeplier />}
         </button>
       ) : <h1 className="titre-mobile">{p.titre}</h1>}
+      {!p.navigable && p.boutonAujourdhui && (
+        <button type="button" className="btn-rond btn-auj" onClick={p.onAujourdhui}>Aujourd&apos;hui</button>
+      )}
       {p.navigable && (
         <>
           <button type="button" className="btn-rond btn-auj" onClick={p.onAujourdhui}>Auj.</button>
@@ -122,6 +126,8 @@ const ONGLETS: Record<VarianteMobile, { vue: Vue; libelle: string; icone: ReactN
   b: [
     { vue: "jour", libelle: "Agenda", icone: <CalendarDays aria-hidden="true" /> },
     { vue: "checklist", libelle: "Checklist", icone: <IconeChecklist /> },
+    // Rubriques visibles plutôt que cachées dans « Plus » : NN/g, « Hamburger Menus », 2016.
+    { vue: "tri", libelle: "Tri", icone: <Rows3 aria-hidden="true" /> },
   ],
   c: [
     { vue: "liste", libelle: "À venir", icone: <Inbox aria-hidden="true" /> },
@@ -223,6 +229,41 @@ export function useBalayage(onGauche: () => void, onDroite: () => void, seuil = 
     },
     onPointerCancel: () => { depart.current = null; },
   };
+}
+
+/* ---------- Astuce : faire découvrir le balayage (une seule fois) ----------
+   Les gestes sans indice visuel passent inaperçus (NN/g, « Contextual Swipe », 2017) :
+   au premier affichage, la première carte glisse toute seule vers la droite en montrant
+   « Fait », et un encadré explique les deux gestes. « Compris » ne le remontre plus. */
+const CLE_ASTUCE = "agendia-astuce-balayage-vue";
+
+export function AstuceBalayage({ actif }: { actif: boolean }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (!actif) return;
+    try { if (localStorage.getItem(CLE_ASTUCE) === "1") return; } catch { /* navigateur privé : on montre l'astuce */ }
+    let fin: ReturnType<typeof setTimeout> | undefined;
+    const debut = setTimeout(() => { // laisse le temps à la première carte de s'afficher
+      const carte = document.querySelector("main .balayable");
+      if (!carte) return;
+      setVisible(true);
+      carte.classList.add("demo-balayage");
+      fin = setTimeout(() => carte.classList.remove("demo-balayage"), 3400);
+    }, 700);
+    return () => { clearTimeout(debut); clearTimeout(fin); };
+  }, [actif]);
+  if (!visible || !actif) return null; // seulement dans la vue Agenda
+  const fermer = () => {
+    setVisible(false);
+    try { localStorage.setItem(CLE_ASTUCE, "1"); } catch { /* tant pis : elle reviendra */ }
+  };
+  return (
+    <div className="astuce-balayage" role="status">
+      <IconeIdee />
+      <p><strong>Astuce :</strong> balaie une tâche vers la droite pour la cocher, vers la gauche pour la reporter.</p>
+      <button type="button" className="btn" onClick={fermer}>Compris</button>
+    </div>
+  );
 }
 
 /* ---------- Ligne « En retard » (au-dessus de la journée d'aujourd'hui) ---------- */
@@ -374,17 +415,20 @@ export function FilContinu({ taches, filtres, actions }: { taches: Tache[]; filt
 }
 
 /* ---------- Option C : saisie rapide ---------- */
-type ChoixDate = "auj" | "demain" | "sans";
+type ChoixDate = "auj" | "demain" | "jour" | "sans";
 
-export function SaisieRapide({ onCreer, onDetails, onFermer }: {
+export function SaisieRapide({ onCreer, onDetails, onFermer, jourAffiche }: {
   onCreer: (titre: string, date: string, heure: string) => Promise<boolean>; onDetails: () => void; onFermer: () => void;
+  jourAffiche?: string; // "AAAA-MM-JJ" : jour affiché dans l'agenda, proposé par défaut s'il n'est ni aujourd'hui ni demain
 }) {
-  const [texte, setTexte] = useState("");
-  const [choix, setChoix] = useState<ChoixDate>("auj");
-  const [envoi, setEnvoi] = useState(false);
   const auj = aujourdhui();
+  const isoAuj = versISO(auj), isoDemain = versISO(ajouterJours(auj, 1));
+  const autreJour = jourAffiche && jourAffiche !== isoAuj && jourAffiche !== isoDemain ? jourAffiche : null;
+  const [texte, setTexte] = useState("");
+  const [choix, setChoix] = useState<ChoixDate>(autreJour ? "jour" : jourAffiche === isoDemain ? "demain" : "auj");
+  const [envoi, setEnvoi] = useState(false);
   const a = analyserSaisie(texte, auj);
-  const dateChip = choix === "auj" ? versISO(auj) : choix === "demain" ? versISO(ajouterJours(auj, 1)) : "";
+  const dateChip = choix === "auj" ? isoAuj : choix === "demain" ? isoDemain : choix === "jour" && autreJour ? autreJour : "";
   const date = a.date ?? dateChip;
   const apercu = date ? majuscule(formater(depuisISO(date), { weekday: "long", day: "numeric", month: "long" })) : "Checklist (sans date)";
 
@@ -406,7 +450,10 @@ export function SaisieRapide({ onCreer, onDetails, onFermer }: {
           <button type="submit" className="btn btn-principal" aria-label="Ajouter" disabled={!a.titre || envoi}><Send aria-hidden="true" /></button>
         </div>
         <div className="puces-date" role="radiogroup" aria-label="Date">
-          {([["auj", "Aujourd'hui"], ["demain", "Demain"], ["sans", "Sans date"]] as const).map(([id, lib]) => (
+          {([
+            ...(autreJour ? [["jour", majuscule(formater(depuisISO(autreJour), { weekday: "short", day: "numeric", month: "short" }))] as const] : []),
+            ["auj", "Aujourd'hui"], ["demain", "Demain"], ["sans", "Sans date"],
+          ] as const).map(([id, lib]) => (
             <button key={id} type="button" role="radio" aria-checked={a.date === null && choix === id}
               className={a.date === null && choix === id ? "actif" : ""} onClick={() => setChoix(id)}>{lib}</button>
           ))}
