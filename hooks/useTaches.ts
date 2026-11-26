@@ -14,6 +14,7 @@ import * as depot from "@/lib/depot";
 import * as rec from "@/lib/recurrence";
 import { basculerCaseSerie, basculerCaseTache, casesDuJour, cleMateriel, filtrerCases, type GenreCase } from "@/lib/etapes";
 import { aujourdhui, versISO } from "@/lib/dates";
+import * as hl from "@/lib/hors-ligne";
 import type { DonneesTache, Portee, Tache } from "@/lib/types";
 
 function messageErreur(e: unknown): string {
@@ -21,8 +22,10 @@ function messageErreur(e: unknown): string {
 }
 
 export function useTaches(userId: string) {
-  const [taches, setTaches] = useState<Tache[]>([]);
-  const [charge, setCharge] = useState(false);
+  /* Hors connexion : on part de la copie gardée sur l'appareil (affichage immédiat, même
+     sans réseau), puis on relit la base. */
+  const [taches, setTaches] = useState<Tache[]>(() => { hl.initialiser(userId); return depot.tachesEnCopie(); });
+  const [charge, setCharge] = useState(() => hl.aDesDonnees());
   const [erreur, setErreur] = useState<string | null>(null);
   // Copie toujours à jour de la liste, pour les « Annuler » appelés plusieurs secondes plus tard.
   const tachesRef = useRef<Tache[]>([]);
@@ -52,12 +55,18 @@ export function useTaches(userId: string) {
 
   // Synchronisation simple : quand on revient sur l'onglet, on recharge depuis la base
   // (utile si on a modifié ses tâches depuis le téléphone entre-temps).
+  // « agendia-synchro » : les changements faits hors connexion viennent d'être envoyés
+  // (ou le réseau est revenu) → on relit pour afficher la version gagnante des conflits.
   useEffect(() => {
     const auRetour = () => {
-      if (document.visibilityState === "visible") recharger();
+      if (document.visibilityState === "visible") { recharger(); hl.planifierEnvoi(0); }
     };
     document.addEventListener("visibilitychange", auRetour);
-    return () => document.removeEventListener("visibilitychange", auRetour);
+    window.addEventListener("agendia-synchro", recharger);
+    return () => {
+      document.removeEventListener("visibilitychange", auRetour);
+      window.removeEventListener("agendia-synchro", recharger);
+    };
   }, [recharger]);
 
   const ajouter = useCallback(

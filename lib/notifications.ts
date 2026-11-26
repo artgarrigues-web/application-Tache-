@@ -35,10 +35,25 @@ function prise(): boolean {
 export async function enregistrerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!("serviceWorker" in navigator)) return null;
   try {
-    return await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    envoyerFichiersAuServiceWorker();
+    return reg;
   } catch {
     return null;
   }
+}
+
+/* Hors connexion : à la toute première visite, la page a chargé son code AVANT que le service
+   worker n'existe, donc il ne l'a pas vu passer. On lui donne la liste des fichiers chargés
+   pour qu'il les mette en cache (sinon l'application ne s'ouvrirait pas sans réseau). */
+function envoyerFichiersAuServiceWorker() {
+  navigator.serviceWorker.ready.then((reg) => {
+    const urls = new Set<string>();
+    for (const e of performance.getEntriesByType("resource")) urls.add(e.name);
+    document.querySelectorAll<HTMLScriptElement>("script[src]").forEach((s) => urls.add(s.src));
+    document.querySelectorAll<HTMLLinkElement>("link[href]").forEach((l) => urls.add(l.href));
+    reg.active?.postMessage({ type: "agendia-mettre-en-cache", urls: [...urls] });
+  }).catch(() => undefined);
 }
 
 export async function etatNotifications(): Promise<EtatNotifications> {

@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as depot from "@/lib/depot";
 import { supabase } from "@/lib/supabase";
+import * as hl from "@/lib/hors-ligne";
 import { decalerJours } from "@/lib/recurrence";
 import type { EvenementExterne } from "@/lib/ics-lecture";
 
@@ -48,18 +49,30 @@ export function useAgendasExternes(userId: string, debutVu: string, finVu: strin
   }, [userId, version]);
 
   const lire = useCallback(async (debut: string, fin: string) => {
+    type Reponse = { agendas?: EtatAgenda[]; evenements?: EvenementExterne[] };
+    const afficher = (json: Reponse) => {
+      setEtats(new Map((json.agendas ?? []).map((e) => [e.id, e])));
+      setEvenements(json.evenements ?? []);
+    };
+    /* Hors connexion : on affiche les derniers événements reçus (cours, rendez-vous),
+       gardés sur l'appareil. lu: 0 → on redemandera dès que possible. */
+    const depuisCopie = () => {
+      const copie = hl.relireLecture<{ debut: string; fin: string; json: Reponse }>("evenements");
+      if (copie && !fenetre.current) { afficher(copie.json); fenetre.current = { debut: copie.debut, fin: copie.fin, lu: 0 }; }
+    };
+    if (hl.reseauCoupe()) { depuisCopie(); return; }
     const { data } = await supabase().auth.getSession();
     const jeton = data.session?.access_token;
-    if (!jeton) return;
+    if (!jeton) { depuisCopie(); return; }
     setEnCours(true);
     try {
       const rep = await fetch(`/api/agendas-externes?debut=${debut}&fin=${fin}`, { headers: { Authorization: `Bearer ${jeton}` } });
-      const json = await rep.json() as { agendas?: EtatAgenda[]; evenements?: EvenementExterne[] };
-      setEtats(new Map((json.agendas ?? []).map((e) => [e.id, e])));
-      setEvenements(json.evenements ?? []);
+      const json = await rep.json() as Reponse;
+      afficher(json);
       fenetre.current = { debut, fin, lu: Date.now() };
+      if (rep.ok) hl.memoriserLecture("evenements", { debut, fin, json });
     } catch {
-      /* réseau coupé : on garde ce qu'on avait */
+      depuisCopie(); /* réseau coupé : on garde ce qu'on avait (ou la copie) */
     } finally {
       setEnCours(false);
     }

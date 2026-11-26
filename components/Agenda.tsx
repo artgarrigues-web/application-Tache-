@@ -49,6 +49,16 @@ import { Rappels } from "./Rappels";
 import { Corbeille } from "./Corbeille";
 import { AgendasExternes } from "./AgendasExternes";
 import { MaJournee, journeePrepareeAujourdhui, masquerInvitationAujourdhui } from "./MaJournee";
+import { EtatConnexion } from "./EtatConnexion";
+import { nombreEnAttente } from "@/lib/hors-ligne";
+
+/* Se déconnecter efface la copie hors connexion de l'appareil : si des changements faits
+   sans réseau n'ont pas encore pu partir, on prévient avant de les perdre. */
+function seDeconnecter() {
+  const n = nombreEnAttente();
+  if (n > 0 && !confirm(`${n} changement${n > 1 ? "s" : ""} fait${n > 1 ? "s" : ""} hors connexion n'${n > 1 ? "ont" : "a"} pas encore été envoyé${n > 1 ? "s" : ""}. Se déconnecter maintenant les perdra. Continuer ?`)) return;
+  supabase().auth.signOut();
+}
 
 const CLE_VUE = "agenda-taches-vue"; // simple préférence d'affichage, gardée dans le navigateur
 const CLE_ANNULATION = "agenda-dernier-planning"; // de quoi annuler le dernier planning appliqué
@@ -489,6 +499,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
       </header>
       )}
 
+      <EtatConnexion />
       {/* Ordinateur : ajout en une phrase toujours visible (sur téléphone : bouton « + »). */}
       {!mobile && (
         <BarreSaisieRapide key={dateParDefaut()} dateDefaut={dateParDefaut()} onCreer={creerRapide} onDetails={ouvrirDepuisSaisie} />
@@ -496,7 +507,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
 
       {erreur && (
         <div className="bandeau-erreur" role="alert">
-          <span>Problème de connexion à la base : {erreur}</span>
+          <span>{erreur.startsWith("Pas de connexion") ? erreur : `Problème de connexion à la base : ${erreur}`}</span>
           <button type="button" className="btn-icone" aria-label="Fermer" onClick={effacerErreur}><IconeFermer /></button>
         </div>
       )}
@@ -618,7 +629,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
         <span className="aide">Raccourcis : <kbd>A</kbd> ajout en une phrase · <kbd>N</kbd> nouvelle tâche · <kbd>←</kbd> <kbd>→</kbd> naviguer · <kbd>T</kbd> aujourd&apos;hui · glisser une carte pour la déplacer (<kbd>Échap</kbd> annule)</span>
         <span className="utilisateur">
           {utilisateur.email}
-          <button type="button" className="lien" onClick={() => supabase().auth.signOut()}>Se déconnecter</button>
+          <button type="button" className="lien" onClick={seDeconnecter}>Se déconnecter</button>
         </span>
       </footer>
 
@@ -645,7 +656,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
             { libelle: "Exporter (JSON)", icone: <IconeExporter />, onClick: exporter },
             { libelle: "Importer", icone: <IconeImporter />, onClick: () => champFichier.current?.click() },
             { libelle: "Effacer les tâches terminées", detail: "vers la corbeille", icone: <IconeSupprimer />, onClick: effacerFaites, danger: true },
-            { libelle: `Se déconnecter (${utilisateur.email ?? ""})`, icone: <LogOut aria-hidden="true" />, onClick: () => supabase().auth.signOut() },
+            { libelle: `Se déconnecter (${utilisateur.email ?? ""})`, icone: <LogOut aria-hidden="true" />, onClick: seDeconnecter },
           ]} />
       )}
       {saisieOuverte && (
