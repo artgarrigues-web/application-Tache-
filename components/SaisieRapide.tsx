@@ -19,7 +19,7 @@ import { ajouterJours, aujourdhui, depuisISO, formater, majuscule, versISO } fro
 import { decrireRecurrence } from "@/lib/recurrence";
 import { analyserSaisie, libelleDuree, type ChampSaisie, type SaisieAnalysee } from "@/lib/saisie-rapide";
 import { PRIORITES, type DonneesTache, type Recurrence } from "@/lib/types";
-import { IconeDuree, IconeLieu, IconeRepeter } from "./Icones";
+import { IconeAjouter, IconeDuree, IconeLieu, IconeRepeter } from "./Icones";
 import { FeuilleBas } from "./Mobile";
 
 /* Ce que la saisie transmet pour créer la tâche (ou pré-remplir le formulaire). */
@@ -221,9 +221,10 @@ export function BarreSaisieRapide({ onCreer, onDetails, dateDefaut }: {
   return (
     <form className={`barre-saisie${tape ? " active" : ""}`} onSubmit={(e) => { e.preventDefault(); valider(); }}>
       <div className="ligne-saisie">
+        <span className="icone-saisie" aria-hidden="true"><IconeAjouter /></span>
         <input ref={champ} value={s.texte} onChange={(e) => s.setTexte(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Escape") { s.vider(); e.currentTarget.blur(); } }}
-          placeholder={`Ajout rapide : ${EXEMPLE.replace("Ex. : ", "")}   (touche A)`}
+          placeholder={`Ajouter une tâche en une phrase : « ${EXEMPLE.replace("Ex. : ", "")} »`}
           aria-label="Ajout rapide d'une tâche, en une phrase" autoComplete="off" />
         <button type="submit" className="btn btn-principal" disabled={!s.a.titre || envoi}><Send aria-hidden="true" /> Ajouter</button>
       </div>

@@ -64,13 +64,18 @@ export function plageVisible(vue: Vue, d: Date): Plage | null {
 export function titrePeriode(vue: Vue, d: Date): string {
   if (vue === "jour") return majuscule(formater(d, { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
   if (vue === "semaine") {
+    // « 23 – 29 novembre 2026 », « 30 novembre – 6 décembre 2026 », « 28 déc. 2026 – 3 janv. 2027 »
     const lundi = debutSemaine(d);
     const dimanche = ajouterJours(lundi, 6);
-    return `Semaine du ${formater(lundi, { day: "numeric", month: "long" })} au ${formater(dimanche, { day: "numeric", month: "long", year: "numeric" })}`;
+    const memeAnnee = lundi.getFullYear() === dimanche.getFullYear();
+    const memeMois = memeAnnee && lundi.getMonth() === dimanche.getMonth();
+    const debut = memeMois ? String(lundi.getDate())
+      : formater(lundi, memeAnnee ? { day: "numeric", month: "long" } : { day: "numeric", month: "short", year: "numeric" });
+    return `${debut} – ${formater(dimanche, { day: "numeric", month: memeAnnee ? "long" : "short", year: "numeric" })}`;
   }
   if (vue === "mois") return majuscule(formater(d, { month: "long", year: "numeric" }));
-  if (vue === "checklist") return "Checklist : toutes les tâches à cocher";
-  if (vue === "tri") return "Tâches à faire : Urgent · Important · Rapide";
+  if (vue === "checklist") return "Checklist";
+  if (vue === "tri") return "Tri : urgent, important, rapide";
   return "Toutes les tâches";
 }
 

@@ -30,7 +30,7 @@ import type { ChangementHoraire } from "@/lib/depot";
 import type { Planning } from "@/lib/planification";
 import { VueChecklist, VueJour, VueListe, VueMois, VueSemaine, VueTri } from "./VuesAgenda";
 import { Logo, NomApp } from "./Logo";
-import { IconeAjouter, IconeAnnuler, IconeChecklist, IconeExporter, IconeFermer, IconeImporter, IconePlanifier, IconePrecedent, IconeRecherche, IconeSucces, IconeSuivant, IconeSynchro, IconeSupprimer, IconeValide } from "./Icones";
+import { IconeAjouter, IconeAnnuler, IconeChecklist, IconeExporter, IconeFermer, IconeImporter, IconeOptions, IconePlanifier, IconePrecedent, IconeRecherche, IconeSucces, IconeSuivant, IconeSynchro, IconeSupprimer, IconeValide, IconeVue } from "./Icones";
 import { LogOut } from "lucide-react";
 import {
   AstuceBalayage, BandeauSemaine, BarreBas, BoutonFlottant, EnteteMobile, FilContinu, InvitationJournee, LigneRetard, MenuPlus, titreCourt, useBalayage,
@@ -80,6 +80,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   const [vue, setVue] = useState<Vue>("semaine");
   const [dateRef, setDateRef] = useState<Date>(() => aujourdhui());
   const [filtres, setFiltres] = useState<Filtres>(FILTRES_INITIAUX);
+  const [filtresOuverts, setFiltresOuverts] = useState(false); // ordinateur : catégorie, priorité, statut
   const [formulaire, setFormulaire] = useState<EtatFormulaire | null>(null);
   const [synchroOuverte, setSynchroOuverte] = useState(false);
   const [planifOuverte, setPlanifOuverte] = useState(false);
@@ -157,6 +158,10 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   const navigable = vue !== "liste" && vue !== "tri" && vue !== "checklist";
   // Vues « calendrier » sous lesquelles on affiche aussi la Checklist.
   const vueCalendrier = vue === "jour" || vue === "semaine" || vue === "mois";
+  // « 3 sur 12 faites sur la semaine » (bilan de la barre latérale et du menu Plus).
+  const periode = vue === "jour" ? "la journée" : vue === "semaine" ? "la semaine" : vue === "mois" ? "le mois" : "la période";
+  // Filtres autres que la recherche : leur nombre s'affiche sur le bouton « Filtres ».
+  const nbFiltres = (filtres.categorie !== "toutes" ? 1 : 0) + (filtres.priorite !== "toutes" ? 1 : 0) + (filtres.statut !== "toutes" ? 1 : 0);
 
   /* Tâches répétées : leurs occurrences sont fabriquées ici, à l'affichage (lib/recurrence.ts).
      - Vues calendrier : toutes les occurrences de la période affichée (pour Mois, toute la
@@ -459,7 +464,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
     <FournisseurGlisser actif={charge && vueCalendrier} onDeposer={deposer}
       onNaviguer={(sens) => setDateRef((d) => deplacer(vue, d, sens))}
       rendreTache={(t, compacte) => <div className={`vue-${vue}`}><CarteTache tache={t} actions={actions} compacte={compacte} fantome /></div>}>
-    <div className={`page${mobile ? ` mobile mobile-${mobile}` : ""}${rechercheOuverte ? " recherche-ouverte" : ""}`}>
+    <div className={`page${mobile ? ` mobile mobile-${mobile}` : " avec-barre"}${rechercheOuverte ? " recherche-ouverte" : ""}`}>
       {mobile ? (
         <EnteteMobile
           indicateur={<IndicateurConnexion />}
@@ -475,37 +480,76 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           boutonAujourdhui={ecranB && versISO(dateRef) !== versISO(aujourdhui())}
         />
       ) : (
-      <header className="entete">
+      /* Ordinateur : tout ce qui sert à naviguer et à agir est rangé à gauche, toujours au même
+         endroit (comme Things, Todoist ou Google Agenda) ; le centre ne montre que l'agenda.
+         Entre 641 et 1099 px de large, la même barre se replie en bandeau en haut (globals.css). */
+      <aside className="barre-laterale" aria-label="Menu d'AgendIA">
         <h1 className="titre-app"><Logo /> <NomApp /></h1>
-        <Compteurs taches={courantes} tachesPeriode={tachesPeriode} plage={plage} />
-        <div className="actions-entete">
-        <button type="button" className={`btn-icone btn-cloche${notifActives ? " active" : ""}`} onClick={() => setRappelsOuvert(true)}
-          aria-label={notifActives ? "Rappels activés : réglages" : "Activer les rappels"} title={notifActives ? "Rappels activés" : "Activer les rappels"}>
-          {notifActives ? <BellRing aria-hidden="true" /> : <Bell aria-hidden="true" />}
-          {!notifActives && etatNotif && etatNotif !== "indisponible" && <span className="point-cloche" aria-hidden="true" />}
-        </button>
-        <button type="button" className="btn btn-journee" title="Préparer ma journée : retards, choix, planning"
-          onClick={() => setJourneeOuverte(true)}>
-          <Sunrise aria-hidden="true" /> Ma journée
-        </button>
-        <button type="button" className="btn" title="Placer automatiquement les tâches de la Checklist dans la semaine"
-          onClick={() => setPlanifOuverte(true)}>
-          <IconePlanifier /> Planifier ma semaine
-        </button>
-        <button type="button" className="btn btn-principal" title="Raccourci : touche N"
+        <button type="button" className="btn btn-principal btn-nouvelle" title="Raccourci : touche N"
           onClick={() => setFormulaire({ tacheId: null })}>
           <IconeAjouter /> Nouvelle tâche
         </button>
+        <nav className="nav-vues" aria-label="Vues de l'agenda">
+          {VUES.map((v) => (
+            <button key={v.id} type="button" className={vue === v.id ? "actif" : ""} aria-current={vue === v.id ? "page" : undefined}
+              onClick={() => setVue(v.id)}>
+              <IconeVue vue={v.id} /> {v.libelle}
+            </button>
+          ))}
+        </nav>
+        <div className="lat-outils">
+          <button type="button" className="lat-lien lat-journee" title="Préparer ma journée : retards, choix, planning"
+            onClick={() => setJourneeOuverte(true)}>
+            <Sunrise aria-hidden="true" /> Ma journée
+            {enRetard.length > 0 && <small className="lat-etat">{enRetard.length} en retard</small>}
+          </button>
+          <button type="button" className="lat-lien" title="Placer automatiquement les tâches de la Checklist dans la semaine"
+            onClick={() => setPlanifOuverte(true)}>
+            <IconePlanifier /> Planifier ma semaine
+          </button>
+          <button type="button" className={`lat-lien${notifActives ? " active" : ""}`} onClick={() => setRappelsOuvert(true)}
+            title={notifActives ? "Rappels activés : réglages" : "Activer les rappels"}>
+            {notifActives ? <BellRing aria-hidden="true" /> : <Bell aria-hidden="true" />} Rappels
+            {!notifActives && etatNotif && etatNotif !== "indisponible" && <small className="lat-etat">à activer</small>}
+          </button>
         </div>
-      </header>
+        <Compteurs taches={courantes} tachesPeriode={tachesPeriode} plage={plage} periode={periode} />
+        <div className="lat-secondaire">
+          <button type="button" className="lat-lien" onClick={() => setAgendasOuvert(true)}>
+            <CalendarDays aria-hidden="true" /> Mes agendas
+            {agendas.agendas.length > 0 && <small className="lat-etat">{agendas.agendas.length}</small>}
+          </button>
+          <button type="button" className="lat-lien" onClick={() => setSynchroOuverte(true)}><IconeSynchro /> Synchroniser mon calendrier</button>
+          <button type="button" className="lat-lien" onClick={() => setCorbeilleOuverte(true)}><IconeSupprimer /> Corbeille</button>
+          {/* Actions rares : repliées, pour ne pas encombrer (elles restent à un clic). */}
+          <details className="lat-plus">
+            <summary className="lat-lien">Plus d&apos;actions</summary>
+            <button type="button" className="lat-lien" onClick={exporter}><IconeExporter /> Exporter (JSON)</button>
+            <button type="button" className="lat-lien" onClick={() => champFichier.current?.click()}><IconeImporter /> Importer</button>
+            <button type="button" className="lat-lien danger" onClick={effacerFaites}><IconeSupprimer /> Effacer les tâches terminées</button>
+          </details>
+        </div>
+        <div className="lat-compte">
+          <details className="lat-raccourcis">
+            <summary className="lat-lien">Raccourcis clavier</summary>
+            <ul>
+              <li><kbd>A</kbd> ajout en une phrase</li>
+              <li><kbd>N</kbd> nouvelle tâche</li>
+              <li><kbd>←</kbd> <kbd>→</kbd> période précédente, suivante</li>
+              <li><kbd>T</kbd> aujourd&apos;hui</li>
+              <li>glisser une carte pour la déplacer (<kbd>Échap</kbd> annule)</li>
+            </ul>
+          </details>
+          <p className="lat-utilisateur">
+            <span title={utilisateur.email ?? ""}>{utilisateur.email}</span>
+            <button type="button" className="lien" onClick={seDeconnecter}>Se déconnecter</button>
+          </p>
+        </div>
+      </aside>
       )}
 
+      <div className="contenu">
       <EtatConnexion />
-      {/* Ordinateur : ajout en une phrase toujours visible (sur téléphone : bouton « + »). */}
-      {!mobile && (
-        <BarreSaisieRapide key={dateParDefaut()} dateDefaut={dateParDefaut()} onCreer={creerRapide} onDetails={ouvrirDepuisSaisie} />
-      )}
-
       {erreur && (
         <div className="bandeau-erreur" role="alert">
           <span>{erreur.startsWith("Pas de connexion") ? erreur : `Problème de connexion à la base : ${erreur}`}</span>
@@ -528,6 +572,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
         </div>
       )}
 
+      <div className="entete-contenu">
       <section className="barre-outils">
         {navigable && (
           <div className="navigation">
@@ -542,22 +587,24 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           </div>
         )}
         <h2>{titrePeriode(vue, dateRef)}</h2>
-        <div className="onglets" role="tablist" aria-label="Vue de l'agenda">
-          {VUES.map((v) => (
-            <button key={v.id} type="button" role="tab" aria-selected={vue === v.id}
-              className={vue === v.id ? "actif" : ""} onClick={() => setVue(v.id)}>
-              {v.libelle}
-            </button>
-          ))}
-        </div>
       </section>
 
-      <section className="filtres">
+      {/* Recherche toujours visible ; catégorie, priorité et statut derrière « Filtres »
+          (ouverts d'office si l'un d'eux est actif). Sur téléphone : tout derrière la loupe. */}
+      <section className={`filtres${filtresOuverts || nbFiltres > 0 ? " ouverts" : ""}`}>
         <label className="champ-recherche">
           <IconeRecherche />
           <input type="search" placeholder="Rechercher une tâche…" aria-label="Rechercher"
             value={filtres.recherche} onChange={(e) => setFiltres({ ...filtres, recherche: e.target.value })} />
         </label>
+        {!mobile && (
+          <button type="button" className={`btn btn-filtres${nbFiltres > 0 ? " actif" : ""}`} aria-expanded={filtresOuverts || nbFiltres > 0}
+            onClick={() => { if (nbFiltres > 0) { setFiltres({ ...FILTRES_INITIAUX, recherche: filtres.recherche }); setFiltresOuverts(false); } else setFiltresOuverts((o) => !o); }}
+            title={nbFiltres > 0 ? "Retirer les filtres" : "Filtrer par catégorie, priorité ou statut"}>
+            {nbFiltres > 0 ? <><IconeFermer /> Retirer les filtres</> : <><IconeOptions /> Filtres</>}
+          </button>
+        )}
+        <div className="selecteurs-filtres">
         <select aria-label="Filtrer par catégorie" value={filtres.categorie}
           onChange={(e) => setFiltres({ ...filtres, categorie: e.target.value as Filtres["categorie"] })}>
           <option value="toutes">Toutes les catégories</option>
@@ -579,7 +626,14 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           <option value="faites">Terminées</option>
           <option value="retard">En retard</option>
         </select>
+        </div>
       </section>
+      </div>
+
+      {/* Ordinateur : ajout en une phrase toujours visible (sur téléphone : bouton « + »). */}
+      {!mobile && (
+        <BarreSaisieRapide key={dateParDefaut()} dateDefaut={dateParDefaut()} onCreer={creerRapide} onDetails={ouvrirDepuisSaisie} />
+      )}
 
       {ecranB && (
         <BandeauSemaine dateRef={dateRef} onChoisir={setDateRef} taches={taches} filtres={filtres}
@@ -619,13 +673,13 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
         </section>
       )}
 
+      {/* Pied de page : utile seulement entre 641 et 1099 px (au-delà, tout est dans la barre latérale). */}
       <footer className="pied">
-        <button type="button" className="btn btn-principal" onClick={() => setSynchroOuverte(true)}><IconeSynchro /> Synchroniser mon calendrier</button>
+        <button type="button" className="btn" onClick={() => setSynchroOuverte(true)}><IconeSynchro /> Synchroniser mon calendrier</button>
         <button type="button" className="btn" onClick={() => setAgendasOuvert(true)}><CalendarDays aria-hidden="true" /> Mes agendas (Google, Outlook){agendas.agendas.length > 0 ? ` · ${agendas.agendas.length}` : ""}</button>
         <button type="button" className="btn" onClick={() => setCorbeilleOuverte(true)}><IconeSupprimer /> Corbeille</button>
         <button type="button" className="btn" onClick={exporter}><IconeExporter /> Exporter (JSON)</button>
         <button type="button" className="btn" onClick={() => champFichier.current?.click()}><IconeImporter /> Importer</button>
-        <input ref={champFichier} type="file" accept="application/json,.json" hidden onChange={importerFichier} />
         <button type="button" className="btn btn-danger" onClick={effacerFaites}>Effacer les tâches terminées</button>
         <span className="aide">Raccourcis : <kbd>A</kbd> ajout en une phrase · <kbd>N</kbd> nouvelle tâche · <kbd>←</kbd> <kbd>→</kbd> naviguer · <kbd>T</kbd> aujourd&apos;hui · glisser une carte pour la déplacer (<kbd>Échap</kbd> annule)</span>
         <span className="utilisateur">
@@ -633,7 +687,9 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           <button type="button" className="lien" onClick={seDeconnecter}>Se déconnecter</button>
         </span>
       </footer>
+      </div>
 
+      <input ref={champFichier} type="file" accept="application/json,.json" hidden onChange={importerFichier} />
       {mobile && (
         <>
           {/* « + » : ajout en une phrase (le formulaire complet reste à un toucher, « Plus de détails »). */}
@@ -650,7 +706,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
             { libelle: "Mes agendas", detail: agendas.agendas.length ? `${agendas.agendas.length} branché${agendas.agendas.length > 1 ? "s" : ""}` : "Google, Outlook", icone: <CalendarDays aria-hidden="true" />, onClick: () => setAgendasOuvert(true) },
             { libelle: "Corbeille", detail: "30 jours pour récupérer", icone: <IconeSupprimer />, onClick: () => setCorbeilleOuverte(true) },
           ]}
-          compteurs={<Compteurs taches={courantes} tachesPeriode={tachesPeriode} plage={plage} />}
+          compteurs={<Compteurs taches={courantes} tachesPeriode={tachesPeriode} plage={plage} periode={periode} />}
           actions={[
             { libelle: "Planifier ma semaine", icone: <IconePlanifier />, onClick: () => setPlanifOuverte(true) },
             { libelle: "Synchroniser mon calendrier", icone: <IconeSynchro />, onClick: () => setSynchroOuverte(true) },

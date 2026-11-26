@@ -169,40 +169,45 @@ h1, h2 {
 .btn-icone:hover { color: var(--texte); background: var(--surface-2); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* ---------- En-tête ---------- */
-.entete { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 16px; }
-.entete h1 { margin: 0; font-size: 1.5rem; flex: 1 1 auto; }
+/* ---------- Nom de l'application ---------- */
 /* Titre = logo + nom ; « IA » prend la couleur d'accent. */
 .titre-app { display: flex; align-items: center; gap: 10px; }
 .logo { flex: none; border-radius: 22%; }
-.nom-app { font-weight: 800; letter-spacing: -0.01em; }
+.nom-app { font-weight: 700; letter-spacing: -0.01em; }
 .nom-app-ia { color: var(--accent); }
-.compteurs { display: flex; flex-wrap: wrap; gap: 8px; }
-.compteur {
-  display: flex; align-items: center; gap: 6px;
-  background: var(--surface); border: 1px solid var(--bord); border-radius: var(--rayon);
-  padding: 6px 12px; font-size: 0.9rem; color: var(--texte-doux);
-}
-.compteur .nombre { font-size: 1.25rem; font-weight: 700; color: var(--texte); font-variant-numeric: tabular-nums; }
-.compteur.alerte .nombre { color: var(--retard); }
-.progression { width: 70px; height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
-.progression > span { display: block; height: 100%; background: var(--fait); transition: width 0.3s; }
 
-/* ---------- Barre d'outils ---------- */
-.barre-outils { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 12px; }
-.navigation { display: flex; gap: 6px; }
-.barre-outils h2 { margin: 0; font-size: 1.15rem; font-weight: 600; flex: 1 1 auto; }
-.onglets { display: inline-flex; background: var(--surface); border: 1px solid var(--bord); border-radius: 8px; padding: 3px; }
+/* ---------- Bilan (« 14 à faire · 2 en retard · 3 sur 12 faites sur la semaine ») ----------
+   Une phrase, pas trois boîtes à gros chiffres : on le lit comme une note de carnet. */
+.compteurs { display: flex; flex-direction: column; gap: 7px; }
+.bilan { margin: 0; display: flex; flex-wrap: wrap; row-gap: 2px; font-size: 0.86rem; line-height: 1.4; color: var(--texte-doux); }
+.bilan > span + span::before { content: "·"; margin: 0 6px; }
+.bilan strong { color: var(--texte); font-weight: 600; font-variant-numeric: tabular-nums; }
+.bilan .alerte, .bilan .alerte strong { color: var(--retard); }
+.progression { width: 100%; height: 4px; background: color-mix(in srgb, var(--texte-doux) 18%, transparent); border-radius: 2px; overflow: hidden; }
+.progression > span { display: block; height: 100%; background: var(--fait); border-radius: 2px; transition: width 0.3s; }
+
+/* ---------- En-tête du contenu : ‹ Aujourd'hui ›, titre de la période, recherche, filtres ---------- */
+.entete-contenu { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 14px; }
+.barre-outils { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.navigation { display: flex; align-items: center; gap: 4px; }
+.navigation .btn { min-height: 34px; padding: 6px 10px; background: transparent; border-color: var(--bord); }
+.navigation .btn:hover { background: var(--surface-2); }
+.barre-outils h2 { margin: 0; font-size: 1.6rem; }
+
+/* ---------- Choix segmenté (fenêtre « Planifier ma semaine ») ---------- */
+.onglets { display: inline-flex; gap: 2px; padding: 3px; border-radius: 9px; background: var(--surface-2); }
 .onglets button {
-  font: inherit; border: none; background: none; color: var(--texte-doux);
-  padding: 5px 12px; border-radius: 6px; cursor: pointer;
+  font: inherit; border: none; background: none; color: var(--texte-doux); cursor: pointer;
+  padding: 5px 12px; border-radius: 7px; transition: background-color var(--vitesse), color var(--vitesse);
 }
-.onglets button.actif { background: var(--accent); color: var(--accent-texte); }
+.onglets button:hover { color: var(--texte); }
+.onglets button.actif { background: var(--surface); color: var(--texte); font-weight: 600; box-shadow: 0 1px 2px rgba(31, 29, 26, 0.14); }
 
 /* ---------- Filtres et champs ----------
    Bord à 3:1 (visible sans être lourd), coins de 7 px ; au focus, le bord passe au bleu
    avec un halo léger. 16 px minimum : l'iPhone ne zoome pas sur le champ touché. */
-.filtres { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.filtres { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; }
+.filtres.ouverts { flex-basis: 100%; flex-wrap: wrap; }
 .filtres input, .filtres select,
 .formulaire input, .formulaire select, .formulaire textarea {
   font: inherit; color: var(--texte); background: var(--surface);
@@ -216,13 +221,19 @@ h1, h2 {
 }
 .formulaire input[type="checkbox"], .formulaire input[type="radio"] { min-height: 0; }
 ::placeholder { color: color-mix(in srgb, var(--texte-doux) 80%, transparent); }
-.champ-recherche { flex: 1 1 220px; position: relative; display: flex; }
+.champ-recherche { flex: 0 1 260px; min-width: 160px; position: relative; display: flex; }
+.filtres.ouverts .champ-recherche { flex: 1 1 280px; }
 .champ-recherche input { flex: 1; min-width: 0; padding-left: 34px; }
 .champ-recherche .lucide {
   position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
   color: var(--texte-doux); pointer-events: none;   /* le clic traverse l'icône et va au champ */
 }
-.filtres select { flex: 0 1 auto; }
+.btn-filtres { min-height: 40px; background: transparent; border-color: var(--bord); }
+.btn-filtres:hover { background: var(--surface-2); }
+.btn-filtres.actif { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, var(--bord)); }
+.selecteurs-filtres { display: none; flex-wrap: wrap; gap: 8px; }
+.filtres.ouverts .selecteurs-filtres { display: flex; }
+.selecteurs-filtres select { flex: 0 1 auto; }
 
 /* ---------- Carte d'une tâche ----------
    Une tâche = une LIGNE d'agenda (un filet fin dessous), pas une boîte : c'est ce qui
@@ -539,7 +550,9 @@ dialog::backdrop { background: rgba(20, 18, 15, 0.42); backdrop-filter: blur(2px
 }
 
 /* ---------- Pied de page ---------- */
-.pied { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 28px; font-size: 0.85rem; color: var(--texte-doux); }
+.pied { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 32px; padding-top: 14px; border-top: 1px solid var(--bord); font-size: 0.85rem; color: var(--texte-doux); }
+.pied .btn { background: transparent; min-height: 34px; padding: 6px 10px; font-size: 0.88rem; }
+.pied .btn:hover { background: var(--surface-2); }
 .pied .aide { margin-left: auto; }
 kbd { font: inherit; font-size: 0.8rem; border: 1px solid var(--bord); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--surface); }
 
@@ -556,9 +569,6 @@ kbd { font: inherit; font-size: 0.8rem; border: 1px solid var(--bord); border-bo
   .compte-case { display: inline-block; }                /* on n'affiche qu'un nombre par jour */
   .ligne-champs { grid-template-columns: 1fr; }
   .pied .aide { display: none; }
-  .onglets { width: 100%; }
-  .onglets { flex-wrap: wrap; }   /* 6 onglets : passent sur 2 lignes si l'écran est trop étroit */
-  .onglets button { flex: 1 1 30%; padding: 5px 6px; }
 }
 
 /* ---------- Ajouts version Next.js / Supabase ---------- */
@@ -1045,8 +1055,11 @@ body.glissement-hors-zone, body.glissement-hors-zone * { cursor: no-drop !import
 .btn-rond.actif { background: var(--accent); color: var(--accent-texte); border-color: transparent; }
 
 .mobile .barre-outils, .mobile .checklist-sous-agenda, .mobile .pied { display: none; }
+.mobile .entete-contenu { margin: 0; }
 .mobile .filtres { display: none; }
-.mobile.recherche-ouverte .filtres { display: flex; }
+.mobile.recherche-ouverte .filtres { display: flex; flex-wrap: wrap; flex-basis: 100%; margin-bottom: 10px; }
+.mobile .champ-recherche { flex: 1 1 100%; }
+.mobile .selecteurs-filtres { display: flex; flex-basis: 100%; }
 .mobile .filtres select { flex: 1 1 30%; min-width: 0; font-size: 0.85rem; }
 
 /* Lignes : pas de boutons Modifier/Supprimer (toucher la ligne ouvre la tâche, balayer la coche
@@ -1253,13 +1266,24 @@ body:has(.page.mobile) .tache-actions { display: none; }
 .mobile .pastille-saisie button { width: 44px; height: 44px; margin: -4px -6px -4px -8px; }
 .feuille-saisie .apercu-saisie { line-height: 1.5; }
 
-/* Ordinateur : barre « Ajout rapide » sous l'en-tête. */
+/* Ordinateur : barre « Ajouter une tâche en une phrase » sous l'en-tête du contenu.
+   Au repos : une simple ligne avec « + » et la touche A ; le bouton « Ajouter » n'apparaît
+   que quand on tape (avant, un bouton bleu pâle « désactivé » restait affiché). */
 .barre-saisie {
-  display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; padding: 8px; border-radius: 12px;
+  display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; padding: 4px 6px 4px 10px; border-radius: 10px;
   border: 1px solid var(--bord); background: var(--surface); transition: border-color 120ms, box-shadow 120ms;
 }
+.barre-saisie .ligne-saisie { align-items: center; }
+.icone-saisie { display: grid; place-items: center; color: var(--texte-doux); }
+.barre-saisie:focus-within .icone-saisie { color: var(--accent); }
+.barre-saisie:not(.active) .ligne-saisie .btn { display: none; }
+.barre-saisie:not(.active) .ligne-saisie::after {
+  content: "A"; flex: none; margin-right: 6px; padding: 0 6px; border: 1px solid var(--bord); border-bottom-width: 2px;
+  border-radius: 4px; font-size: 0.78rem; line-height: 1.5; color: var(--texte-doux);
+}
+.barre-saisie:focus-within:not(.active) .ligne-saisie::after { visibility: hidden; }
 .barre-saisie:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
-.barre-saisie .ligne-saisie input { border: 0; padding: 8px 10px; background: transparent; }
+.barre-saisie .ligne-saisie input { border: 0; padding: 8px 6px; background: transparent; }
 .barre-saisie .ligne-saisie input:focus { outline: none; }
 .barre-saisie .ligne-saisie .btn { padding: 0 14px; }
 .details-saisie { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 2px 4px 4px; }
@@ -1289,12 +1313,6 @@ body:has(.page.mobile) .tache-actions { display: none; }
 .message-info .lucide { vertical-align: -0.15em; }
 .petite-note { font-size: 0.8rem !important; color: var(--texte-doux); }
 
-/* --- En-tête ordinateur : cloche + « Ma journée » --- */
-.btn-cloche { position: relative; width: 38px; height: 38px; display: inline-grid; place-items: center; opacity: 0.8; border: 1px solid var(--bord); border-radius: 8px; }
-.btn-cloche .lucide { width: 20px; height: 20px; }
-.btn-cloche.active { color: var(--accent); opacity: 1; }
-.point-cloche { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--urgent); box-shadow: 0 0 0 2px var(--surface); }
-.btn-journee .lucide { color: var(--urgent); }
 
 /* --- Carte : petite cloche à côté du titre (comme l'icône de répétition) --- */
 .icone-rappel .lucide { width: 0.9em; height: 0.9em; }
@@ -1504,9 +1522,6 @@ dialog.dialogue-corbeille, dialog.dialogue-rappels { width: min(560px, calc(100v
 @media (prefers-reduced-motion: reduce) {
   .frise-nouvelle .frise-bloc, .interrupteur-piste, .interrupteur-piste span { animation: none; transition: none; }
 }
-/* En-tête ordinateur : les 4 actions restent groupées (cloche, Ma journée, Planifier, Nouvelle tâche). */
-.actions-entete { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-@media (max-width: 1320px) { .entete { column-gap: 12px; } .compteur { padding: 6px 10px; } .compteur .progression { width: 48px; } }
 /* Sur téléphone, les nouvelles fenêtres sont des feuilles du bas pleine largeur, comme les autres. */
 .mobile dialog.dialogue-journee, .mobile dialog.dialogue-agendas,
 .mobile dialog.dialogue-corbeille, .mobile dialog.dialogue-rappels { width: 100%; max-width: 100%; }
@@ -1671,4 +1686,79 @@ dialog.dialogue-avis { width: min(560px, calc(100vw - 32px)); }
 .compte-attente {
   position: absolute; top: -2px; right: -2px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
   background: var(--accent); color: var(--accent-texte); font-size: 0.7rem; font-weight: 700; line-height: 18px; text-align: center;
+}
+
+/* =====================================================================
+   Ordinateur : barre latérale + contenu (refonte « Carnet », 26/11/2026)
+   - 1100 px et plus : barre à gauche, collée, de toute la hauteur ; on y trouve, toujours
+     au même endroit, « Nouvelle tâche », les vues, les outils, le bilan et les réglages.
+   - 641 à 1099 px (tablette, petite fenêtre) : la même barre devient un bandeau en haut
+     (titre, outils, vues) ; les actions rares restent dans le pied de page.
+   - 640 px et moins : interface téléphone (en-tête, ruban, barre du bas), sans cette barre.
+   ===================================================================== */
+.page.avec-barre { max-width: none; padding: 0; }
+.avec-barre .contenu { min-width: 0; padding: 16px; }
+.barre-laterale .titre-app { margin: 0; font-size: 1.35rem; }
+.btn-nouvelle { justify-content: flex-start; padding-left: 12px; }
+.nav-vues, .lat-outils, .lat-secondaire { display: flex; flex-direction: column; gap: 1px; }
+.nav-vues button, .lat-lien {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 34px; padding: 6px 10px;
+  font: inherit; font-size: 0.9rem; line-height: 1.25; color: var(--texte); text-align: left;
+  background: none; border: none; border-radius: var(--rayon-petit); cursor: pointer;
+  transition: background-color var(--vitesse), color var(--vitesse);
+}
+:is(.nav-vues button, .lat-lien) .lucide { width: 18px; height: 18px; flex: none; color: var(--texte-doux); }
+:is(.nav-vues button, .lat-lien):hover { background: color-mix(in srgb, var(--texte) 6%, transparent); }
+.nav-vues button.actif { background: var(--accent-fond); color: var(--accent); font-weight: 600; }
+.nav-vues button.actif .lucide { color: var(--accent); }
+.lat-journee .lucide { color: var(--haute); }
+.lat-lien.active .lucide { color: var(--accent); }
+.lat-lien.danger, .lat-lien.danger .lucide { color: var(--retard); }
+.lat-etat { margin-left: auto; padding-left: 8px; font-size: 0.78rem; color: var(--texte-doux); white-space: nowrap; }
+.lat-journee .lat-etat { color: var(--retard); }
+/* Repliables (« Plus d'actions », « Raccourcis clavier ») : un chevron qui tourne. */
+:is(.lat-plus, .lat-raccourcis) > summary { list-style: none; color: var(--texte-doux); }
+:is(.lat-plus, .lat-raccourcis) > summary::-webkit-details-marker { display: none; }
+:is(.lat-plus, .lat-raccourcis) > summary::after {
+  content: ""; width: 7px; height: 7px; margin-left: 2px; border: solid currentColor; border-width: 0 1.5px 1.5px 0;
+  rotate: -45deg; transition: rotate var(--vitesse);
+}
+:is(.lat-plus, .lat-raccourcis)[open] > summary::after { rotate: 45deg; }
+.lat-plus[open] { padding-bottom: 4px; }
+.lat-raccourcis ul { list-style: none; margin: 2px 0 6px; padding: 0 10px; display: flex; flex-direction: column; gap: 5px; font-size: 0.8rem; color: var(--texte-doux); }
+.lat-utilisateur { margin: 0; padding: 0 10px; display: flex; flex-direction: column; gap: 2px; font-size: 0.8rem; color: var(--texte-doux); }
+.lat-utilisateur span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lat-utilisateur .lien { align-self: flex-start; font-size: 0.8rem; color: var(--texte-doux); }
+.lat-utilisateur .lien:hover { color: var(--accent); }
+
+@media (min-width: 1100px) {
+  .page.avec-barre { display: grid; grid-template-columns: 264px minmax(0, 1fr); align-items: start; }
+  .barre-laterale {
+    position: sticky; top: 0; height: 100vh; height: 100dvh; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 18px; padding: 18px 12px 14px;
+    border-right: 1px solid var(--bord); background: color-mix(in srgb, var(--surface-2) 50%, var(--fond));
+  }
+  .barre-laterale .titre-app { padding: 0 6px; }
+  .barre-laterale .compteurs { padding: 0 10px; }
+  .barre-laterale .bilan { flex-direction: column; }
+  .barre-laterale .bilan > span + span::before { content: none; }
+  .lat-compte { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+  .avec-barre .contenu { width: 100%; max-width: 1480px; margin: 0 auto; padding: 18px 32px 48px; }
+  .avec-barre .pied { display: none; }   /* tout est dans la barre latérale */
+}
+@media (min-width: 641px) and (max-width: 1099px) {
+  .barre-laterale {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px;
+    padding: 12px 16px; border-bottom: 1px solid var(--bord);
+  }
+  .barre-laterale .titre-app { margin-right: auto; }
+  .lat-outils { flex-direction: row; flex-wrap: wrap; gap: 2px; }
+  .lat-outils .lat-lien { width: auto; }
+  .lat-etat { padding-left: 0; }
+  .btn-nouvelle { order: 2; }
+  .nav-vues { order: 3; flex-basis: 100%; flex-direction: row; gap: 2px; padding: 3px; border-radius: 9px; background: var(--surface-2); }
+  .nav-vues button { width: auto; flex: 1 1 0; justify-content: center; min-height: 32px; padding: 5px 6px; }
+  .barre-laterale .compteurs { order: 4; flex-basis: 100%; flex-direction: row; align-items: center; gap: 12px; }
+  .barre-laterale .progression { width: 90px; }
+  .lat-secondaire, .lat-compte { display: none; }   /* dans le pied de page */
 }
