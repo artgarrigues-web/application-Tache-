@@ -304,9 +304,22 @@ h1, h2 {
 .marque-prio { color: var(--haute); font-weight: 700; margin-right: 4px; }
 .tache-heure { color: var(--texte-doux); font-weight: 500; font-variant-numeric: tabular-nums; margin-right: 6px; }
 
-/* Ligne d'infos : du texte simple séparé par des « · » (pas de badges). */
-.tache-meta { margin: 2px 0 0; font-size: 0.84rem; line-height: 1.4; color: var(--texte-doux); overflow-wrap: anywhere; }
-.tache-meta > * + *::before { content: "·"; display: inline-block; margin: 0 0.45em; color: var(--texte-doux); font-weight: 400; }
+/* Ligne d'infos « En retard · jeu. 19 nov. · chaque jeudi · Amphi A ».
+   Chaque info commence par sa puce « · » (1,2em). La ligne est décalée de 1,2em vers la
+   gauche et cette bande est rognée (clip-path) : la puce de l'info qui ouvre une ligne
+   disparaît, il n'y a donc jamais de « · » orphelin en début de ligne quand le texte passe
+   à la ligne (colonnes étroites du Tri, téléphone). Une info ne se coupe pas en deux,
+   sauf le lieu et le projet, qui peuvent être longs. */
+.tache-meta {
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  margin: 2px 0 0 -1.2em; clip-path: inset(-4px -4px -4px 1.2em); /* -4px : le contour du lien Lieu (clavier) reste visible */
+  font-size: 0.84rem; line-height: 1.4; color: var(--texte-doux);
+}
+.tache-meta > * { white-space: nowrap; }
+.tache-meta > :is(.meta-lieu, .meta-projet) { white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+.tache-meta > *::before {
+  content: "·"; display: inline-block; width: 1.2em; text-align: center; color: var(--texte-doux); font-weight: 400;
+}
 .tache-meta .lucide { width: 0.95em; height: 0.95em; vertical-align: -0.12em; }
 .meta-retard { color: var(--retard); font-weight: 600; }
 .tache.retard .meta-date, .meta-depassee { color: var(--retard); }
@@ -328,8 +341,17 @@ h1, h2 {
 /* Modifier / Supprimer : à la souris, n'apparaissent qu'au survol de la ligne (ou au clavier). */
 .tache-actions { display: flex; flex: none; margin: -5px -4px -5px 0; }
 @media (hover: hover) {
-  .tache-actions { opacity: 0; transition: opacity var(--vitesse); }
-  .tache:hover .tache-actions, .tache:focus-within .tache-actions { opacity: 1; }
+  /* Sur ordinateur, Modifier / Supprimer n'apparaissent qu'au survol, PAR-DESSUS la fin de
+     la ligne : ils ne réservent plus de largeur (le titre a toute la place, ce qui compte
+     dans les colonnes étroites du Tri). Le dégradé reprend la couleur de la ligne survolée. */
+  .tache { --fond-ligne-survol: color-mix(in srgb, var(--texte) 3.5%, var(--fond)); }
+  .tache:focus-within { background: color-mix(in srgb, var(--texte) 3.5%, transparent); }
+  .tache-actions {
+    position: absolute; top: 5px; right: 2px; margin: 0; padding-left: 22px;
+    background: linear-gradient(to right, transparent, var(--fond-ligne-survol) 22px);
+    opacity: 0; pointer-events: none; transition: opacity var(--vitesse);
+  }
+  .tache:hover .tache-actions, .tache:focus-within .tache-actions { opacity: 1; pointer-events: auto; }
 }
 
 /* FAIT : coche verte, titre barré en gris (sans fond vert : la coche suffit). */
@@ -466,6 +488,10 @@ h1, h2 {
 .groupe-date:first-child h3 { margin-top: 0; }
 .groupe-date h3 .lucide { color: var(--texte-doux); vertical-align: -0.1em; }
 .groupe-date.aujourdhui h3 { color: var(--accent); }
+.etiquette-aujourdhui {
+  margin-left: 10px; font-family: var(--police-texte, system-ui), system-ui, sans-serif; font-size: 0.68rem;
+  font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; vertical-align: 0.2em;
+}
 
 /* ---------- Fenêtre de dialogue ---------- */
 dialog {
@@ -617,25 +643,57 @@ button:disabled { opacity: 0.6; cursor: wait; }
 .groupe-autres { --couleur-groupe: var(--bord); }
 .badge-groupe { color: var(--couleur-groupe); font-weight: 600; }
 .aide-tri { margin: 0 0 12px; font-size: 0.85rem; color: var(--texte-doux); }
-.grille-tri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
-.colonne-tri {
-  background: var(--surface); border: 1px solid var(--bord); border-top: 4px solid var(--couleur-groupe);
-  border-radius: var(--rayon); padding: 10px; box-shadow: var(--ombre); min-width: 0;
+/* Aide repliée (« Comment c'est rangé ? ») : une ligne discrète ; le détail s'ouvre au clic. */
+.aide-repliable { margin: -4px 0 14px; max-width: 72ch; font-size: 0.85rem; color: var(--texte-doux); }
+.aide-repliable > summary {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 32px; cursor: pointer; list-style: none;
 }
-.colonne-tri h3 { margin: 0 0 2px; font-size: 1rem; display: flex; align-items: center; gap: 6px; }
-.compte-groupe { margin-left: auto; font-size: 0.8rem; background: var(--surface-2); border-radius: 999px; padding: 1px 8px; }
-.regle-groupe { margin: 0 0 8px; font-size: 0.78rem; color: var(--texte-doux); }
-.groupe-autres { margin-top: 12px; }
-@media (max-width: 800px) { .grille-tri { grid-template-columns: 1fr; } }
+.aide-repliable > summary::-webkit-details-marker { display: none; }
+.aide-repliable > summary::after {
+  content: ""; width: 6px; height: 6px; margin: 0 2px 3px; border: solid currentColor; border-width: 0 1.5px 1.5px 0;
+  rotate: 45deg; transition: rotate var(--vitesse);
+}
+.aide-repliable[open] > summary::after { rotate: 225deg; margin-bottom: -2px; }
+.aide-repliable > summary:hover { color: var(--texte); }
+.aide-repliable p { margin: 2px 0 0; line-height: 1.5; }
+
+/* Colonnes du Tri : pas de boîte, un titre souligné de la couleur du groupe (comme un
+   onglet de classeur), la règle en une ligne, puis les tâches en lignes. */
+.grille-tri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; align-items: start; }
+.colonne-tri { min-width: 0; }
+.colonne-tri h3 {
+  margin: 0; padding-bottom: 6px; border-bottom: 2px solid var(--couleur-groupe);
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--police-titre, Georgia), Georgia, serif; font-size: 1.2rem; font-weight: 600; line-height: 1.25;
+}
+.colonne-tri h3 .lucide { color: var(--couleur-groupe); width: 1em; height: 1em; }
+/* Compteurs des titres : un simple nombre gris, aligné à droite (plus de pastille). */
+.compte-groupe {
+  margin-left: auto; padding-left: 8px; font-family: var(--police-texte, system-ui), system-ui, sans-serif;
+  font-size: 0.8rem; font-weight: 600; font-style: normal; color: var(--texte-doux); font-variant-numeric: tabular-nums;
+}
+.regle-groupe { margin: 6px 0 2px; font-size: 0.8rem; color: var(--texte-doux); }
+.groupe-autres { margin-top: 36px; }
+@media (max-width: 800px) { .grille-tri { grid-template-columns: minmax(0, 1fr); gap: 28px; } }
 
 /* ---------- Checklist (tâches sans date) ---------- */
 .formulaire .case-sans-date { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer; }
 .formulaire .case-sans-date input { width: auto; margin: 0; accent-color: var(--accent); }
-.checklist { max-width: 760px; display: flex; flex-direction: column; gap: 10px; }
-.checklist .aide-tri { margin: 0; }
-.checklist .titre-section-checklist { margin: 14px 0 0; font-size: 1rem; display: flex; align-items: center; gap: 6px; }
-.checklist .titre-section-checklist:first-of-type { margin-top: 4px; }
-.checklist .titre-faites { margin: 18px 0 8px; font-size: 0.95rem; color: var(--texte-doux); }
+.checklist { max-width: 760px; display: flex; flex-direction: column; }
+/* Titres de rubrique (Sans date, Planifiées, Cochées) : Fraunces, comme les dates de la vue
+   Liste ; la règle de la rubrique tient en une ligne dessous (.regle-groupe). */
+.titre-section-checklist {
+  margin: 30px 0 0; display: flex; align-items: baseline; gap: 8px;
+  font-family: var(--police-titre, Georgia), Georgia, serif; font-size: 1.15rem; font-weight: 600; line-height: 1.25;
+}
+.zone-sans-date > .titre-section-checklist { margin-top: 2px; }
+.titre-section-checklist .compte-groupe { margin-left: 0; padding-left: 0; }   /* juste après le titre */
+.titre-section-checklist + .regle-groupe { margin: 2px 0 4px; }
+.titre-section-checklist.titre-faites { color: var(--texte-doux); margin-bottom: 4px; }
+.checklist > .vide { margin: 4px 0 0; }
+.actions-checklist { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin-top: 6px; }
+.btn-planifier { min-height: 36px; padding: 6px 12px; font-size: 0.9rem; }
+.btn-planifier .lucide { color: var(--accent); }
 /* La même Checklist affichée sous le calendrier (vues Jour / Semaine / Mois). */
 .checklist-sous-agenda { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--bord); scroll-margin-top: 16px; }
 .checklist-sous-agenda > h2 { margin: 0 0 6px; font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
@@ -706,28 +764,26 @@ dialog.dialogue-large { width: min(760px, calc(100vw - 32px)); }
 .btn-ajouter-mini .lucide, .colonne-jour > .btn-ajouter .lucide { vertical-align: middle; }
 .tache-actions .btn-icone { color: var(--texte-doux); }
 .tache-actions .btn-icone:hover { color: var(--accent); }
-.tache-actions .btn-icone[aria-label="Supprimer"]:hover { color: var(--retard); }
+.tache-actions .btn-icone[aria-label^="Supprimer"]:hover { color: var(--retard); }
 
 /* ---------- Checklist : menu de catégories à gauche (Tâches / Projets) ----------
-   Bureau : deux colonnes (menu 240 px | contenu). Téléphone (< 720 px) : le menu passe
-   au-dessus du contenu, les deux catégories côte à côte comme des onglets. */
+   Bureau : deux colonnes (menu 200 px | contenu), menu SANS cadre, comme la barre latérale.
+   Téléphone (< 720 px) : le menu passe au-dessus du contenu, les deux catégories côte à
+   côte en onglets soulignés. */
 .checklist-categories {
-  display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; align-items: start; max-width: 1040px;
+  display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 32px; align-items: start; max-width: 1040px;
 }
-.menu-checklist {
-  display: flex; flex-direction: column; gap: 4px; position: sticky; top: 12px;
-  background: var(--surface); border: 1px solid var(--bord); border-radius: var(--rayon); padding: 8px;
-}
+.menu-checklist { display: flex; flex-direction: column; gap: 1px; position: sticky; top: 12px; }
 .categorie-checklist, .projet-menu {
   font: inherit; color: var(--texte); background: transparent; border: none; cursor: pointer;
   display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
   padding: 8px 10px; border-radius: 8px;
 }
-.categorie-checklist { font-weight: 600; }
+.categorie-checklist { font-weight: 500; }
 .categorie-checklist > span:nth-of-type(1), .projet-menu-titre { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .categorie-checklist:hover, .projet-menu:hover { background: var(--surface-2); }
-.categorie-checklist.actif { background: var(--accent-fond); color: var(--accent); }
-.categorie-checklist.actif .compte-groupe { background: color-mix(in srgb, currentColor 14%, transparent); color: inherit; }
+.categorie-checklist.actif { background: var(--accent-fond); color: var(--accent); font-weight: 600; }
+.categorie-checklist.actif .compte-groupe { color: inherit; }
 .menu-projets { display: flex; flex-direction: column; gap: 6px; margin: 2px 0 0 12px; padding-left: 8px; border-left: 2px solid var(--bord); }
 .menu-projets ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .projet-menu { padding: 6px 8px; font-size: 0.92rem; color: var(--texte-doux); }
@@ -766,8 +822,16 @@ dialog.dialogue-large { width: min(760px, calc(100vw - 32px)); }
 
 @media (max-width: 720px) {
   .checklist-categories { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-  .menu-checklist { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .categorie-checklist { padding: 8px; gap: 6px; }
+  .menu-checklist { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; }
+  .categorie-checklist {
+    justify-content: center; gap: 6px; min-height: 44px; padding: 8px; border-radius: 0;
+    color: var(--texte-doux); box-shadow: inset 0 -1px 0 var(--bord);
+  }
+  .categorie-checklist > span:nth-of-type(1) { flex: 0 1 auto; }
+  .categorie-checklist .compte-groupe { margin-left: 0; padding-left: 0; }
+  .categorie-checklist:hover { background: none; color: var(--texte); }
+  .categorie-checklist.actif { background: none; color: var(--texte); box-shadow: inset 0 -2px 0 var(--accent); }
+  .categorie-checklist.actif .lucide { color: var(--accent); }
   .menu-projets { grid-column: 1 / -1; min-width: 0; margin: 4px 0 0; padding: 8px 0 0; border-left: none; border-top: 1px solid var(--bord); }
   .menu-projets ul { flex-direction: row; flex-wrap: wrap; gap: 6px; }
   .projet-menu { width: auto; max-width: 100%; border: 1px solid var(--bord); border-radius: 999px; padding: 5px 12px; }
@@ -1069,7 +1133,6 @@ body:has(.page.mobile) .tache-actions { display: none; }
 .mobile .zone-case > input[type="checkbox"] { width: 22px; height: 22px; margin: 0; }
 /* Rubrique « En retard » : son titre le dit déjà, inutile de le répéter sur chaque ligne. */
 .ligne-retard .meta-retard { display: none; }
-.ligne-retard .meta-retard + *::before { content: none; }
 
 /* Zones de toucher d'au moins 44 px (Apple : 44 pt ; Google : 48 dp ≈ 9 mm).
    La case garde son dessin de 22 px, mais le label qui l'entoure réagit sur 44 px. */
@@ -1489,7 +1552,7 @@ dialog.dialogue-corbeille, dialog.dialogue-rappels { width: min(560px, calc(100v
 .invitation-go { min-height: 44px; flex: none; color: var(--accent); font-weight: 600; }
 /* Raccourcis du menu Plus : une liste groupée (comme les Réglages d'un téléphone),
    libellé à gauche, état à droite — plus rapide à parcourir qu'une grille de tuiles. */
-.tuiles-plus { display: flex; flex-direction: column; margin-bottom: 4px; border: 1px solid var(--bord); border-radius: 12px; background: var(--surface); overflow: hidden; }
+.tuiles-plus { display: flex; flex-direction: column; margin-bottom: 14px; border: 1px solid var(--bord); border-radius: 12px; background: var(--surface); overflow: hidden; }
 .tuile-plus {
   display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 14px; border: none; border-bottom: 1px solid var(--bord);
   background: none; color: var(--texte); font: inherit; text-align: left; cursor: pointer;

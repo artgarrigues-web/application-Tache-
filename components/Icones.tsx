@@ -37,7 +37,7 @@ export {
   Upload as IconeImporter,
   CalendarSync as IconeSynchro,
   Menu as IconeMenu,
-  WandSparkles as IconePlanifier,
+  CalendarArrowDown as IconePlanifier, // « placer dans le calendrier » (pas de baguette magique ni d'étincelles)
   GripVertical as IconePoignee,
   Move as IconeDeplacer,
   // Navigation
@@ -63,7 +63,7 @@ export {
   CircleX as IconeEchec,
   TriangleAlert as IconeAlerte,
   Scale as IconeEquilibre,
-  PartyPopper as IconeBravo,
+  Check as IconeBravo,                // sobre : une coche plutôt que des confettis
 } from "lucide-react";
 
 // L'icône de chaque groupe Urgent / Important / Rapide.

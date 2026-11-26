@@ -32,7 +32,7 @@ import { CarteTache, type ActionsAgenda } from "./CarteTache";
 import { Logo } from "./Logo";
 import {
   IconeAjouter, IconeChecklist, IconeFermer, IconePrecedent, IconeRecherche, IconeSuivant,
-  IconeDeplier, IconeBravo, IconeIdee,
+  IconeDeplier, IconeIdee,
 } from "./Icones";
 
 export type VarianteMobile = "a" | "b" | "c";
@@ -474,7 +474,7 @@ export function FilContinu({ taches, filtres, actions }: { taches: Tache[]; filt
       {retard.length > 0 && section("retard", `En retard (${retard.length})`, retard, { avecDate: true, classe: "fil-retard" })}
       {jours.map((j, i) => section(j.iso, j.titre, j.taches, {
         classe: i === 0 && j.iso === isoAuj ? "fil-aujourdhui" : "",
-        vide: <p className="vide-fil">{i === 0 ? <><IconeBravo /> Rien de prévu.</> : "Rien de prévu."}</p>,
+        vide: <p className="vide-fil">Rien de prévu.</p>,
         iso: j.iso,
       }))}
       {plusTard.length > 0 && section("tard", "Plus tard", plusTard, { avecDate: true })}

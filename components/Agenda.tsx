@@ -669,7 +669,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
       {charge && vueCalendrier && (
         <section id="checklist" className="checklist-sous-agenda" aria-labelledby="titre-checklist-sous-agenda">
           <h2 id="titre-checklist-sous-agenda"><IconeChecklist /> Checklist</h2>
-          <VueChecklist {...propsVue} liste={listeCourante} sousAgenda idees={idees} />
+          <VueChecklist {...propsVue} liste={listeCourante} idees={idees} />
         </section>
       )}
 
