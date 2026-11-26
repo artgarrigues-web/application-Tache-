@@ -207,3 +207,25 @@ Bouton « 🪄 Planifier ma semaine » : place les tâches de la Checklist (sans
 - **Tâche répétée** : seul le jour glissé est déplacé (comme « Ce jour seulement » du formulaire).
 - Souris (6 px de mouvement avant de démarrer, un clic ouvre toujours la tâche), **appui long 250 ms au doigt**, **clavier** (Tab jusqu'à la poignée ⋮⋮, Espace, flèches, Espace), **Échap** annule, garder l'élément au-dessus de ‹ › change de période. Après chaque dépôt, un message propose **Annuler**.
 - Bibliothèque : `@dnd-kit/core` (le glisser-déposer natif du navigateur ne marche pas au doigt ni au clavier).
+
+## Affichage sur téléphone (26/11/2026, `components/Mobile.tsx`)
+
+Sur un écran de 640 px ou moins (jamais sur ordinateur), l'application change d'organisation,
+sur le modèle d'Apple Calendrier et de Fantastical :
+
+- en-tête sur une ligne (mois, loupe pour rechercher et filtrer) ;
+- **bandeau de la semaine** : un point par tâche sous chaque jour ; toucher un jour l'affiche
+  en dessous ; balayer le bandeau change de semaine ; toucher le nom du mois déplie le mois ;
+- **journée** avec ses repères d'heure ; balayer la journée passe au jour suivant ou précédent ;
+- ligne **« En retard »** au-dessus d'aujourd'hui ;
+- **balayage des cartes** (inspiré de Todoist et Things, `components/Balayable.tsx`) :
+  vers la droite = cocher, vers la gauche = reporter au lendemain (à aujourd'hui si en retard),
+  avec « Annuler » dans le message ;
+- bouton « + » flottant, onglets Agenda / Checklist / Plus en bas, formulaires qui montent du bas ;
+- cartes allégées : pas de badges catégorie, priorité ni « Urgent » (la bande colorée, le point
+  et la date disent déjà la même chose).
+
+Les deux autres options du prototype restent essayables par l'adresse (choix mémorisé dans le
+navigateur) : `?mobile=a` (barre d'onglets avec les vues habituelles), `?mobile=c` (fil « À venir »
+et saisie rapide en une phrase, `lib/saisie-rapide.ts`), `?mobile=aucune` (ancien affichage),
+`?mobile=b` (retour au défaut).
