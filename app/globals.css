@@ -1,206 +1,250 @@
 /* =====================================================================
    AgendIA — mise en forme
-   Les couleurs sont définies une seule fois sous forme de "variables CSS"
-   (--nom) : on les change ici et toute l'application suit. Un second jeu
-   de valeurs s'applique automatiquement si le système est en mode sombre.
+   Refonte « Carnet » (26/11/2026) : l'application ressemble à un agenda
+   papier plutôt qu'à un tableau de bord générique.
+   - Papier et encre : fond presque blanc et légèrement chaud, texte noir
+     d'encre, bleu #1d4ed8 (couleur d'identité) pour les actions et
+     « aujourd'hui ».
+   - La couleur ne sert qu'à dire quelque chose : rouge = en retard
+     (et rien d'autre), vert = fait, orange = priorité haute, prune = Projets.
+     Le reste de l'écran reste neutre.
+   - La hiérarchie vient de la typographie (tailles, graisses, Fraunces pour
+     les dates) et des filets fins, pas de boîtes arrondies partout.
+   Les couleurs sont des "variables CSS" (--nom) : on les change ici et toute
+   l'application suit. Un second jeu s'applique en mode sombre.
+   Contrastes vérifiés (norme WCAG AA) : tous les textes ≥ 4,5:1 sur leurs
+   fonds, les anneaux des cases et les bords des champs ≥ 3:1.
    ===================================================================== */
 
 :root {
   color-scheme: light dark;          /* adapte aussi les champs natifs (calendrier, etc.) */
-  /* Palette « Bleu franc » (choisie le 22/11/2026) : fond blanc, bleu ; vert = fait ; rouge = en retard.
-     Tous les textes ont un contraste ≥ 4,5:1 sur leurs fonds (norme WCAG AA). */
-  --fond: #ffffff;
-  --surface: #ffffff;
-  --surface-2: #f1f5fb;
-  --texte: #0f172a;
-  --texte-doux: #475569;
-  --bord: #d5deea;
-  --accent: #1d4ed8;
+  --fond: #fbfaf7;         /* papier */
+  --surface: #ffffff;      /* fenêtres, cartes de la vue Semaine */
+  --surface-2: #f3f1ec;    /* survol, boutons secondaires, zones calmes */
+  --surface-3: #ebe8e1;    /* appuyé, sélection neutre */
+  --texte: #1f1d1a;        /* encre (16:1 sur le papier) */
+  --texte-doux: #655f56;   /* gris chaud (6:1) */
+  --bord: #e5e1d8;         /* filets */
+  --bord-fort: #8f897e;    /* bords des champs, anneaux des cases (3,3:1) */
+  --accent: #1d4ed8;       /* encre bleue : actions, aujourd'hui (6,4:1) */
+  --accent-fort: #1a43bb;  /* survol du bouton principal */
+  --accent-fond: #e9eefb;  /* fond très léger : jour choisi, sélection */
   --accent-texte: #ffffff;
-  --perso: #7e22ce;
+  --perso: #6a3db8;
   --travail: #1d4ed8;
-  --projets: #a21caf;
-  --haute: #c2410c;
-  --moyenne: #8f5a07;
-  --basse: #5b6a80;
-  --urgent: #c2410c;   /* groupe Urgent (orange, pas rouge) */
-  --important: #8f5a07;
-  --rapide: #0e7490;
-  --fait: #15803d;   /* ce qui est terminé (vert) */
-  --fait-fond: #f0fdf4;
-  --retard: #c81e1e;   /* en retard : SEULE utilisation du rouge pour une tâche */
-  --retard-fond: #fef2f2;
-  --critique: #a51b1b;   /* badge « En retard » (rouge plein) */
+  --projets: #952a78;      /* prune */
+  --haute: #ad4c0b;        /* priorité haute : orange brûlé, jamais rouge */
+  --moyenne: #80570a;
+  --basse: #6c675f;
+  --urgent: #ad4c0b;
+  --important: #80570a;
+  --rapide: #0c6875;
+  --fait: #2a7349;         /* fait : vert forêt */
+  --fait-fond: #eef5f0;
+  --retard: #b8321f;       /* en retard : SEULE utilisation du rouge (le stylo rouge du prof) */
+  --retard-fond: #fbefec;
+  --critique: #a52c1b;
   --critique-texte: #ffffff;
-  --ombre: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --rayon: 10px;
-  /* Palette des couleurs de tâche (choisies dans le formulaire). Pas de rouge
-     (réservé au retard) ni de vert vif (réservé aux tâches faites). */
-  --c-bleu: #2563eb;
-  --c-turquoise: #0891b2;
-  --c-sauge: #4f8a63;
-  --c-violet: #7c3aed;
-  --c-rose: #db2777;
-  --c-orange: #ea580c;
-  --c-jaune: #ca8a04;
-  --c-ardoise: #64748b;
-  --teinte-couleur: 8%;   /* part de la couleur dans le fond d'une carte colorée */
+  --ombre: none;           /* les cartes n'ont pas d'ombre : des filets suffisent */
+  --ombre-haute: 0 1px 2px rgba(31, 29, 26, 0.06), 0 16px 40px -12px rgba(31, 29, 26, 0.28); /* fenêtres, menus */
+  --rayon: 10px;           /* cartes */
+  --rayon-petit: 7px;      /* boutons, champs */
+  --rayon-grand: 16px;     /* fenêtres */
+  /* Case cochée : coche blanche sur le vert (dessinée en SVG, pour tous les navigateurs). */
+  --coche: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 12.5l3.8 3.8L17.5 8.5'/%3E%3C/svg%3E");
+  --coche-apercu: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23655f56' stroke-opacity='.55' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 12.5l3.8 3.8L17.5 8.5'/%3E%3C/svg%3E");
+  /* Palette des couleurs de tâche (formulaire). Pas de rouge (réservé au retard) ni de
+     vert vif (réservé au « fait ») ; chacune ≥ 3:1 sur le papier. */
+  --c-bleu: #2f62d6;
+  --c-turquoise: #0e8088;
+  --c-sauge: #4a8460;
+  --c-violet: #7350c8;
+  --c-rose: #c4406f;
+  --c-orange: #c8601a;
+  --c-jaune: #a17800;
+  --c-ardoise: #6c675f;
+  --teinte-couleur: 9%;   /* part de la couleur dans le fond d'un bloc (vues Semaine et Mois) */
+  --teinte-survol: 14%;   /* le même bloc, survolé */
+  --vitesse: 160ms;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --fond: #0b1220;
-    --surface: #111a2e;
-    --surface-2: #1a2540;
-    --texte: #e5ecf6;
-    --texte-doux: #9fb0c8;
-    --bord: #2a3a5a;
-    --accent: #60a5fa;
-    --accent-texte: #0b1220;
-    --perso: #c084fc;
-    --travail: #60a5fa;
-    --projets: #f0abfc;
-    --haute: #fb923c;
-    --moyenne: #facc15;
-    --basse: #94a3b8;
-    --urgent: #fb923c;   /* groupe Urgent (orange, pas rouge) */
-    --important: #facc15;
-    --rapide: #22d3ee;
-    --fait: #4ade80;   /* ce qui est terminé (vert) */
-    --fait-fond: #0f2a1e;
-    --retard: #f87171;   /* en retard : SEULE utilisation du rouge pour une tâche */
-    --retard-fond: #2c1318;
-    --critique: #dc2626;   /* badge « En retard » (rouge plein) */
+    /* « Encre de nuit » : noir chaud (pas de bleu marine), texte crème, bleu éclairci. */
+    --fond: #141311;
+    --surface: #1c1b18;
+    --surface-2: #24221f;
+    --surface-3: #2d2a26;
+    --texte: #ece8df;
+    --texte-doux: #a8a296;
+    --bord: #2f2c27;
+    --bord-fort: #7a756b;
+    --accent: #8fadff;
+    --accent-fort: #a9c1ff;
+    --accent-fond: #1f2640;
+    --accent-texte: #10131c;
+    --perso: #bba2ff;
+    --travail: #8fadff;
+    --projets: #ea93d2;
+    --haute: #f2a057;
+    --moyenne: #e4b452;
+    --basse: #a8a296;
+    --urgent: #f2a057;
+    --important: #e4b452;
+    --rapide: #5cc6d1;
+    --fait: #62c08a;
+    --fait-fond: #17251c;
+    --retard: #ff8a73;
+    --retard-fond: #2b1915;
+    --critique: #d9442c;
     --critique-texte: #ffffff;
     --ombre: none;
-    --c-bleu: #60a5fa;
-    --c-turquoise: #22d3ee;
-    --c-sauge: #86c09a;
-    --c-violet: #a78bfa;
-    --c-rose: #f472b6;
-    --c-orange: #fb923c;
-    --c-jaune: #facc15;
-    --c-ardoise: #94a3b8;
-    --teinte-couleur: 13%;
+    --ombre-haute: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 20px 44px -12px rgba(0, 0, 0, 0.75);
+    --coche: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310131c' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 12.5l3.8 3.8L17.5 8.5'/%3E%3C/svg%3E");
+    --coche-apercu: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a8a296' stroke-opacity='.6' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 12.5l3.8 3.8L17.5 8.5'/%3E%3C/svg%3E");
+    --c-bleu: #7d9dff;
+    --c-turquoise: #3dbfc8;
+    --c-sauge: #7fbf95;
+    --c-violet: #a993f5;
+    --c-rose: #f08cb4;
+    --c-orange: #f39a5a;
+    --c-jaune: #e2bd4f;
+    --c-ardoise: #a49e93;
+    --teinte-couleur: 15%;
+    --teinte-survol: 22%;
   }
 }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--police-texte, system-ui), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 1rem;
   background: var(--fond);
   color: var(--texte);
-  line-height: 1.4;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-synthesis-weight: none; /* jamais de « faux gras » : la police variable a toutes les graisses */
 }
+/* Titres : Fraunces, comme les dates d'un agenda imprimé. */
+h1, h2 {
+  font-family: var(--police-titre, Georgia), Georgia, "Times New Roman", serif;
+  font-weight: 600; letter-spacing: -0.01em; line-height: 1.15;
+  font-optical-sizing: auto;
+}
+/* Les icônes devant les titres des fenêtres étaient décoratives : le mot suffit. */
+:is(dialog, .feuille-bas) h2 > .lucide { display: none; }
+::selection { background: color-mix(in srgb, var(--accent) 22%, transparent); }
 
 .page { max-width: 1240px; margin: 0 auto; padding: 16px; }
 
-/* ---------- Boutons ---------- */
+/* ---------- Boutons ----------
+   Trois niveaux seulement : principal (bleu plein, une action par écran), secondaire
+   (fond papier un peu plus soutenu, sans cadre), discret (icône seule). */
 .btn {
-  font: inherit;
-  border: 1px solid var(--bord);
-  background: var(--surface);
+  font: inherit; font-weight: 500; line-height: 1.2;
+  border: 1px solid transparent;
+  background: var(--surface-2);
   color: var(--texte);
-  padding: 7px 14px;
-  border-radius: 8px;
+  padding: 8px 14px; min-height: 38px;
+  border-radius: var(--rayon-petit);
   cursor: pointer;
+  transition: background-color var(--vitesse), color var(--vitesse), border-color var(--vitesse), transform 80ms;
 }
-.btn:hover { background: var(--surface-2); }
-.btn-principal { background: var(--accent); color: var(--accent-texte); border-color: transparent; font-weight: 600; }
-.btn-principal:hover { background: var(--accent); filter: brightness(1.1); }
-.btn-danger { color: var(--retard); border-color: var(--retard); }
+.btn:hover { background: var(--surface-3); }
+.btn:active { transform: translateY(1px); }
+.btn-principal { background: var(--accent); color: var(--accent-texte); font-weight: 600; }
+.btn-principal:hover { background: var(--accent-fort); }
+.btn-danger { background: transparent; color: var(--retard); border-color: color-mix(in srgb, var(--retard) 55%, transparent); }
+.btn-danger:hover { background: var(--retard-fond); }
 .btn-icone {
-  border: none; background: transparent; cursor: pointer;
-  padding: 4px; border-radius: 6px; font-size: 0.95rem; line-height: 1; opacity: 0.55;
+  border: none; background: transparent; cursor: pointer; color: var(--texte-doux);
+  padding: 6px; border-radius: var(--rayon-petit); font-size: 0.95rem; line-height: 1;
+  transition: background-color var(--vitesse), color var(--vitesse);
 }
-.btn-icone:hover { opacity: 1; background: var(--surface-2); }
+.btn-icone:hover { color: var(--texte); background: var(--surface-2); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* ---------- En-tête ---------- */
-.entete { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 16px; }
-.entete h1 { margin: 0; font-size: 1.5rem; flex: 1 1 auto; }
+/* ---------- Nom de l'application ---------- */
 /* Titre = logo + nom ; « IA » prend la couleur d'accent. */
 .titre-app { display: flex; align-items: center; gap: 10px; }
 .logo { flex: none; border-radius: 22%; }
-.nom-app { font-weight: 800; letter-spacing: -0.01em; }
+.nom-app { font-weight: 700; letter-spacing: -0.01em; }
 .nom-app-ia { color: var(--accent); }
-.compteurs { display: flex; flex-wrap: wrap; gap: 8px; }
-.compteur {
-  display: flex; align-items: center; gap: 6px;
-  background: var(--surface); border: 1px solid var(--bord); border-radius: var(--rayon);
-  padding: 6px 12px; font-size: 0.9rem; color: var(--texte-doux);
-}
-.compteur .nombre { font-size: 1.25rem; font-weight: 700; color: var(--texte); font-variant-numeric: tabular-nums; }
-.compteur.alerte .nombre { color: var(--retard); }
-.progression { width: 70px; height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
-.progression > span { display: block; height: 100%; background: var(--fait); transition: width 0.3s; }
 
-/* ---------- Barre d'outils ---------- */
-.barre-outils { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 12px; }
-.navigation { display: flex; gap: 6px; }
-.barre-outils h2 { margin: 0; font-size: 1.15rem; font-weight: 600; flex: 1 1 auto; }
-.onglets { display: inline-flex; background: var(--surface); border: 1px solid var(--bord); border-radius: 8px; padding: 3px; }
+/* ---------- Bilan (« 14 à faire · 2 en retard · 3 sur 12 faites sur la semaine ») ----------
+   Une phrase, pas trois boîtes à gros chiffres : on le lit comme une note de carnet. */
+.compteurs { display: flex; flex-direction: column; gap: 7px; }
+.bilan { margin: 0; display: flex; flex-wrap: wrap; row-gap: 2px; font-size: 0.86rem; line-height: 1.4; color: var(--texte-doux); }
+.bilan > span + span::before { content: "·"; margin: 0 6px; }
+.bilan strong { color: var(--texte); font-weight: 600; font-variant-numeric: tabular-nums; }
+.bilan .alerte, .bilan .alerte strong { color: var(--retard); }
+.progression { width: 100%; height: 4px; background: color-mix(in srgb, var(--texte-doux) 18%, transparent); border-radius: 2px; overflow: hidden; }
+.progression > span { display: block; height: 100%; background: var(--fait); border-radius: 2px; transition: width 0.3s; }
+
+/* ---------- En-tête du contenu : ‹ Aujourd'hui ›, titre de la période, recherche, filtres ---------- */
+.entete-contenu { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 14px; }
+.barre-outils { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.navigation { display: flex; align-items: center; gap: 4px; }
+.navigation .btn { min-height: 34px; padding: 6px 10px; background: transparent; border-color: var(--bord); }
+.navigation .btn:hover { background: var(--surface-2); }
+.barre-outils h2 { margin: 0; font-size: 1.6rem; }
+
+/* ---------- Choix segmenté (fenêtre « Planifier ma semaine ») ---------- */
+.onglets { display: inline-flex; gap: 2px; padding: 3px; border-radius: 9px; background: var(--surface-2); }
 .onglets button {
-  font: inherit; border: none; background: none; color: var(--texte-doux);
-  padding: 5px 12px; border-radius: 6px; cursor: pointer;
+  font: inherit; border: none; background: none; color: var(--texte-doux); cursor: pointer;
+  padding: 5px 12px; border-radius: 7px; transition: background-color var(--vitesse), color var(--vitesse);
 }
-.onglets button.actif { background: var(--accent); color: var(--accent-texte); }
+.onglets button:hover { color: var(--texte); }
+.onglets button.actif { background: var(--surface); color: var(--texte); font-weight: 600; box-shadow: 0 1px 2px rgba(31, 29, 26, 0.14); }
 
-/* ---------- Filtres et champs ---------- */
-.filtres { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+/* ---------- Filtres et champs ----------
+   Bord à 3:1 (visible sans être lourd), coins de 7 px ; au focus, le bord passe au bleu
+   avec un halo léger. 16 px minimum : l'iPhone ne zoome pas sur le champ touché. */
+.filtres { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; }
+.filtres.ouverts { flex-basis: 100%; flex-wrap: wrap; }
 .filtres input, .filtres select,
 .formulaire input, .formulaire select, .formulaire textarea {
   font: inherit; color: var(--texte); background: var(--surface);
-  border: 1px solid var(--bord); border-radius: 8px; padding: 7px 10px;
+  border: 1px solid color-mix(in srgb, var(--bord-fort) 70%, var(--bord)); border-radius: var(--rayon-petit); padding: 8px 10px;
+  min-height: 40px;
+  transition: border-color var(--vitesse), box-shadow var(--vitesse);
 }
-.champ-recherche { flex: 1 1 220px; position: relative; display: flex; }
+:is(.filtres, .formulaire) :is(input, select, textarea):hover { border-color: var(--bord-fort); }
+:is(.filtres, .formulaire) :is(input, select, textarea):focus-visible {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.formulaire input[type="checkbox"], .formulaire input[type="radio"] { min-height: 0; }
+::placeholder { color: color-mix(in srgb, var(--texte-doux) 80%, transparent); }
+.champ-recherche { flex: 0 1 260px; min-width: 160px; position: relative; display: flex; }
+.filtres.ouverts .champ-recherche { flex: 1 1 280px; }
 .champ-recherche input { flex: 1; min-width: 0; padding-left: 34px; }
 .champ-recherche .lucide {
   position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
   color: var(--texte-doux); pointer-events: none;   /* le clic traverse l'icône et va au champ */
 }
-.filtres select { flex: 0 1 auto; }
+.btn-filtres { min-height: 40px; background: transparent; border-color: var(--bord); }
+.btn-filtres:hover { background: var(--surface-2); }
+.btn-filtres.actif { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, var(--bord)); }
+.selecteurs-filtres { display: none; flex-wrap: wrap; gap: 8px; }
+.filtres.ouverts .selecteurs-filtres { display: flex; }
+.selecteurs-filtres select { flex: 0 1 auto; }
 
-/* ---------- Carte d'une tâche ---------- */
+/* ---------- Carte d'une tâche ----------
+   Une tâche = une LIGNE d'agenda (un filet fin dessous), pas une boîte : c'est ce qui
+   rend la liste calme et lisible d'un coup d'œil (Things, Rappels, un agenda papier).
+     [case]  [heure]  Titre
+                      infos · infos
+   Les vues Semaine et Mois redessinent la même carte en « bloc » teinté (plus bas). */
 .cat-perso { --couleur-cat: var(--perso); }
 .cat-travail { --couleur-cat: var(--travail); }
 .cat-projets { --couleur-cat: var(--projets); }
-
-.tache {
-  display: flex; align-items: flex-start; gap: 8px;
-  background: var(--surface); border: 1px solid var(--bord);
-  border-left: 4px solid var(--couleur-cat);   /* la couleur de gauche = la catégorie */
-  border-radius: 8px; padding: 8px 10px; box-shadow: var(--ombre);
-}
-.tache input[type="checkbox"] {
-  width: 18px; height: 18px; margin: 1px 0 0; flex: none;
-  accent-color: var(--couleur-cat); cursor: pointer;
-}
-.tache-corps { flex: 1; min-width: 0; cursor: pointer; }
-.tache-titre { font-weight: 600; overflow-wrap: anywhere; }
-.tache-heure { color: var(--texte-doux); font-weight: 500; font-variant-numeric: tabular-nums; margin-right: 6px; }
-.point-prio { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
-.point-haute { background: var(--haute); }
-.point-moyenne { background: var(--moyenne); }
-.point-basse { background: var(--basse); }
-.tache-description { margin: 4px 0 0; font-size: 0.9rem; color: var(--texte-doux); white-space: pre-wrap; overflow-wrap: anywhere; }
-.tache-meta { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-.badge { font-size: 0.72rem; padding: 1px 7px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
-.badge-date { color: var(--texte-doux); }
-.badge-cat { color: var(--couleur-cat); }
-.badge-prio-haute { color: var(--haute); }
-.badge-prio-moyenne { color: var(--moyenne); }
-.badge-prio-basse { color: var(--basse); }
-.badge-retard { background: var(--critique); color: var(--critique-texte); border-color: transparent; }
-.tache-actions { display: flex; gap: 2px; flex: none; }
-
-/* COULEUR choisie par l'utilisateur : elle remplace la bande de catégorie (à gauche)
-   et teinte légèrement le fond. Placée AVANT les règles « faite » et « retard » :
-   à spécificité égale, la dernière règle l'emporte, donc fait (vert) et retard (rouge)
-   restent prioritaires sur la couleur choisie. */
+/* Couleur choisie par l'utilisateur (formulaire) : elle remplace celle de la catégorie. */
 .couleur-bleu { --couleur-tache: var(--c-bleu); }
 .couleur-turquoise { --couleur-tache: var(--c-turquoise); }
 .couleur-sauge { --couleur-tache: var(--c-sauge); }
@@ -209,88 +253,226 @@ body {
 .couleur-orange { --couleur-tache: var(--c-orange); }
 .couleur-jaune { --couleur-tache: var(--c-jaune); }
 .couleur-ardoise { --couleur-tache: var(--c-ardoise); }
-.tache.avec-couleur {
-  border-color: color-mix(in srgb, var(--couleur-tache) 30%, var(--bord));
-  border-left-color: var(--couleur-tache);
-  background: color-mix(in srgb, var(--couleur-tache) var(--teinte-couleur), var(--surface));
-}
-.tache.avec-couleur input[type="checkbox"] { accent-color: var(--couleur-tache); }
 
-/* FAIT = vert : fond vert pâle, bord gauche et case verts, titre barré.
-   (Plus de transparence : elle faisait tomber le contraste du texte à 2,3:1.) */
-.tache.faite {
-  background: var(--fait-fond);
-  border-color: color-mix(in srgb, var(--fait) 35%, var(--bord));
-  border-left-color: var(--fait);
+.tache {
+  --couleur-bloc: var(--couleur-cat);   /* la couleur de la tâche (anneau, bloc de la vue Semaine) */
+  --couleur-case: var(--couleur-bloc);
+  position: relative;
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 6px;
+  border-bottom: 1px solid var(--bord);
+  transition: background-color var(--vitesse);
 }
-.tache.faite input[type="checkbox"] { accent-color: var(--fait); }
-.tache.faite .tache-titre { color: var(--texte-doux); text-decoration: line-through; text-decoration-color: var(--fait); text-decoration-thickness: 2px; }
-.tache.faite .badge { color: var(--texte-doux); }
-/* EN RETARD = rouge, et c'est le seul cas où une tâche est rouge. */
-.tache.retard { background: var(--retard-fond); border-color: var(--critique); box-shadow: 0 0 0 1px var(--critique); }
+.tache.avec-couleur { --couleur-bloc: var(--couleur-tache); }
+.tache.retard { --couleur-case: var(--retard); }   /* en retard : l'anneau passe au rouge */
+@media (hover: hover) {
+  .tache:hover { background: color-mix(in srgb, var(--texte) 3.5%, transparent); }
+}
 
-.liste-taches { display: flex; flex-direction: column; gap: 6px; }
-.vide { margin: 4px 0; color: var(--texte-doux); font-style: italic; }
+/* Case ronde (dessinée par nous : appearance none, identique partout).
+   Vide = anneau de la couleur de la tâche ; au survol, une coche grise s'esquisse ;
+   faite = rond vert plein avec coche blanche. Même dessin, plus petit, pour les étapes. */
+:is(.zone-case, .etape, .zone-case-editeur, .idee) > input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  flex: none; width: 20px; height: 20px; margin: 0;
+  border: 2px solid var(--couleur-case, var(--bord-fort)); border-radius: 50%;
+  background: transparent center / 100% 100% no-repeat;
+  cursor: pointer;
+  transition: background-color var(--vitesse), border-color var(--vitesse);
+}
+.zone-case > input[type="checkbox"] { margin-top: 1px; }
+:is(.etape, .zone-case-editeur) > input[type="checkbox"] { width: 16px; height: 16px; border-width: 1.5px; border-color: var(--bord-fort); }
+:is(.zone-case, .etape, .zone-case-editeur, .idee) > input[type="checkbox"]:checked {
+  border-color: var(--fait); background-color: var(--fait); background-image: var(--coche);
+}
+@media (hover: hover) {
+  :is(.zone-case, .etape, .zone-case-editeur, .idee) > input[type="checkbox"]:not(:checked):not(:disabled):hover { background-image: var(--coche-apercu); }
+}
+:is(.zone-case, .etape, .zone-case-editeur, .idee) > input[type="checkbox"]:disabled { cursor: default; }
+
+/* Le corps (cliquable : ouvre le formulaire) = colonne de l'heure + texte, alignés sur la
+   même ligne de base (« 08:30 » et le titre tombent pile sur la même ligne). */
+.tache-corps { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 12px; cursor: pointer; border-radius: 4px; }
+.tache-horaire {
+  flex: none; width: 3.2em; margin: 0; display: flex; flex-direction: column;
+  font-variant-numeric: tabular-nums; line-height: 1.4;
+}
+.horaire-debut { font-size: 0.92rem; font-weight: 600; }
+.horaire-fin { font-size: 0.78rem; color: var(--texte-doux); }
+.tache-texte { flex: 1; min-width: 0; }
+.tache-titre { font-weight: 500; line-height: 1.4; overflow-wrap: anywhere; }
+.marque-prio { color: var(--haute); font-weight: 700; margin-right: 4px; }
+.tache-heure { color: var(--texte-doux); font-weight: 500; font-variant-numeric: tabular-nums; margin-right: 6px; }
+
+/* Ligne d'infos « En retard · jeu. 19 nov. · chaque jeudi · Amphi A ».
+   Chaque info commence par sa puce « · » (1,2em). La ligne est décalée de 1,2em vers la
+   gauche et cette bande est rognée (clip-path) : la puce de l'info qui ouvre une ligne
+   disparaît, il n'y a donc jamais de « · » orphelin en début de ligne quand le texte passe
+   à la ligne (colonnes étroites du Tri, téléphone). Une info ne se coupe pas en deux,
+   sauf le lieu et le projet, qui peuvent être longs. */
+.tache-meta {
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  margin: 2px 0 0 -1.2em; clip-path: inset(-4px -4px -4px 1.2em); /* -4px : le contour du lien Lieu (clavier) reste visible */
+  font-size: 0.84rem; line-height: 1.4; color: var(--texte-doux);
+}
+.tache-meta > * { white-space: nowrap; }
+.tache-meta > :is(.meta-lieu, .meta-projet) { white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+.tache-meta > *::before {
+  content: "·"; display: inline-block; width: 1.2em; text-align: center; color: var(--texte-doux); font-weight: 400;
+}
+.tache-meta .lucide { width: 0.95em; height: 0.95em; vertical-align: -0.12em; }
+.meta-retard { color: var(--retard); font-weight: 600; }
+.tache.retard .meta-date, .meta-depassee { color: var(--retard); }
+.meta-lieu { color: inherit; text-decoration: none; }
+.meta-lieu:hover { color: var(--accent); text-decoration: underline; }
+.meta-projet { color: var(--projets); }
+.meta-groupe { color: var(--couleur-groupe); font-weight: 600; }
+/* La répétition est écrite en toutes lettres (« chaque jeudi ») : l'icône ne reste que
+   sur les cartes réduites (vue Mois) et les blocs de la vue Semaine. */
+.tache:not(.compacte) .tache-titre > .icone-repetition:not(.icone-rappel) { display: none; }
+/* Décompte « 2/5 » des étapes : seulement là où la liste des étapes est masquée. */
+.tache:not(.compacte) .tache-titre > .compteur-cases { display: none; }
+
+.tache-description {
+  margin: 4px 0 0; font-size: 0.88rem; color: var(--texte-doux); white-space: pre-wrap; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; /* 2 lignes max */
+}
+
+/* Modifier / Supprimer : à la souris, n'apparaissent qu'au survol de la ligne (ou au clavier). */
+.tache-actions { display: flex; flex: none; margin: -5px -4px -5px 0; }
+@media (hover: hover) {
+  /* Sur ordinateur, Modifier / Supprimer n'apparaissent qu'au survol, PAR-DESSUS la fin de
+     la ligne : ils ne réservent plus de largeur (le titre a toute la place, ce qui compte
+     dans les colonnes étroites du Tri). Le dégradé reprend la couleur de la ligne survolée. */
+  .tache { --fond-ligne-survol: color-mix(in srgb, var(--texte) 3.5%, var(--fond)); }
+  .tache:focus-within { background: color-mix(in srgb, var(--texte) 3.5%, transparent); }
+  .tache-actions {
+    position: absolute; top: 5px; right: 2px; margin: 0; padding-left: 22px;
+    background: linear-gradient(to right, transparent, var(--fond-ligne-survol) 22px);
+    opacity: 0; pointer-events: none; transition: opacity var(--vitesse);
+  }
+  .tache:hover .tache-actions, .tache:focus-within .tache-actions { opacity: 1; pointer-events: auto; }
+}
+
+/* FAIT : coche verte, titre barré en gris (sans fond vert : la coche suffit). */
+.tache.faite .tache-nom { color: var(--texte-doux); text-decoration: line-through; text-decoration-thickness: 1px; }
+.tache.faite :is(.horaire-debut, .marque-prio) { color: var(--texte-doux); }
+.tache.faite .horaire-debut { font-weight: 500; }
+
+.liste-taches { display: flex; flex-direction: column; }
+.vide { margin: 8px 0; color: var(--texte-doux); }
 
 .btn-ajouter {
-  font: inherit; color: var(--texte-doux); background: transparent; cursor: pointer;
-  border: 1px dashed var(--bord); border-radius: 8px; padding: 6px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; align-self: flex-start;
+  font: inherit; font-size: 0.92rem; color: var(--texte-doux); background: transparent; cursor: pointer;
+  border: none; border-radius: var(--rayon-petit); padding: 8px 8px 8px 4px;
+  transition: background-color var(--vitesse), color var(--vitesse);
 }
-.btn-ajouter:hover { color: var(--accent); border-color: var(--accent); }
+.btn-ajouter:hover { color: var(--accent); background: var(--surface-2); }
 
 /* ---------- Vue Jour ---------- */
 .jour-unique { max-width: 760px; display: flex; flex-direction: column; gap: 10px; }
 
-/* ---------- Vue Semaine ---------- */
-.grille-semaine { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+/* ---------- Vue Semaine ----------
+   Une double page d'agenda : 7 colonnes séparées par des filets ; aujourd'hui = numéro
+   dans un rond bleu et colonne à peine teintée. Les tâches y deviennent des blocs. */
+.grille-semaine { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--bord); }
 .colonne-jour {
-  display: flex; flex-direction: column; gap: 6px; min-height: 260px;
-  background: var(--surface-2); border-radius: var(--rayon); padding: 6px;
+  display: flex; flex-direction: column; gap: 4px; min-width: 0; min-height: 300px;
+  padding: 8px 5px 10px; border-left: 1px solid var(--bord);
 }
-.colonne-jour .liste-taches { flex: 1; }
-.colonne-jour.aujourdhui { outline: 2px solid var(--accent); }
+.colonne-jour:first-child { border-left: none; }
+.colonne-jour .liste-taches { flex: 1; gap: 4px; }
+.colonne-jour.aujourdhui { background: color-mix(in srgb, var(--accent) 4%, transparent); }
 .entete-jour {
   font: inherit; color: var(--texte); background: none; border: none; cursor: pointer;
-  display: flex; flex-direction: column; align-items: center; padding: 4px; border-radius: 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 2px 2px 6px; border-radius: var(--rayon-petit);
 }
-.entete-jour:hover { background: var(--surface); }
-.nom-jour { font-size: 0.8rem; color: var(--texte-doux); }
-.num-jour { font-size: 1.2rem; font-weight: 700; }
-.aujourdhui .num-jour { color: var(--accent); }
-/* Les colonnes sont étroites : on n'y garde que l'essentiel. Un clic ouvre le détail. */
-.vue-semaine .tache { padding: 6px 7px; gap: 6px; }
-.vue-semaine .tache-description,
-.vue-semaine .tache-meta,
-.vue-semaine .tache-actions { display: none; }
-.vue-semaine .tache-titre { font-size: 0.88rem; }
+.entete-jour:hover { background: var(--surface-2); }
+.nom-jour { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texte-doux); }
+.num-jour {
+  font-family: var(--police-titre, Georgia), Georgia, serif; font-size: 1.2rem; font-weight: 600; line-height: 1;
+  font-variant-numeric: lining-nums; min-width: 1.85em; height: 1.85em; padding: 0 4px;
+  display: grid; place-items: center; border-radius: 999px;
+}
+.aujourdhui .num-jour { background: var(--accent); color: var(--accent-texte); }
+.colonne-jour > .btn-ajouter { align-self: stretch; padding: 6px; }
+@media (hover: hover) {
+  .colonne-jour > .btn-ajouter { opacity: 0; }
+  .colonne-jour:hover > .btn-ajouter, .colonne-jour > .btn-ajouter:focus-visible { opacity: 1; }
+}
+/* Colonnes étroites : on n'y garde que l'essentiel (un clic ouvre le détail). */
+.vue-semaine :is(.tache-description, .cases-carte, .tache-actions) { display: none; }
+.vue-semaine .tache .tache-titre > .compteur-cases { display: inline-flex; }
+@media (min-width: 801px) {
+  .vue-semaine .tache {
+    gap: 6px; padding: 6px 6px 7px 8px; border: none; border-radius: 6px;
+    background: color-mix(in srgb, var(--couleur-bloc) var(--teinte-couleur), var(--surface));
+    box-shadow: inset 3px 0 0 var(--couleur-bloc);
+  }
+  .vue-semaine .tache:hover { background: color-mix(in srgb, var(--couleur-bloc) var(--teinte-survol), var(--surface)); }
+  .vue-semaine .tache.retard { --couleur-bloc: var(--retard); }
+  .vue-semaine .tache.faite {
+    background: color-mix(in srgb, var(--couleur-bloc) 4%, var(--surface));
+    box-shadow: inset 3px 0 0 color-mix(in srgb, var(--couleur-bloc) 35%, var(--surface));
+  }
+  .vue-semaine .zone-case > input[type="checkbox"] { width: 16px; height: 16px; border-width: 1.5px; margin-top: 0; }
+  /* L'heure passe sur une ligne (« 08:30–10:30 ») au-dessus du titre, qui garde toute la largeur. */
+  .vue-semaine .tache-corps { flex-direction: column; align-items: stretch; gap: 1px; }
+  .vue-semaine .tache-horaire { flex-direction: row; width: auto; font-size: 0.76rem; line-height: 16px; color: var(--texte-doux); }
+  .vue-semaine :is(.horaire-debut, .horaire-fin) { font-size: inherit; font-weight: 500; color: inherit; }
+  .vue-semaine .horaire-fin::before { content: "–"; }
+  /* Titre : police un peu étroite (axe « largeur » d'IBM Plex) et coupure des mots
+     avec trait d'union (« thermo-dynamique ») plutôt qu'une lettre isolée. */
+  .vue-semaine .tache-titre {
+    font-size: 0.85rem; font-weight: 600; line-height: 1.3; font-stretch: 87.5%;
+    overflow-wrap: break-word; -webkit-hyphens: auto; hyphens: auto;
+  }
+  .vue-semaine .tache:not(.compacte) .tache-titre > .icone-repetition:not(.icone-rappel) { display: inline-flex; }
+  .vue-semaine .tache-meta { font-size: 0.75rem; }
+  .vue-semaine .tache-meta > :not(.meta-retard), .vue-semaine .tache:not(.retard) .tache-meta { display: none; }
+}
 
-/* ---------- Vue Mois ---------- */
-.grille-mois { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
-.nom-colonne { text-align: center; font-size: 0.8rem; color: var(--texte-doux); padding: 4px 0; }
+/* ---------- Vue Mois : grille à filets, comme un calendrier imprimé ---------- */
+.grille-mois { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.nom-colonne { padding: 4px 6px 6px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texte-doux); }
 .case-mois {
-  display: flex; flex-direction: column; gap: 3px; min-width: 0; min-height: 112px;
-  background: var(--surface); border: 1px solid var(--bord); border-radius: 8px; padding: 4px;
+  display: flex; flex-direction: column; gap: 2px; min-width: 0; min-height: 112px; padding: 4px 4px 6px;
+  border-right: 1px solid var(--bord); border-bottom: 1px solid var(--bord);
 }
-.case-mois.hors-mois { opacity: 0.45; }
-.case-mois.aujourdhui { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.case-mois:nth-child(7n + 1) { border-left: 1px solid var(--bord); }   /* 1re colonne (les 7 premiers enfants sont les noms des jours) */
+.case-mois:nth-child(-n + 14) { border-top: 1px solid var(--bord); }   /* 1re semaine */
+.case-mois .liste-taches { gap: 2px; }
+.case-mois.hors-mois { background: color-mix(in srgb, var(--surface-2) 60%, transparent); }
+.case-mois.hors-mois .num-case { color: var(--texte-doux); font-weight: 500; }
+.case-mois.aujourdhui { background: color-mix(in srgb, var(--accent) 4%, transparent); }
 .haut-case { display: flex; justify-content: space-between; align-items: center; }
 .num-case {
-  font: inherit; font-weight: 600; font-size: 0.85rem; color: var(--texte);
-  background: none; border: none; cursor: pointer; min-width: 24px; height: 24px; border-radius: 999px;
+  font: inherit; font-weight: 600; font-size: 0.85rem; font-variant-numeric: tabular-nums; color: var(--texte);
+  background: none; border: none; cursor: pointer; min-width: 26px; height: 26px; border-radius: 999px;
 }
 .num-case:hover { background: var(--surface-2); }
 .aujourdhui .num-case { background: var(--accent); color: var(--accent-texte); }
 .compte-case { display: none; font-size: 0.7rem; background: var(--surface-2); border-radius: 999px; padding: 0 6px; }
-.tache.compacte { padding: 2px 5px; gap: 4px; align-items: center; border-left-width: 3px; box-shadow: none; font-size: 0.78rem; }
-.tache.compacte input[type="checkbox"] { width: 13px; height: 13px; margin: 0; }
+/* Carte réduite = petite étiquette teintée d'une ligne (heure de début + titre). */
+.tache.compacte {
+  align-items: center; gap: 4px; padding: 1px 4px 1px 6px; border: none; border-radius: 4px;
+  font-size: 0.78rem; line-height: 1.35;
+  background: color-mix(in srgb, var(--couleur-bloc) var(--teinte-couleur), var(--surface));
+  box-shadow: inset 2px 0 0 var(--couleur-bloc);
+}
+.tache.compacte:hover { background: color-mix(in srgb, var(--couleur-bloc) var(--teinte-survol), var(--surface)); }
+.tache.compacte.retard { --couleur-bloc: var(--retard); }
+.tache.compacte .zone-case > input[type="checkbox"] { width: 12px; height: 12px; border-width: 1.5px; margin: 0; }
 .tache.compacte .tache-titre { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tache.compacte .point-prio { width: 6px; height: 6px; margin-right: 4px; }
+.tache.compacte .tache-heure { margin-right: 4px; }
 .lien-plus { font: inherit; font-size: 0.75rem; color: var(--accent); background: none; border: none; cursor: pointer; text-align: left; padding: 0 2px; }
 .btn-ajouter-mini {
-  margin-top: auto; align-self: flex-end;
+  margin-top: auto; align-self: flex-end; display: inline-grid; place-items: center;
   font: inherit; font-size: 0.85rem; line-height: 1; color: var(--texte-doux);
-  background: none; border: 1px dashed var(--bord); border-radius: 6px; padding: 2px 7px; cursor: pointer;
+  background: none; border: none; border-radius: 6px; padding: 3px; cursor: pointer;
 }
+.btn-ajouter-mini:hover { color: var(--accent); background: var(--surface-2); }
 /* Sur ordinateur (souris), le "+" n'apparaît qu'au survol pour alléger la grille. */
 @media (hover: hover) {
   .btn-ajouter-mini { opacity: 0; }
@@ -299,22 +481,30 @@ body {
 
 /* ---------- Vue Liste ---------- */
 .liste-complete { max-width: 820px; }
-.groupe-date h3 { margin: 18px 0 8px; font-size: 0.95rem; color: var(--texte-doux); }
+.groupe-date h3 {
+  margin: 26px 0 2px; font-family: var(--police-titre, Georgia), Georgia, serif;
+  font-size: 1.12rem; font-weight: 600; color: var(--texte);
+}
 .groupe-date:first-child h3 { margin-top: 0; }
+.groupe-date h3 .lucide { color: var(--texte-doux); vertical-align: -0.1em; }
 .groupe-date.aujourdhui h3 { color: var(--accent); }
+.etiquette-aujourdhui {
+  margin-left: 10px; font-family: var(--police-texte, system-ui), system-ui, sans-serif; font-size: 0.68rem;
+  font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; vertical-align: 0.2em;
+}
 
 /* ---------- Fenêtre de dialogue ---------- */
 dialog {
-  border: none; border-radius: 14px; padding: 0;
+  border: none; border-radius: var(--rayon-grand); padding: 0;
   width: min(520px, calc(100vw - 32px));
   background: var(--surface); color: var(--texte);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--ombre-haute);
 }
-dialog::backdrop { background: rgba(10, 15, 25, 0.5); }
-.formulaire { display: flex; flex-direction: column; gap: 12px; padding: 20px; }
-.formulaire h2 { margin: 0 0 4px; font-size: 1.2rem; }
-.champ { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.champ label { font-size: 0.85rem; font-weight: 500; color: var(--texte-doux); }
+dialog::backdrop { background: rgba(20, 18, 15, 0.42); backdrop-filter: blur(2px); }
+.formulaire { display: flex; flex-direction: column; gap: 14px; padding: 22px 22px 20px; }
+.formulaire h2 { margin: 0 0 2px; font-size: 1.5rem; }
+.champ { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.champ label { font-size: 0.86rem; font-weight: 500; color: var(--texte-doux); }
 .formulaire textarea { resize: vertical; }
 .ligne-champs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .boutons-dialogue { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
@@ -386,16 +576,18 @@ dialog::backdrop { background: rgba(10, 15, 25, 0.5); }
 }
 
 /* ---------- Pied de page ---------- */
-.pied { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 28px; font-size: 0.85rem; color: var(--texte-doux); }
+.pied { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 32px; padding-top: 14px; border-top: 1px solid var(--bord); font-size: 0.85rem; color: var(--texte-doux); }
+.pied .btn { background: transparent; min-height: 34px; padding: 6px 10px; font-size: 0.88rem; }
+.pied .btn:hover { background: var(--surface-2); }
 .pied .aide { margin-left: auto; }
 kbd { font: inherit; font-size: 0.8rem; border: 1px solid var(--bord); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--surface); }
 
 /* ---------- Petits écrans (téléphone) ---------- */
 @media (max-width: 800px) {
-  .grille-semaine { grid-template-columns: 1fr; }        /* les jours s'empilent */
-  .colonne-jour { min-height: 0; }
-  .entete-jour { flex-direction: row; gap: 8px; justify-content: flex-start; }
-  .vue-semaine .tache-meta { display: flex; }
+  .grille-semaine { grid-template-columns: 1fr; border-top: none; }   /* les jours s'empilent */
+  .colonne-jour { min-height: 0; padding: 10px 0 14px; border-left: none; border-bottom: 1px solid var(--bord); }
+  .colonne-jour.aujourdhui { background: none; }
+  .entete-jour { flex-direction: row; gap: 10px; justify-content: flex-start; align-self: flex-start; }
 }
 @media (max-width: 640px) {
   .case-mois { min-height: 56px; }
@@ -403,9 +595,6 @@ kbd { font: inherit; font-size: 0.8rem; border: 1px solid var(--bord); border-bo
   .compte-case { display: inline-block; }                /* on n'affiche qu'un nombre par jour */
   .ligne-champs { grid-template-columns: 1fr; }
   .pied .aide { display: none; }
-  .onglets { width: 100%; }
-  .onglets { flex-wrap: wrap; }   /* 6 onglets : passent sur 2 lignes si l'écran est trop étroit */
-  .onglets button { flex: 1 1 30%; padding: 5px 6px; }
 }
 
 /* ---------- Ajouts version Next.js / Supabase ---------- */
@@ -431,8 +620,13 @@ button:disabled { opacity: 0.6; cursor: wait; }
 
 /* ---------- Durée, lieu, matériel ---------- */
 
-.badge-info { color: var(--texte-doux); text-decoration: none; }
-a.badge-lieu:hover { color: var(--accent); }
+/* Petites étiquettes (fenêtre « Ma journée ») : texte gris sur fond papier, sans cadre. */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; padding: 1px 8px;
+  border-radius: 999px; background: var(--surface-2); color: var(--texte-doux); white-space: nowrap;
+}
+.badge .lucide { width: 12px; height: 12px; }
+.badge-info { color: var(--texte-doux); }
 .duree-champs { display: flex; align-items: center; gap: 6px; }
 .duree-champs input { width: 4.5em; min-width: 0; }
 .duree-champs span { color: var(--texte-doux); font-size: 0.9rem; }
@@ -449,25 +643,57 @@ a.badge-lieu:hover { color: var(--accent); }
 .groupe-autres { --couleur-groupe: var(--bord); }
 .badge-groupe { color: var(--couleur-groupe); font-weight: 600; }
 .aide-tri { margin: 0 0 12px; font-size: 0.85rem; color: var(--texte-doux); }
-.grille-tri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
-.colonne-tri {
-  background: var(--surface); border: 1px solid var(--bord); border-top: 4px solid var(--couleur-groupe);
-  border-radius: var(--rayon); padding: 10px; box-shadow: var(--ombre); min-width: 0;
+/* Aide repliée (« Comment c'est rangé ? ») : une ligne discrète ; le détail s'ouvre au clic. */
+.aide-repliable { margin: -4px 0 14px; max-width: 72ch; font-size: 0.85rem; color: var(--texte-doux); }
+.aide-repliable > summary {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 32px; cursor: pointer; list-style: none;
 }
-.colonne-tri h3 { margin: 0 0 2px; font-size: 1rem; display: flex; align-items: center; gap: 6px; }
-.compte-groupe { margin-left: auto; font-size: 0.8rem; background: var(--surface-2); border-radius: 999px; padding: 1px 8px; }
-.regle-groupe { margin: 0 0 8px; font-size: 0.78rem; color: var(--texte-doux); }
-.groupe-autres { margin-top: 12px; }
-@media (max-width: 800px) { .grille-tri { grid-template-columns: 1fr; } }
+.aide-repliable > summary::-webkit-details-marker { display: none; }
+.aide-repliable > summary::after {
+  content: ""; width: 6px; height: 6px; margin: 0 2px 3px; border: solid currentColor; border-width: 0 1.5px 1.5px 0;
+  rotate: 45deg; transition: rotate var(--vitesse);
+}
+.aide-repliable[open] > summary::after { rotate: 225deg; margin-bottom: -2px; }
+.aide-repliable > summary:hover { color: var(--texte); }
+.aide-repliable p { margin: 2px 0 0; line-height: 1.5; }
+
+/* Colonnes du Tri : pas de boîte, un titre souligné de la couleur du groupe (comme un
+   onglet de classeur), la règle en une ligne, puis les tâches en lignes. */
+.grille-tri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; align-items: start; }
+.colonne-tri { min-width: 0; }
+.colonne-tri h3 {
+  margin: 0; padding-bottom: 6px; border-bottom: 2px solid var(--couleur-groupe);
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--police-titre, Georgia), Georgia, serif; font-size: 1.2rem; font-weight: 600; line-height: 1.25;
+}
+.colonne-tri h3 .lucide { color: var(--couleur-groupe); width: 1em; height: 1em; }
+/* Compteurs des titres : un simple nombre gris, aligné à droite (plus de pastille). */
+.compte-groupe {
+  margin-left: auto; padding-left: 8px; font-family: var(--police-texte, system-ui), system-ui, sans-serif;
+  font-size: 0.8rem; font-weight: 600; font-style: normal; color: var(--texte-doux); font-variant-numeric: tabular-nums;
+}
+.regle-groupe { margin: 6px 0 2px; font-size: 0.8rem; color: var(--texte-doux); }
+.groupe-autres { margin-top: 36px; }
+@media (max-width: 800px) { .grille-tri { grid-template-columns: minmax(0, 1fr); gap: 28px; } }
 
 /* ---------- Checklist (tâches sans date) ---------- */
 .formulaire .case-sans-date { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer; }
 .formulaire .case-sans-date input { width: auto; margin: 0; accent-color: var(--accent); }
-.checklist { max-width: 760px; display: flex; flex-direction: column; gap: 10px; }
-.checklist .aide-tri { margin: 0; }
-.checklist .titre-section-checklist { margin: 14px 0 0; font-size: 1rem; display: flex; align-items: center; gap: 6px; }
-.checklist .titre-section-checklist:first-of-type { margin-top: 4px; }
-.checklist .titre-faites { margin: 18px 0 8px; font-size: 0.95rem; color: var(--texte-doux); }
+.checklist { max-width: 760px; display: flex; flex-direction: column; }
+/* Titres de rubrique (Sans date, Planifiées, Cochées) : Fraunces, comme les dates de la vue
+   Liste ; la règle de la rubrique tient en une ligne dessous (.regle-groupe). */
+.titre-section-checklist {
+  margin: 30px 0 0; display: flex; align-items: baseline; gap: 8px;
+  font-family: var(--police-titre, Georgia), Georgia, serif; font-size: 1.15rem; font-weight: 600; line-height: 1.25;
+}
+.zone-sans-date > .titre-section-checklist { margin-top: 2px; }
+.titre-section-checklist .compte-groupe { margin-left: 0; padding-left: 0; }   /* juste après le titre */
+.titre-section-checklist + .regle-groupe { margin: 2px 0 4px; }
+.titre-section-checklist.titre-faites { color: var(--texte-doux); margin-bottom: 4px; }
+.checklist > .vide { margin: 4px 0 0; }
+.actions-checklist { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin-top: 6px; }
+.btn-planifier { min-height: 36px; padding: 6px 12px; font-size: 0.9rem; }
+.btn-planifier .lucide { color: var(--accent); }
 /* La même Checklist affichée sous le calendrier (vues Jour / Semaine / Mois). */
 .checklist-sous-agenda { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--bord); scroll-margin-top: 16px; }
 .checklist-sous-agenda > h2 { margin: 0 0 6px; font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
@@ -538,28 +764,26 @@ dialog.dialogue-large { width: min(760px, calc(100vw - 32px)); }
 .btn-ajouter-mini .lucide, .colonne-jour > .btn-ajouter .lucide { vertical-align: middle; }
 .tache-actions .btn-icone { color: var(--texte-doux); }
 .tache-actions .btn-icone:hover { color: var(--accent); }
-.tache-actions .btn-icone[aria-label="Supprimer"]:hover { color: var(--retard); }
+.tache-actions .btn-icone[aria-label^="Supprimer"]:hover { color: var(--retard); }
 
 /* ---------- Checklist : menu de catégories à gauche (Tâches / Projets) ----------
-   Bureau : deux colonnes (menu 240 px | contenu). Téléphone (< 720 px) : le menu passe
-   au-dessus du contenu, les deux catégories côte à côte comme des onglets. */
+   Bureau : deux colonnes (menu 200 px | contenu), menu SANS cadre, comme la barre latérale.
+   Téléphone (< 720 px) : le menu passe au-dessus du contenu, les deux catégories côte à
+   côte en onglets soulignés. */
 .checklist-categories {
-  display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; align-items: start; max-width: 1040px;
+  display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 32px; align-items: start; max-width: 1040px;
 }
-.menu-checklist {
-  display: flex; flex-direction: column; gap: 4px; position: sticky; top: 12px;
-  background: var(--surface); border: 1px solid var(--bord); border-radius: var(--rayon); padding: 8px;
-}
+.menu-checklist { display: flex; flex-direction: column; gap: 1px; position: sticky; top: 12px; }
 .categorie-checklist, .projet-menu {
   font: inherit; color: var(--texte); background: transparent; border: none; cursor: pointer;
   display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
   padding: 8px 10px; border-radius: 8px;
 }
-.categorie-checklist { font-weight: 600; }
+.categorie-checklist { font-weight: 500; }
 .categorie-checklist > span:nth-of-type(1), .projet-menu-titre { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .categorie-checklist:hover, .projet-menu:hover { background: var(--surface-2); }
-.categorie-checklist.actif { background: var(--accent); color: var(--accent-texte); }
-.categorie-checklist.actif .compte-groupe { background: color-mix(in srgb, currentColor 22%, transparent); color: inherit; }
+.categorie-checklist.actif { background: var(--accent-fond); color: var(--accent); font-weight: 600; }
+.categorie-checklist.actif .compte-groupe { color: inherit; }
 .menu-projets { display: flex; flex-direction: column; gap: 6px; margin: 2px 0 0 12px; padding-left: 8px; border-left: 2px solid var(--bord); }
 .menu-projets ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .projet-menu { padding: 6px 8px; font-size: 0.92rem; color: var(--texte-doux); }
@@ -579,29 +803,35 @@ dialog.dialogue-large { width: min(760px, calc(100vw - 32px)); }
 .champ-ajout .btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
 .menu-projets .champ-ajout .texte-bouton { display: none; }   /* colonne étroite : icône + seule */
 
-/* Panneau d'un projet et ses idées (même allure que les cartes de tâches, couleur Projets) */
+/* Panneau d'un projet et ses idées (mêmes lignes que les tâches, anneau prune = Projets) */
 .panneau-projet { display: flex; flex-direction: column; gap: 10px; }
 .entete-projet { display: flex; align-items: center; gap: 8px; }
 .entete-projet h3 { margin: 0; font-size: 1.15rem; flex: 1; min-width: 0; overflow-wrap: anywhere; display: flex; align-items: center; gap: 8px; }
 .entete-projet h3 .lucide { color: var(--projets); }
 .resume-projet { margin: -6px 0 0; font-size: 0.85rem; color: var(--texte-doux); }
-.liste-idees { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.liste-idees { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .idee {
-  display: flex; align-items: flex-start; gap: 8px;
-  background: var(--surface); border: 1px solid var(--bord); border-left: 4px solid var(--projets);
-  border-radius: 8px; padding: 8px 10px; box-shadow: var(--ombre);
+  --couleur-case: var(--projets);
+  position: relative; display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 6px; border-bottom: 1px solid var(--bord);
 }
-.idee input[type="checkbox"] { width: 18px; height: 18px; margin: 1px 0 0; flex: none; accent-color: var(--projets); cursor: pointer; }
+.idee > input[type="checkbox"] { margin-top: 1px; }
 .idee-texte { flex: 1; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; cursor: pointer; }
-.idee.faite { background: var(--fait-fond); border-color: color-mix(in srgb, var(--fait) 35%, var(--bord)); border-left-color: var(--fait); }
-.idee.faite input[type="checkbox"] { accent-color: var(--fait); }
-.idee.faite .idee-texte { color: var(--texte-doux); text-decoration: line-through; text-decoration-color: var(--fait); text-decoration-thickness: 2px; }
+.idee.faite .idee-texte { color: var(--texte-doux); text-decoration: line-through; text-decoration-thickness: 1px; }
 .panneau-projet .titre-faites { margin: 8px 0 0; font-size: 0.95rem; color: var(--texte-doux); display: flex; align-items: center; gap: 6px; }
 
 @media (max-width: 720px) {
   .checklist-categories { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-  .menu-checklist { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .categorie-checklist { padding: 8px; gap: 6px; }
+  .menu-checklist { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; }
+  .categorie-checklist {
+    justify-content: center; gap: 6px; min-height: 44px; padding: 8px; border-radius: 0;
+    color: var(--texte-doux); box-shadow: inset 0 -1px 0 var(--bord);
+  }
+  .categorie-checklist > span:nth-of-type(1) { flex: 0 1 auto; }
+  .categorie-checklist .compte-groupe { margin-left: 0; padding-left: 0; }
+  .categorie-checklist:hover { background: none; color: var(--texte); }
+  .categorie-checklist.actif { background: none; color: var(--texte); box-shadow: inset 0 -2px 0 var(--accent); }
+  .categorie-checklist.actif .lucide { color: var(--accent); }
   .menu-projets { grid-column: 1 / -1; min-width: 0; margin: 4px 0 0; padding: 8px 0 0; border-left: none; border-top: 1px solid var(--bord); }
   .menu-projets ul { flex-direction: row; flex-wrap: wrap; gap: 6px; }
   .projet-menu { width: auto; max-width: 100%; border: 1px solid var(--bord); border-radius: 999px; padding: 5px 12px; }
@@ -623,6 +853,14 @@ dialog.dialogue-large { width: min(760px, calc(100vw - 32px)); }
 .repere-c::after { border-top-style: dashed; }
 .repere-sans { font-style: italic; }
 .repere-sans::after { border-top-style: dotted; }
+/* Dans une liste de lignes (vue Jour, semaine empilée sur petit écran), chaque ligne a déjà
+   son filet : le repère n'y garde que son étiquette (« 12h »). */
+.jour-unique .repere { margin: 0; padding: 8px 0 0 6px; }
+.jour-unique .repere::after { display: none; }
+@media (max-width: 800px) {
+  .colonne-jour .repere { margin: 0; padding: 8px 0 0 2px; }
+  .colonne-jour .repere::after { display: none; }
+}
 
 .grille-horaire { --marge-heures: 30px; position: relative; margin-top: 4px; }
 .ligne-heure {
@@ -641,10 +879,9 @@ dialog.dialogue-large { width: min(760px, calc(100vw - 32px)); }
   .colonne-jour .grille-vide .grille-horaire { display: none; } /* jour vide sur mobile : pas de grille */
 }
 .place-tache .tache.compacte { align-items: flex-start; padding: 3px 5px; }
-.place-tache .tache.compacte .tache-titre { white-space: normal; display: flex; flex-direction: column-reverse; line-height: 1.2; }
-.place-tache .tache-titre > span:last-child { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-weight: 600; }
-.place-tache .tache-heure { font-size: 0.7rem; margin: 1px 0 0; }
-.place-tache .point-prio { display: none; }
+.place-tache .tache.compacte .tache-titre { white-space: normal; line-height: 1.2; }
+.place-tache .tache-nom { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-weight: 600; }
+.place-tache .tache-heure { font-size: 0.7rem; }
 .reperes-d .entete-jour { min-height: 74px; justify-content: flex-start; }
 @media (max-width: 800px) { .reperes-d .entete-jour { min-height: 0; } }
 
@@ -703,9 +940,8 @@ dialog.dialogue-large { width: min(760px, calc(100vw - 32px)); }
 .repetition .avertissement, .repetition-impossible { margin: 0; font-size: 0.82rem; color: var(--texte-doux); display: flex; gap: 6px; align-items: center; }
 
 /* Icône discrète sur la carte d'une tâche répétée. */
-.icone-repetition { display: inline-flex; vertical-align: -0.12em; margin-left: 5px; color: var(--texte-doux); opacity: 0.85; }
+.icone-repetition { display: inline-flex; vertical-align: -0.12em; margin-left: 5px; color: var(--texte-doux); }
 .icone-repetition .lucide { width: 0.95em; height: 0.95em; }
-.tache.avec-couleur .icone-repetition { color: var(--couleur-tache); }
 .tache.compacte .icone-repetition { margin-left: 3px; }
 
 /* Fenêtre « Supprimer : ce jour / les suivants / la série ». */
@@ -728,7 +964,7 @@ dialog.dialogue-large { width: min(760px, calc(100vw - 32px)); }
    clavier (Tab). Au doigt, elle est masquée : un appui long n'importe où sur la carte suffit. */
 .tache.glissable, .idee.glissable, .ligne-projet.glissable { position: relative; }
 .poignee {
-  position: absolute; left: -1px; top: 50%; translate: -50% -50%; z-index: 2;
+  position: absolute; left: -6px; top: 50%; translate: -50% -50%; z-index: 2;
   display: grid; place-items: center; width: 16px; height: 26px; padding: 0;
   border: 1px solid var(--bord); border-radius: 6px; background: var(--surface);
   color: var(--texte-doux); cursor: grab; opacity: 0;
@@ -746,6 +982,7 @@ dialog.dialogue-large { width: min(760px, calc(100vw - 32px)); }
   .glissable { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 }
 .tache.compacte .poignee { height: 18px; width: 14px; }
+:is(.vue-semaine .tache, .tache.compacte) > .poignee { left: -1px; }   /* blocs : sur le bord */
 
 /* La carte d'origine pendant le glissement : en pointillé, à demi effacée (« elle était là »). */
 .en-glissement { opacity: 0.35; outline: 2px dashed var(--accent); outline-offset: 1px; }
@@ -763,7 +1000,7 @@ body.glissement-hors-zone, body.glissement-hors-zone * { cursor: no-drop !import
   box-shadow: 0 14px 32px rgba(15, 23, 42, 0.22), 0 3px 8px rgba(15, 23, 42, 0.12);
   border-radius: 8px; animation: fantome-souleve 0.16s ease-out;
 }
-.fantome .tache { box-shadow: none; }
+:where(.fantome) .tache { background: var(--surface); border-bottom: none; border-radius: 8px; padding: 10px 12px; } /* une ligne soulevée devient une carte */
 .fantome-pastille {
   display: inline-flex; align-items: center; gap: 6px; max-width: 320px; padding: 7px 12px;
   background: var(--surface); border: 1px solid var(--bord); border-left: 4px solid var(--projets);
@@ -827,15 +1064,12 @@ body.glissement-hors-zone, body.glissement-hors-zone * { cursor: no-drop !import
 }
 .creneau.depot-survol .creneau-heure { color: var(--accent); font-weight: 700; }
 
-/* Badge « projet » d'une tâche placée depuis un projet. */
-.badge-projet { color: var(--projets); border-color: color-mix(in srgb, var(--projets) 40%, var(--bord)); }
-
 /* Message après un dépôt (avec « Annuler »), en bas de l'écran. */
 .toast-depot {
   position: fixed; left: 50%; bottom: 18px; translate: -50% 0; z-index: 900;
   display: flex; align-items: center; gap: 10px; width: max-content; max-width: min(640px, calc(100vw - 24px));
   padding: 10px 12px 10px 14px; border-radius: 12px;
-  background: var(--texte); color: var(--fond); box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+  background: var(--texte); color: var(--fond); box-shadow: var(--ombre-haute);
   animation: toast-monte 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .toast-depot > .lucide { color: var(--fait); flex: none; }
@@ -866,13 +1100,16 @@ body.glissement-hors-zone, body.glissement-hors-zone * { cursor: no-drop !import
   margin: 0 -12px 10px; padding: 10px 12px; background: var(--fond); border-bottom: 1px solid var(--bord);
 }
 .titre-mobile {
-  flex: 1; min-width: 0; margin: 0 0 0 4px; font-size: 1.15rem; font-weight: 700;
+  flex: 1; min-width: 0; margin: 0 0 0 4px; font-size: 1.3rem; font-weight: 600;
+  font-family: var(--police-titre, Georgia), Georgia, serif; letter-spacing: -0.01em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .titre-depliable {
   min-height: 44px; display: inline-flex; align-items: center; gap: 4px; border: none; background: none; padding: 0;
-  font: inherit; font-size: 1.15rem; font-weight: 700; color: var(--texte); cursor: pointer; text-align: left;
+  font: inherit; font-family: var(--police-titre, Georgia), Georgia, serif; font-size: 1.3rem; font-weight: 600;
+  color: var(--texte); cursor: pointer; text-align: left;
 }
+.titre-depliable .lucide { width: 20px; height: 20px; color: var(--texte-doux); }
 .btn-rond {
   flex: none; width: 44px; height: 44px; display: grid; place-items: center; padding: 0;
   border: 1px solid var(--bord); border-radius: 999px; background: var(--surface); color: var(--texte);
@@ -882,16 +1119,20 @@ body.glissement-hors-zone, body.glissement-hors-zone * { cursor: no-drop !import
 .btn-rond.actif { background: var(--accent); color: var(--accent-texte); border-color: transparent; }
 
 .mobile .barre-outils, .mobile .checklist-sous-agenda, .mobile .pied { display: none; }
+.mobile .entete-contenu { margin: 0; }
 .mobile .filtres { display: none; }
-.mobile.recherche-ouverte .filtres { display: flex; }
+.mobile.recherche-ouverte .filtres { display: flex; flex-wrap: wrap; flex-basis: 100%; margin-bottom: 10px; }
+.mobile .champ-recherche { flex: 1 1 100%; }
+.mobile .selecteurs-filtres { display: flex; flex-basis: 100%; }
 .mobile .filtres select { flex: 1 1 30%; min-width: 0; font-size: 0.85rem; }
 
-/* Cartes allégées : la bande colorée dit déjà la catégorie, le point avant le titre la priorité,
-   et « Urgent » (= aujourd'hui ou demain) répète ce que dit déjà la date dans un agenda.
-   body:has(.mobile) couvre aussi la carte « fantôme » du glisser-déposer, affichée hors de .page. */
-body:has(.page.mobile) :is(.badge-cat, [class*="badge-prio-"], .badge-groupe.groupe-urgent, .tache-actions) { display: none; }
-.mobile .tache { padding: 10px 12px; gap: 10px; }
-.mobile .tache input[type="checkbox"] { width: 22px; height: 22px; margin: 0; }
+/* Lignes : pas de boutons Modifier/Supprimer (toucher la ligne ouvre la tâche, balayer la coche
+   ou la reporte). body:has(.mobile) couvre aussi le « fantôme » du glisser-déposer, hors de .page. */
+body:has(.page.mobile) .tache-actions { display: none; }
+.mobile .tache:not(.compacte) { padding: 12px 2px; gap: 12px; }
+.mobile .zone-case > input[type="checkbox"] { width: 22px; height: 22px; margin: 0; }
+/* Rubrique « En retard » : son titre le dit déjà, inutile de le répéter sur chaque ligne. */
+.ligne-retard .meta-retard { display: none; }
 
 /* Zones de toucher d'au moins 44 px (Apple : 44 pt ; Google : 48 dp ≈ 9 mm).
    La case garde son dessin de 22 px, mais le label qui l'entoure réagit sur 44 px. */
@@ -909,7 +1150,7 @@ body:has(.page.mobile) :is(.badge-cat, [class*="badge-prio-"], .badge-groupe.gro
 .barre-bas {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
   display: flex; padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
-  background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--fond) 90%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
   border-top: 1px solid var(--bord);
 }
 .barre-bas button {
@@ -921,7 +1162,8 @@ body:has(.page.mobile) :is(.badge-cat, [class*="badge-prio-"], .badge-groupe.gro
 .bouton-flottant {
   position: fixed; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 61;
   width: 56px; height: 56px; border-radius: 18px; border: none; display: grid; place-items: center;
-  background: var(--accent); color: var(--accent-texte); box-shadow: 0 6px 20px rgba(29, 78, 216, 0.35); cursor: pointer;
+  background: var(--accent); color: var(--accent-texte); cursor: pointer;
+  box-shadow: 0 1px 2px rgba(31, 29, 26, 0.18), 0 8px 18px -6px rgba(31, 29, 26, 0.4);
 }
 .bouton-flottant .lucide { width: 26px; height: 26px; }
 
@@ -942,7 +1184,8 @@ body:has(.page.mobile) :is(.badge-cat, [class*="badge-prio-"], .badge-groupe.gro
 .feuille-titre h2 { margin: 0; font-size: 1.15rem; }
 .feuille-sous-titre { margin: 16px 0 6px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--texte-doux); }
 .grille-vues { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.grille-vues .btn { text-align: center; text-decoration: none; padding: 8px 4px; }
+.grille-vues .btn { text-align: center; text-decoration: none; padding: 8px 4px; background: var(--surface); border-color: var(--bord); }
+.grille-vues .btn.btn-principal { background: var(--accent-fond); color: var(--accent); border-color: transparent; }
 .liste-actions { display: flex; flex-direction: column; }
 .ligne-action {
   display: flex; align-items: center; gap: 12px; padding: 12px 4px; border: none; border-bottom: 1px solid var(--bord);
@@ -971,7 +1214,22 @@ body:has(.page.mobile) :is(.badge-cat, [class*="badge-prio-"], .badge-groupe.gro
 .points-jour { display: flex; gap: 3px; height: 5px; }
 .points-jour i { width: 5px; height: 5px; border-radius: 50%; background: var(--couleur-tache, var(--couleur-cat)); }
 .points-jour i.fait { opacity: 0.3; }
-.jour-choisi { margin: 8px 4px 0; font-weight: 600; font-size: 0.95rem; }
+/* Titre du jour (sous le ruban, défile avec la page) : repère, date en grand, bilan. */
+.titre-jour { margin: 2px 2px 8px; }
+.titre-jour-repere {
+  margin: 0 0 2px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent);
+}
+.titre-jour h2 { margin: 0; font-size: 1.75rem; }
+.titre-jour-bilan { margin: 4px 0 0; font-size: 0.9rem; color: var(--texte-doux); }
+.mobile-b .charge-jour { display: none; }   /* le bilan du titre le dit déjà */
+/* Intertitres de la journée (« En retard », « Journée ») : italique de carnet. */
+.entete-section-jour { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.titre-section-jour {
+  margin: 14px 2px 0; font-family: var(--police-titre, Georgia), Georgia, serif;
+  font-style: italic; font-weight: 500; font-size: 1.2rem; line-height: 1.2;
+}
+.compte-section { font-family: var(--police-texte, system-ui), system-ui, sans-serif; font-style: normal; font-size: 0.8rem; font-weight: 600; color: var(--retard); margin-left: 4px; }
+.entete-section-jour .lien { min-height: 44px; padding: 0 2px; font-size: 0.88rem; color: var(--texte-doux); }
 .mobile-b main.vue-jour { touch-action: pan-y; min-height: 50vh; }
 
 /* --- Astuce de balayage (une seule fois) --- */
@@ -988,14 +1246,8 @@ body:has(.page.mobile) :is(.badge-cat, [class*="badge-prio-"], .badge-groupe.gro
 @keyframes demo-fond { 0%, 100% { opacity: 0; } 25%, 70% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .demo-balayage .balayable-carte, .demo-balayage .fond-action.gauche { animation: none; } }
 
-/* --- Ligne « En retard » au-dessus de la journée --- */
-.ligne-retard { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
-.titre-retard {
-  display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 10px;
-  border: 1px solid var(--retard); background: var(--retard-fond); color: var(--retard);
-  font: inherit; font-weight: 600; cursor: pointer; text-align: left;
-}
-.indice-retard { margin-left: auto; font-weight: 500; font-size: 0.8rem; }
+/* --- Rubrique « En retard » au-dessus de la journée --- */
+.ligne-retard { display: flex; flex-direction: column; margin-bottom: 4px; }
 
 /* --- Option C : fil « À venir », balayage, saisie rapide --- */
 .fil-continu { display: flex; flex-direction: column; gap: 14px; }
@@ -1010,13 +1262,14 @@ body:has(.page.mobile) :is(.badge-cat, [class*="badge-prio-"], .badge-groupe.gro
   display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: 6px 2px;
   border: none; background: none; color: var(--texte-doux); font: inherit; font-size: 0.85rem; cursor: pointer;
 }
-.balayable { position: relative; touch-action: pan-y; border-radius: 8px; overflow: hidden; }
+.balayable { position: relative; touch-action: pan-y; overflow: hidden; }
+.balayable .tache { background: var(--fond); }
 .fond-action {
   position: absolute; inset: 0; display: flex; align-items: center; gap: 6px; padding: 0 18px;
   font-weight: 700; color: #fff; transition: opacity 0.1s;
 }
-.fond-action.gauche { background: #15803d; justify-content: flex-start; }
-.fond-action.droite { background: #c2410c; justify-content: flex-end; }
+.fond-action.gauche { background: #2a7349; justify-content: flex-start; }  /* vert « fait » (fixe : texte blanc lisible en clair et en sombre) */
+.fond-action.droite { background: #ad4c0b; justify-content: flex-end; }   /* orange « reporter » */
 .fond-action.pret { font-size: 1.05rem; }
 .balayable-carte { position: relative; transition: transform 0.2s; }
 .balayable.en-cours .balayable-carte { transition: none; }
@@ -1076,13 +1329,24 @@ body:has(.page.mobile) :is(.badge-cat, [class*="badge-prio-"], .badge-groupe.gro
 .mobile .pastille-saisie button { width: 44px; height: 44px; margin: -4px -6px -4px -8px; }
 .feuille-saisie .apercu-saisie { line-height: 1.5; }
 
-/* Ordinateur : barre « Ajout rapide » sous l'en-tête. */
+/* Ordinateur : barre « Ajouter une tâche en une phrase » sous l'en-tête du contenu.
+   Au repos : une simple ligne avec « + » et la touche A ; le bouton « Ajouter » n'apparaît
+   que quand on tape (avant, un bouton bleu pâle « désactivé » restait affiché). */
 .barre-saisie {
-  display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; padding: 8px; border-radius: 12px;
+  display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; padding: 4px 6px 4px 10px; border-radius: 10px;
   border: 1px solid var(--bord); background: var(--surface); transition: border-color 120ms, box-shadow 120ms;
 }
+.barre-saisie .ligne-saisie { align-items: center; }
+.icone-saisie { display: grid; place-items: center; color: var(--texte-doux); }
+.barre-saisie:focus-within .icone-saisie { color: var(--accent); }
+.barre-saisie:not(.active) .ligne-saisie .btn { display: none; }
+.barre-saisie:not(.active) .ligne-saisie::after {
+  content: "A"; flex: none; margin-right: 6px; padding: 0 6px; border: 1px solid var(--bord); border-bottom-width: 2px;
+  border-radius: 4px; font-size: 0.78rem; line-height: 1.5; color: var(--texte-doux);
+}
+.barre-saisie:focus-within:not(.active) .ligne-saisie::after { visibility: hidden; }
 .barre-saisie:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
-.barre-saisie .ligne-saisie input { border: 0; padding: 8px 10px; background: transparent; }
+.barre-saisie .ligne-saisie input { border: 0; padding: 8px 6px; background: transparent; }
 .barre-saisie .ligne-saisie input:focus { outline: none; }
 .barre-saisie .ligne-saisie .btn { padding: 0 14px; }
 .details-saisie { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 2px 4px 4px; }
@@ -1112,12 +1376,6 @@ body:has(.page.mobile) :is(.badge-cat, [class*="badge-prio-"], .badge-groupe.gro
 .message-info .lucide { vertical-align: -0.15em; }
 .petite-note { font-size: 0.8rem !important; color: var(--texte-doux); }
 
-/* --- En-tête ordinateur : cloche + « Ma journée » --- */
-.btn-cloche { position: relative; width: 38px; height: 38px; display: inline-grid; place-items: center; opacity: 0.8; border: 1px solid var(--bord); border-radius: 8px; }
-.btn-cloche .lucide { width: 20px; height: 20px; }
-.btn-cloche.active { color: var(--accent); opacity: 1; }
-.point-cloche { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--urgent); box-shadow: 0 0 0 2px var(--surface); }
-.btn-journee .lucide { color: var(--urgent); }
 
 /* --- Carte : petite cloche à côté du titre (comme l'icône de répétition) --- */
 .icone-rappel .lucide { width: 0.9em; height: 0.9em; }
@@ -1284,23 +1542,29 @@ dialog.dialogue-corbeille, dialog.dialogue-rappels { width: min(560px, calc(100v
 
 /* --- Téléphone : invitation « Ma journée », tuiles du menu Plus, tailles de toucher --- */
 .invitation-journee {
-  display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 10px 6px 10px 12px; border-radius: 14px;
-  background: linear-gradient(120deg, color-mix(in srgb, var(--urgent) 14%, var(--surface)), color-mix(in srgb, var(--accent) 10%, var(--surface)));
-  border: 1px solid color-mix(in srgb, var(--urgent) 30%, var(--bord));
+  display: flex; align-items: center; gap: 10px; margin: 2px 0 10px; padding: 8px 2px 8px 12px; border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--bord);
 }
-.invitation-icone { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--surface); color: var(--urgent); }
+.invitation-icone { flex: none; display: grid; place-items: center; color: var(--haute); }
 .invitation-icone .lucide { width: 22px; height: 22px; }
 .invitation-texte { flex: 1; min-width: 0; min-height: 44px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; border: none; background: none; padding: 0; font: inherit; color: var(--texte); text-align: left; cursor: pointer; }
 .invitation-texte small { color: var(--texte-doux); font-size: 0.8rem; }
-.invitation-go { min-height: 44px; min-width: 52px; flex: none; }
-.tuiles-plus { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
-.tuile-plus { display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 10px; border-radius: 14px; border: 1px solid var(--bord); background: var(--surface-2); color: var(--texte); font: inherit; text-align: left; cursor: pointer; }
-.tuile-plus.accent { background: color-mix(in srgb, var(--urgent) 12%, var(--surface)); border-color: color-mix(in srgb, var(--urgent) 30%, var(--bord)); }
-.tuile-icone { flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--surface); color: var(--accent); }
-.tuile-plus.accent .tuile-icone { color: var(--urgent); }
-.tuile-texte { display: flex; flex-direction: column; min-width: 0; }
-.tuile-texte strong { font-size: 0.92rem; }
-.tuile-texte small { color: var(--texte-doux); font-size: 0.75rem; }
+.invitation-go { min-height: 44px; flex: none; color: var(--accent); font-weight: 600; }
+/* Raccourcis du menu Plus : une liste groupée (comme les Réglages d'un téléphone),
+   libellé à gauche, état à droite — plus rapide à parcourir qu'une grille de tuiles. */
+.tuiles-plus { display: flex; flex-direction: column; margin-bottom: 14px; border: 1px solid var(--bord); border-radius: 12px; background: var(--surface); overflow: hidden; }
+.tuile-plus {
+  display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 14px; border: none; border-bottom: 1px solid var(--bord);
+  background: none; color: var(--texte); font: inherit; text-align: left; cursor: pointer;
+}
+.tuile-plus:last-child { border-bottom: none; }
+.tuile-plus:active { background: var(--surface-2); }
+.tuile-icone { flex: none; display: grid; place-items: center; color: var(--texte-doux); }
+.tuile-icone .lucide { width: 20px; height: 20px; }
+.tuile-plus.accent .tuile-icone { color: var(--haute); }
+.tuile-texte { flex: 1; min-width: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.tuile-texte strong { font-size: 0.98rem; font-weight: 500; }
+.tuile-texte small { color: var(--texte-doux); font-size: 0.82rem; text-align: right; }
 .detail-action { display: block; color: var(--texte-doux); font-size: 0.75rem; }
 .mobile .choix-retard { display: grid; grid-template-columns: repeat(4, 1fr); width: 100%; }
 .mobile .choix-retard .btn, .mobile .btn-grand, .mobile .ligne-corbeille-actions .btn, .mobile .boutons-dialogue .btn { min-height: 44px; }
@@ -1321,9 +1585,6 @@ dialog.dialogue-corbeille, dialog.dialogue-rappels { width: min(560px, calc(100v
 @media (prefers-reduced-motion: reduce) {
   .frise-nouvelle .frise-bloc, .interrupteur-piste, .interrupteur-piste span { animation: none; transition: none; }
 }
-/* En-tête ordinateur : les 4 actions restent groupées (cloche, Ma journée, Planifier, Nouvelle tâche). */
-.actions-entete { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-@media (max-width: 1320px) { .entete { column-gap: 12px; } .compteur { padding: 6px 10px; } .compteur .progression { width: 48px; } }
 /* Sur téléphone, les nouvelles fenêtres sont des feuilles du bas pleine largeur, comme les autres. */
 .mobile dialog.dialogue-journee, .mobile dialog.dialogue-agendas,
 .mobile dialog.dialogue-corbeille, .mobile dialog.dialogue-rappels { width: 100%; max-width: 100%; }
@@ -1352,9 +1613,8 @@ dialog.dialogue-corbeille, dialog.dialogue-rappels { width: min(560px, calc(100v
   border-radius: 6px; font-size: 0.9rem; cursor: pointer; overflow-wrap: anywhere;
 }
 .etape:hover { background: color-mix(in srgb, var(--texte-doux) 9%, transparent); }
-.tache .etape input[type="checkbox"] { width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--fait); }
-.etape.cochee .etape-texte { color: var(--texte-doux); text-decoration: line-through; text-decoration-color: var(--fait); }
-.etape input:disabled { cursor: default; }
+.etape > input[type="checkbox"] { margin-top: 2px; }
+.etape.cochee .etape-texte { color: var(--texte-doux); text-decoration: line-through; text-decoration-thickness: 1px; }
 .voir-plus {
   align-self: flex-start; font: inherit; font-size: 0.8rem; color: var(--accent); background: none; border: none;
   cursor: pointer; padding: 2px 0;
@@ -1392,7 +1652,7 @@ dialog.dialogue-corbeille, dialog.dialogue-rappels { width: min(560px, calc(100v
 /* Téléphone : chaque étape et chaque pastille réagit sur au moins 44 px de haut,
    sans que la liste paraisse aérée à l'excès (marges négatives). */
 .mobile .etape { min-height: 44px; align-items: center; padding: 6px 8px; margin: 0 -8px; font-size: 0.95rem; gap: 12px; }
-.mobile .tache .etape input[type="checkbox"] { width: 20px; height: 20px; margin: 0; }
+.mobile .etape > input[type="checkbox"] { width: 20px; height: 20px; margin: 0; }
 .mobile .liste-etapes { gap: 0; }
 .mobile .pastilles-materiel { gap: 8px; }
 .mobile .pastille-materiel { min-height: 36px; padding: 4px 12px 4px 6px; font-size: 0.88rem; position: relative; }
@@ -1411,7 +1671,6 @@ dialog.dialogue-corbeille, dialog.dialogue-rappels { width: min(560px, calc(100v
 .ligne-editeur input[type="text"]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .ligne-editeur.cochee input[type="text"] { color: var(--texte-doux); text-decoration: line-through; text-decoration-color: var(--fait); }
 .zone-case-editeur { display: grid; place-items: center; cursor: pointer; }
-.zone-case-editeur input { width: 16px; height: 16px; margin: 0; accent-color: var(--fait); cursor: pointer; }
 .ligne-editeur .btn-icone { opacity: 0.55; }
 .ligne-editeur:hover .btn-icone, .ligne-editeur:focus-within .btn-icone { opacity: 1; }
 .ajout-editeur { display: flex; align-items: center; gap: 6px; padding: 0 10px; color: var(--texte-doux); }
@@ -1425,7 +1684,7 @@ dialog.dialogue-corbeille, dialog.dialogue-rappels { width: min(560px, calc(100v
   .ligne-editeur, .ajout-editeur { min-height: 48px; }
   .ligne-editeur input[type="text"], .ajout-editeur input { font-size: 16px; } /* 16 px : iPhone ne zoome pas sur le champ */
   .zone-case-editeur { min-width: 40px; min-height: 44px; margin-left: -10px; }
-  .zone-case-editeur input { width: 20px; height: 20px; }
+  .zone-case-editeur > input[type="checkbox"] { width: 20px; height: 20px; }
   .ligne-editeur .btn-icone { min-width: 44px; min-height: 44px; opacity: 0.8; }
 }
 
@@ -1490,4 +1749,79 @@ dialog.dialogue-avis { width: min(560px, calc(100vw - 32px)); }
 .compte-attente {
   position: absolute; top: -2px; right: -2px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
   background: var(--accent); color: var(--accent-texte); font-size: 0.7rem; font-weight: 700; line-height: 18px; text-align: center;
+}
+
+/* =====================================================================
+   Ordinateur : barre latérale + contenu (refonte « Carnet », 26/11/2026)
+   - 1100 px et plus : barre à gauche, collée, de toute la hauteur ; on y trouve, toujours
+     au même endroit, « Nouvelle tâche », les vues, les outils, le bilan et les réglages.
+   - 641 à 1099 px (tablette, petite fenêtre) : la même barre devient un bandeau en haut
+     (titre, outils, vues) ; les actions rares restent dans le pied de page.
+   - 640 px et moins : interface téléphone (en-tête, ruban, barre du bas), sans cette barre.
+   ===================================================================== */
+.page.avec-barre { max-width: none; padding: 0; }
+.avec-barre .contenu { min-width: 0; padding: 16px; }
+.barre-laterale .titre-app { margin: 0; font-size: 1.35rem; }
+.btn-nouvelle { justify-content: flex-start; padding-left: 12px; }
+.nav-vues, .lat-outils, .lat-secondaire { display: flex; flex-direction: column; gap: 1px; }
+.nav-vues button, .lat-lien {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 34px; padding: 6px 10px;
+  font: inherit; font-size: 0.9rem; line-height: 1.25; color: var(--texte); text-align: left;
+  background: none; border: none; border-radius: var(--rayon-petit); cursor: pointer;
+  transition: background-color var(--vitesse), color var(--vitesse);
+}
+:is(.nav-vues button, .lat-lien) .lucide { width: 18px; height: 18px; flex: none; color: var(--texte-doux); }
+:is(.nav-vues button, .lat-lien):hover { background: color-mix(in srgb, var(--texte) 6%, transparent); }
+.nav-vues button.actif { background: var(--accent-fond); color: var(--accent); font-weight: 600; }
+.nav-vues button.actif .lucide { color: var(--accent); }
+.lat-journee .lucide { color: var(--haute); }
+.lat-lien.active .lucide { color: var(--accent); }
+.lat-lien.danger, .lat-lien.danger .lucide { color: var(--retard); }
+.lat-etat { margin-left: auto; padding-left: 8px; font-size: 0.78rem; color: var(--texte-doux); white-space: nowrap; }
+.lat-journee .lat-etat { color: var(--retard); }
+/* Repliables (« Plus d'actions », « Raccourcis clavier ») : un chevron qui tourne. */
+:is(.lat-plus, .lat-raccourcis) > summary { list-style: none; color: var(--texte-doux); }
+:is(.lat-plus, .lat-raccourcis) > summary::-webkit-details-marker { display: none; }
+:is(.lat-plus, .lat-raccourcis) > summary::after {
+  content: ""; width: 7px; height: 7px; margin-left: 2px; border: solid currentColor; border-width: 0 1.5px 1.5px 0;
+  rotate: -45deg; transition: rotate var(--vitesse);
+}
+:is(.lat-plus, .lat-raccourcis)[open] > summary::after { rotate: 45deg; }
+.lat-plus[open] { padding-bottom: 4px; }
+.lat-raccourcis ul { list-style: none; margin: 2px 0 6px; padding: 0 10px; display: flex; flex-direction: column; gap: 5px; font-size: 0.8rem; color: var(--texte-doux); }
+.lat-utilisateur { margin: 0; padding: 0 10px; display: flex; flex-direction: column; gap: 2px; font-size: 0.8rem; color: var(--texte-doux); }
+.lat-utilisateur span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lat-utilisateur .lien { align-self: flex-start; font-size: 0.8rem; color: var(--texte-doux); }
+.lat-utilisateur .lien:hover { color: var(--accent); }
+
+@media (min-width: 1100px) {
+  .page.avec-barre { display: grid; grid-template-columns: 264px minmax(0, 1fr); align-items: start; }
+  .barre-laterale {
+    position: sticky; top: 0; height: 100vh; height: 100dvh; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 18px; padding: 18px 12px 14px;
+    border-right: 1px solid var(--bord); background: color-mix(in srgb, var(--surface-2) 50%, var(--fond));
+  }
+  .barre-laterale .titre-app { padding: 0 6px; }
+  .barre-laterale .compteurs { padding: 0 10px; }
+  .barre-laterale .bilan { flex-direction: column; }
+  .barre-laterale .bilan > span + span::before { content: none; }
+  .lat-compte { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+  .avec-barre .contenu { width: 100%; max-width: 1480px; margin: 0 auto; padding: 18px 32px 48px; }
+  .avec-barre .pied { display: none; }   /* tout est dans la barre latérale */
+}
+@media (min-width: 641px) and (max-width: 1099px) {
+  .barre-laterale {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px;
+    padding: 12px 16px; border-bottom: 1px solid var(--bord);
+  }
+  .barre-laterale .titre-app { margin-right: auto; }
+  .lat-outils { flex-direction: row; flex-wrap: wrap; gap: 2px; }
+  .lat-outils .lat-lien { width: auto; }
+  .lat-etat { padding-left: 0; }
+  .btn-nouvelle { order: 2; }
+  .nav-vues { order: 3; flex-basis: 100%; flex-direction: row; gap: 2px; padding: 3px; border-radius: 9px; background: var(--surface-2); }
+  .nav-vues button { width: auto; flex: 1 1 0; justify-content: center; min-height: 32px; padding: 5px 6px; }
+  .barre-laterale .compteurs { order: 4; flex-basis: 100%; flex-direction: row; align-items: center; gap: 12px; }
+  .barre-laterale .progression { width: 90px; }
+  .lat-secondaire, .lat-compte { display: none; }   /* dans le pied de page */
 }

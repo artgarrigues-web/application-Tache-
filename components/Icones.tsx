@@ -16,8 +16,8 @@
    - décoratives par défaut (aria-hidden) : le texte à côté suffit aux lecteurs
      d'écran. Pour un bouton SANS texte, mettre un aria-label sur le <button>.    */
 
-import { Flame, Star, Zap } from "lucide-react";
-import type { Groupe } from "@/lib/types";
+import { Calendar, CalendarDays, CalendarRange, Flame, List, ListChecks, Rows3, Star, Zap } from "lucide-react";
+import type { Groupe, Vue } from "@/lib/types";
 
 export {
   // Groupes de tri
@@ -37,7 +37,7 @@ export {
   Upload as IconeImporter,
   CalendarSync as IconeSynchro,
   Menu as IconeMenu,
-  WandSparkles as IconePlanifier,
+  CalendarArrowDown as IconePlanifier, // « placer dans le calendrier » (pas de baguette magique ni d'étincelles)
   GripVertical as IconePoignee,
   Move as IconeDeplacer,
   // Navigation
@@ -63,7 +63,7 @@ export {
   CircleX as IconeEchec,
   TriangleAlert as IconeAlerte,
   Scale as IconeEquilibre,
-  PartyPopper as IconeBravo,
+  Check as IconeBravo,                // sobre : une coche plutôt que des confettis
 } from "lucide-react";
 
 // L'icône de chaque groupe Urgent / Important / Rapide.
@@ -71,5 +71,13 @@ const ICONES_GROUPES = { urgent: Flame, important: Star, rapide: Zap } as const;
 
 export function IconeGroupe({ groupe }: { groupe: Groupe }) {
   const Icone = ICONES_GROUPES[groupe];
+  return <Icone aria-hidden="true" />;
+}
+
+// L'icône de chaque vue (barre latérale sur ordinateur, barre du bas sur téléphone).
+const ICONES_VUES = { jour: CalendarDays, semaine: CalendarRange, mois: Calendar, liste: List, tri: Rows3, checklist: ListChecks } as const;
+
+export function IconeVue({ vue }: { vue: Vue }) {
+  const Icone = ICONES_VUES[vue];
   return <Icone aria-hidden="true" />;
 }

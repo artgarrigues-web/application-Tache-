@@ -341,3 +341,20 @@ export function decrireRecurrence(r: Recurrence, debut: string): string {
   else if (r.fin.type === "nombre") texte += `, ${r.fin.nombre} fois`;
   return texte;
 }
+
+/* Version courte, pour la ligne d'infos d'une carte (« chaque jeudi », « en semaine »…).
+   La phrase complète (decrireRecurrence) reste dans l'infobulle et dans le formulaire. */
+export function resumerRecurrence(r: Recurrence): string {
+  const N = r.intervalle;
+  if (r.frequence === "jour") return N === 1 ? "chaque jour" : `tous les ${N} jours`;
+  if (r.frequence === "semaine") {
+    if (N !== 1) return `toutes les ${N} semaines`;
+    const jours = [...r.joursSemaine].sort((a, b) => a - b);
+    if (jours.join() === "0,1,2,3,4") return "en semaine";
+    if (jours.length === 7) return "chaque jour";
+    const noms = jours.map((j) => (jours.length <= 2 ? NOMS_JOURS[j] : `${NOMS_JOURS[j].slice(0, 3)}.`));
+    return `chaque ${enumerer(noms)}`;
+  }
+  if (r.frequence === "mois") return N === 1 ? "chaque mois" : `tous les ${N} mois`;
+  return N === 1 ? "chaque année" : `tous les ${N} ans`;
+}

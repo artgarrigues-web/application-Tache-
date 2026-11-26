@@ -26,13 +26,13 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as EvPointeur, 
 import { CalendarDays, CalendarRange, Calendar, Ellipsis, Inbox, ChevronUp, Rows3, Sunrise } from "lucide-react";
 import { ajouterJours, aujourdhui, debutSemaine, depuisISO, formater, majuscule, versISO } from "@/lib/dates";
 import { developper } from "@/lib/recurrence";
-import { comparer, estEnRetard, passeLesFiltres } from "@/lib/taches";
+import { chargeRestante, comparer, estEnRetard, formaterDuree, passeLesFiltres } from "@/lib/taches";
 import { JOURS_COURTS, VUES, type Filtres, type Tache, type Vue } from "@/lib/types";
 import { CarteTache, type ActionsAgenda } from "./CarteTache";
 import { Logo } from "./Logo";
 import {
   IconeAjouter, IconeChecklist, IconeFermer, IconePrecedent, IconeRecherche, IconeSuivant,
-  IconeDeplier, IconeBravo, IconeAlerte, IconeIdee,
+  IconeDeplier, IconeIdee,
 } from "./Icones";
 
 export type VarianteMobile = "a" | "b" | "c";
@@ -293,28 +293,37 @@ export function InvitationJournee({ enRetard, suggestions, onOuvrir, onMasquer }
         <strong>Prépare ta journée</strong>
         <small>{morceaux.length ? morceaux.join(" · ") : "Choisis tes tâches et place-les dans ta journée"} · 1 min</small>
       </button>
-      <button type="button" className="btn btn-principal invitation-go" onClick={onOuvrir}>Go</button>
+      <button type="button" className="btn invitation-go" onClick={onOuvrir}>Ouvrir</button>
       <button type="button" className="btn-icone" aria-label="Plus tard (masquer jusqu'à demain)" title="Plus tard" onClick={onMasquer}><IconeFermer /></button>
     </section>
   );
 }
 
 /* ---------- Ligne « En retard » (au-dessus de la journée d'aujourd'hui) ---------- */
+/* Deux intertitres de carnet : « En retard » (repliable), puis « Journée » pour séparer
+   les retards des tâches du jour. Le rouge reste sur les cases et les dates, pas sur un cadre. */
 export function LigneRetard({ taches, actions }: { taches: Tache[]; actions: ActionsAgenda }) {
   const [ouverte, setOuverte] = useState(true);
   if (taches.length === 0) return null;
   return (
-    <section className="ligne-retard" aria-label="Tâches en retard">
-      <button type="button" className="titre-retard" aria-expanded={ouverte} onClick={() => setOuverte((o) => !o)}>
-        <IconeAlerte /> {taches.length} tâche{taches.length > 1 ? "s" : ""} en retard
-        <span className="indice-retard">{ouverte ? "Masquer" : "Afficher"}</span>
-      </button>
-      {ouverte && (
-        <div className="liste-taches">
-          {taches.map((t) => <CarteTache key={t.id} tache={t} actions={actions} avecDate />)}
+    <>
+      <section className="ligne-retard" aria-labelledby="titre-retard">
+        <div className="entete-section-jour">
+          <h3 id="titre-retard" className="titre-section-jour">
+            En retard <span className="compte-section">{taches.length}</span>
+          </h3>
+          <button type="button" className="lien" aria-expanded={ouverte} onClick={() => setOuverte((o) => !o)}>
+            {ouverte ? "Masquer" : "Afficher"}
+          </button>
         </div>
-      )}
-    </section>
+        {ouverte && (
+          <div className="liste-taches">
+            {taches.map((t) => <CarteTache key={t.id} tache={t} actions={actions} avecDate />)}
+          </div>
+        )}
+      </section>
+      <h3 className="titre-section-jour">Journée</h3>
+    </>
   );
 }
 
@@ -367,6 +376,7 @@ export function BandeauSemaine({ dateRef, onChoisir, taches, filtres, moisOuvert
   };
 
   return (
+    <>
     <section className="bandeau-semaine" aria-label="Choisir un jour">
       {moisOuvert ? (
         <div className="mini-mois">
@@ -381,10 +391,33 @@ export function BandeauSemaine({ dateRef, onChoisir, taches, filtres, moisOuvert
           {Array.from({ length: 7 }, (_, i) => caseJour(ajouterJours(lundi, i), i))}
         </div>
       )}
-      <p className="jour-choisi">
-        {iso === isoAuj ? "Aujourd'hui · " : ""}{majuscule(formater(dateRef, { weekday: "long", day: "numeric", month: "long" }))}
-      </p>
     </section>
+    <TitreJour date={dateRef} taches={parDate.get(iso) ?? []} />
+    </>
+  );
+}
+
+/* Titre de la journée affichée, comme le haut d'une page d'agenda : « Aujourd'hui » en
+   petit, la date en grand (Fraunces), puis le bilan en une phrase. Il défile avec la page ;
+   le ruban, lui, reste collé en haut et garde le jour choisi en bleu. */
+function TitreJour({ date, taches }: { date: Date; taches: Tache[] }) {
+  const ecart = Math.round((depuisISO(versISO(date)).getTime() - depuisISO(versISO(aujourdhui())).getTime()) / 864e5);
+  const repere = ecart === 0 ? "Aujourd'hui" : ecart === 1 ? "Demain" : ecart === -1 ? "Hier" : "";
+  const aFaire = taches.filter((t) => !t.faite).length;
+  const faites = taches.length - aFaire;
+  const charge = chargeRestante(taches);
+  const bilan = taches.length === 0 ? "Rien de prévu" : [
+    aFaire ? `${aFaire} à faire` : "Tout est fait",
+    faites ? `${faites} faite${faites > 1 ? "s" : ""}` : "",
+    // « 1 h prévue », « 1 h 30 prévue » (l'heure commande l'accord), mais « 45 min prévues », « 6 h prévues ».
+    charge ? `${formaterDuree(charge)} prévue${(charge >= 60 && charge < 120) || charge === 1 ? "" : "s"}` : "",
+  ].filter(Boolean).join(" · ");
+  return (
+    <header className="titre-jour">
+      {repere && <p className="titre-jour-repere">{repere}</p>}
+      <h2>{majuscule(formater(date, { weekday: "long", day: "numeric", month: "long" }))}</h2>
+      <p className="titre-jour-bilan">{bilan}</p>
+    </header>
   );
 }
 
@@ -441,7 +474,7 @@ export function FilContinu({ taches, filtres, actions }: { taches: Tache[]; filt
       {retard.length > 0 && section("retard", `En retard (${retard.length})`, retard, { avecDate: true, classe: "fil-retard" })}
       {jours.map((j, i) => section(j.iso, j.titre, j.taches, {
         classe: i === 0 && j.iso === isoAuj ? "fil-aujourdhui" : "",
-        vide: <p className="vide-fil">{i === 0 ? <><IconeBravo /> Rien de prévu.</> : "Rien de prévu."}</p>,
+        vide: <p className="vide-fil">Rien de prévu.</p>,
         iso: j.iso,
       }))}
       {plusTard.length > 0 && section("tard", "Plus tard", plusTard, { avecDate: true })}

@@ -5,9 +5,9 @@
 
 import { ajouterJours, aujourdhui, debutSemaine, depuisISO, formater, majuscule, versISO } from "@/lib/dates";
 import { chargeRestante, estSansDate, formaterDuree, grouperParDate, repartirParGroupe } from "@/lib/taches";
-import { DUREE_RAPIDE_MAX, GROUPES, JOURS_COURTS, type Tache } from "@/lib/types";
+import { DUREE_RAPIDE_MAX, GROUPES, JOURS_COURTS, type Groupe, type Tache } from "@/lib/types";
 import { CarteTache, ListeTaches, type ActionsAgenda } from "./CarteTache";
-import { IconeAjouter, IconeBravo, IconeCalendrier, IconeChecklist, IconeDuree, IconeGroupe, IconeIdee, IconePlanifier } from "./Icones";
+import { IconeAjouter, IconeChecklist, IconeDuree, IconeGroupe, IconeIdee, IconePlanifier } from "./Icones";
 import { useEffect, useState } from "react";
 import type { DonneesIdees } from "@/hooks/useIdees";
 import { MenuProjets, PanneauProjet } from "./IdeesProjets";
@@ -147,9 +147,9 @@ export function VueListe({ liste, actions }: Props) {
       {[...grouperParDate(liste)].map(([iso, taches]) => (
         <section key={iso} className={`groupe-date${iso === isoAujourdhui ? " aujourdhui" : ""}`}>
           <h3>
-            {iso === "" ? <><IconeChecklist /> Sans date (checklist)</>
+            {iso === "" ? "Sans date"
               : majuscule(formater(depuisISO(iso), { weekday: "long", day: "numeric", month: "long", year: "numeric" }))}
-            {iso === isoAujourdhui && " — aujourd'hui"}
+            {iso === isoAujourdhui && <span className="etiquette-aujourdhui">Aujourd&apos;hui</span>}
           </h3>
           <div className="liste-taches">
             {taches.map((t) => <CarteTache key={t.id} tache={t} actions={actions} />)}
@@ -160,36 +160,46 @@ export function VueListe({ liste, actions }: Props) {
   );
 }
 
-/* ---------- Vue Tri : tâches à faire réparties en Urgent / Important / Rapide ---------- */
+/* ---------- Vue Tri : tâches à faire réparties en Urgent / Important / Rapide ----------
+   Refonte « Carnet » : chaque groupe est une colonne SANS boîte (titre souligné de la couleur
+   du groupe, règle en une ligne dessous). Les explications détaillées sont repliées dans
+   « Comment c'est rangé ? » : on les lit une fois, elles n'ont pas à occuper l'écran ensuite. */
+const VIDE_TRI: Record<Groupe, string> = {
+  urgent: "Rien d'urgent.",
+  important: "Aucune tâche en priorité haute.",
+  rapide: `Indique une durée de ${DUREE_RAPIDE_MAX} min ou moins dans une tâche pour la retrouver ici.`,
+};
+
 export function VueTri({ liste, actions }: Props) {
   const { groupes, autres } = repartirParGroupe(liste);
   return (
     <section className="vue-tri-contenu">
-      <p className="aide-tri">
-        Seules les tâches <strong>à faire</strong> sont affichées. Une tâche qui entre dans plusieurs groupes
-        est rangée dans le premier (Urgent, puis Important, puis Rapide) ; ses badges montrent tous ses groupes.
-        Un groupe choisi à la main dans le formulaire (champ « Groupe ») remplace ces règles automatiques.
-      </p>
+      <details className="aide-repliable">
+        <summary>Comment c&apos;est rangé ?</summary>
+        <p>
+          Seules les tâches <strong>à faire</strong> apparaissent ici. Une tâche qui entre dans plusieurs groupes
+          est rangée dans le premier (Urgent, puis Important, puis Rapide) ; sa ligne d&apos;infos rappelle ses
+          autres groupes. Un groupe choisi à la main dans le formulaire (champ « Groupe ») passe avant ces règles.
+        </p>
+      </details>
       <div className="grille-tri">
         {GROUPES.map((g) => (
-          <section key={g.id} className={`colonne-tri groupe-${g.id}`}>
-            <h3>
+          <section key={g.id} className={`colonne-tri groupe-${g.id}`} aria-labelledby={`titre-tri-${g.id}`}>
+            <h3 id={`titre-tri-${g.id}`}>
               <IconeGroupe groupe={g.id} /> {g.libelle} <span className="compte-groupe">{groupes[g.id].length}</span>
             </h3>
             <p className="regle-groupe">{g.regle}</p>
-            {g.id === "rapide" && (
-              <p className="regle-groupe">Astuce : renseigne la durée d&apos;une tâche ({DUREE_RAPIDE_MAX} min max) pour qu&apos;elle arrive ici.</p>
-            )}
             <div className="liste-taches">
-              {groupes[g.id].length === 0 && <p className="vide">Rien ici.</p>}
-              {groupes[g.id].map((t) => <CarteTache key={t.id} tache={t} actions={actions} avecDate />)}
+              {groupes[g.id].length === 0 && <p className="vide">{VIDE_TRI[g.id]}</p>}
+              {groupes[g.id].map((t) => <CarteTache key={t.id} tache={t} actions={actions} avecDate colonneTri={g.id} />)}
             </div>
           </section>
         ))}
       </div>
       {autres.length > 0 && (
-        <section className="colonne-tri groupe-autres">
-          <h3>Autres tâches à faire <span className="compte-groupe">{autres.length}</span></h3>
+        <section className="colonne-tri groupe-autres" aria-labelledby="titre-tri-autres">
+          <h3 id="titre-tri-autres">Autres tâches à faire <span className="compte-groupe">{autres.length}</span></h3>
+          <p className="regle-groupe">Ni urgentes, ni prioritaires, ni rapides.</p>
           <div className="liste-taches">
             {autres.map((t) => <CarteTache key={t.id} tache={t} actions={actions} avecDate />)}
           </div>
@@ -204,11 +214,11 @@ export function VueTri({ liste, actions }: Props) {
    1. « Sans date » : les tâches à faire quand tu peux (celles que le planificateur peut placer) ;
    2. « Planifiées » : les tâches à faire qui ont une date (et souvent une heure), triées
       chronologiquement — la liste reçue est déjà triée par date puis heure (comparer()) ;
-      chaque carte affiche un badge de date, et l'heure en tête du titre ;
+      chaque ligne affiche sa date dans sa ligne d'infos, et l'heure dans sa colonne ;
    3. « Cochées » : tout ce qui est terminé, daté ou non.
    Les tâches datées restent bien sûr AUSSI dans Jour, Semaine et Mois. */
-/* sousAgenda : la même Checklist affichée sous le calendrier (Jour/Semaine/Mois).
-   On y masque juste le paragraphe d'explication, déjà lisible dans l'onglet. */
+/* La même Checklist est aussi affichée sous le calendrier (Jour/Semaine/Mois) : voir Agenda.tsx.
+   Chaque titre de rubrique porte sa règle en une ligne : plus de paragraphe d'explication. */
 /* ---------- Checklist ----------
    À gauche (au-dessus sur téléphone), un menu de catégories :
    - « Tâches » : les tâches à cocher (sans date, planifiées, cochées) ;
@@ -225,7 +235,7 @@ function ecrire(cle: string, valeur: string) {
   try { localStorage.setItem(cle, valeur); } catch { /* navigateur privé : non retenu */ }
 }
 
-export function VueChecklist({ liste, actions, sousAgenda = false, idees }: Props & { sousAgenda?: boolean; idees?: DonneesIdees }) {
+export function VueChecklist({ liste, actions, idees }: Props & { idees?: DonneesIdees }) {
   const [categorie, setCategorie] = useState<CategorieChecklist>("taches");
   const [projetChoisi, setProjetChoisi] = useState<string | null>(null);
   useEffect(() => {
@@ -235,7 +245,7 @@ export function VueChecklist({ liste, actions, sousAgenda = false, idees }: Prop
   function changerCategorie(c: CategorieChecklist) { setCategorie(c); ecrire(CLE_CATEGORIE, c); }
   function choisirProjet(id: string) { setProjetChoisi(id); ecrire(CLE_PROJET, id); }
 
-  if (!idees) return <ChecklistTaches liste={liste} actions={actions} sousAgenda={sousAgenda} />;
+  if (!idees) return <ChecklistTaches liste={liste} actions={actions} />;
 
   // Projet affiché : celui choisi s'il existe encore, sinon le premier de la liste.
   const projet = idees.projets.find((p) => p.id === projetChoisi) ?? idees.projets[0] ?? null;
@@ -256,48 +266,44 @@ export function VueChecklist({ liste, actions, sousAgenda = false, idees }: Prop
       </nav>
       <div className="contenu-checklist">
         {categorie === "taches"
-          ? <ChecklistTaches liste={liste} actions={actions} sousAgenda={sousAgenda} />
+          ? <ChecklistTaches liste={liste} actions={actions} />
           : <PanneauProjet key={projet?.id ?? "aucun"} donnees={idees} projet={projet} />}
       </div>
     </div>
   );
 }
 
-function ChecklistTaches({ liste, actions, sousAgenda }: Omit<Props, "dateRef"> & { sousAgenda: boolean }) {
+function ChecklistTaches({ liste, actions }: Omit<Props, "dateRef">) {
   const aFaire = liste.filter((t) => !t.faite);
   const sansDate = aFaire.filter(estSansDate);
   const planifiees = aFaire.filter((t) => !estSansDate(t));
   const faites = liste.filter((t) => t.faite);
   return (
     <section className="checklist">
-      {!sousAgenda && <p className="aide-tri">
-        Toutes tes tâches à cocher : d&apos;abord celles <strong>sans date</strong> (à faire « quand tu peux »),
-        puis celles <strong>planifiées</strong> avec une date et un horaire, de la plus proche à la plus lointaine.
-        Les tâches planifiées restent aussi dans les vues Jour, Semaine et Mois.
-      </p>}
-
       {/* Rubrique « Sans date » : ses cartes se glissent sur l'agenda, et une tâche de
           l'agenda déposée ici perd sa date (elle redevient « à faire quand tu peux »). */}
       <ZoneDepot id="sans-date" cible={{ date: "", heure: "" }} libelle="Sans date (checklist)" className="zone-sans-date">
-        <h3 className="titre-section-checklist">
-          <IconeChecklist /> Sans date <span className="compte-groupe">{sansDate.length}</span>
-        </h3>
+        <h3 className="titre-section-checklist">Sans date <span className="compte-groupe">{sansDate.length}</span></h3>
+        <p className="regle-groupe">À faire quand tu peux.</p>
         <OrigineGlisser.Provider value="chk">
-          <ListeTaches taches={sansDate} actions={actions} messageVide={<><IconeBravo /> Aucune tâche sans date.</>} />
+          <ListeTaches taches={sansDate} actions={actions} messageVide="Aucune tâche sans date." />
         </OrigineGlisser.Provider>
       </ZoneDepot>
-      {sansDate.length > 0 && actions.planifier && (
-        <button type="button" className="btn btn-principal" onClick={actions.planifier}>
-          <IconePlanifier /> Placer ces tâches dans ma semaine
+      <div className="actions-checklist">
+        <button type="button" className="btn-ajouter" onClick={() => actions.ajouterLe("")}>
+          <IconeAjouter /> Ajouter une tâche sans date
         </button>
-      )}
-      <button type="button" className="btn-ajouter" onClick={() => actions.ajouterLe("")}>
-        <IconeAjouter /> Ajouter une tâche sans date
-      </button>
+        {/* Bouton secondaire (et non plus bleu plein sur toute la largeur) : utile, mais ce
+            n'est pas l'action principale de l'écran. */}
+        {sansDate.length > 0 && actions.planifier && (
+          <button type="button" className="btn btn-planifier" onClick={actions.planifier}>
+            <IconePlanifier /> Placer ces tâches dans ma semaine
+          </button>
+        )}
+      </div>
 
-      <h3 className="titre-section-checklist">
-        <IconeCalendrier /> Planifiées <span className="compte-groupe">{planifiees.length}</span>
-      </h3>
+      <h3 className="titre-section-checklist">Planifiées <span className="compte-groupe">{planifiees.length}</span></h3>
+      <p className="regle-groupe">De la plus proche à la plus lointaine. Elles sont aussi dans Jour, Semaine et Mois.</p>
       {planifiees.length === 0
         ? <p className="vide">Aucune tâche planifiée à faire.</p>
         : <div className="liste-taches">
@@ -306,7 +312,7 @@ function ChecklistTaches({ liste, actions, sousAgenda }: Omit<Props, "dateRef"> 
 
       {faites.length > 0 && (
         <>
-          <h3 className="titre-faites">Cochées ({faites.length})</h3>
+          <h3 className="titre-section-checklist titre-faites">Cochées <span className="compte-groupe">{faites.length}</span></h3>
           <div className="liste-taches">
             {faites.map((t) => <CarteTache key={t.id} tache={t} actions={actions} avecDate={!estSansDate(t)} />)}
           </div>
