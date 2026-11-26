@@ -1,122 +1,170 @@
 /* =====================================================================
    AgendIA — mise en forme
-   Les couleurs sont définies une seule fois sous forme de "variables CSS"
-   (--nom) : on les change ici et toute l'application suit. Un second jeu
-   de valeurs s'applique automatiquement si le système est en mode sombre.
+   Refonte « Carnet » (26/11/2026) : l'application ressemble à un agenda
+   papier plutôt qu'à un tableau de bord générique.
+   - Papier et encre : fond presque blanc et légèrement chaud, texte noir
+     d'encre, bleu #1d4ed8 (couleur d'identité) pour les actions et
+     « aujourd'hui ».
+   - La couleur ne sert qu'à dire quelque chose : rouge = en retard
+     (et rien d'autre), vert = fait, orange = priorité haute, prune = Projets.
+     Le reste de l'écran reste neutre.
+   - La hiérarchie vient de la typographie (tailles, graisses, Fraunces pour
+     les dates) et des filets fins, pas de boîtes arrondies partout.
+   Les couleurs sont des "variables CSS" (--nom) : on les change ici et toute
+   l'application suit. Un second jeu s'applique en mode sombre.
+   Contrastes vérifiés (norme WCAG AA) : tous les textes ≥ 4,5:1 sur leurs
+   fonds, les anneaux des cases et les bords des champs ≥ 3:1.
    ===================================================================== */
 
 :root {
   color-scheme: light dark;          /* adapte aussi les champs natifs (calendrier, etc.) */
-  /* Palette « Bleu franc » (choisie le 22/11/2026) : fond blanc, bleu ; vert = fait ; rouge = en retard.
-     Tous les textes ont un contraste ≥ 4,5:1 sur leurs fonds (norme WCAG AA). */
-  --fond: #ffffff;
-  --surface: #ffffff;
-  --surface-2: #f1f5fb;
-  --texte: #0f172a;
-  --texte-doux: #475569;
-  --bord: #d5deea;
-  --accent: #1d4ed8;
+  --fond: #fbfaf7;         /* papier */
+  --surface: #ffffff;      /* fenêtres, cartes de la vue Semaine */
+  --surface-2: #f3f1ec;    /* survol, boutons secondaires, zones calmes */
+  --surface-3: #ebe8e1;    /* appuyé, sélection neutre */
+  --texte: #1f1d1a;        /* encre (16:1 sur le papier) */
+  --texte-doux: #655f56;   /* gris chaud (6:1) */
+  --bord: #e5e1d8;         /* filets */
+  --bord-fort: #8f897e;    /* bords des champs, anneaux des cases (3,3:1) */
+  --accent: #1d4ed8;       /* encre bleue : actions, aujourd'hui (6,4:1) */
+  --accent-fort: #1a43bb;  /* survol du bouton principal */
+  --accent-fond: #e9eefb;  /* fond très léger : jour choisi, sélection */
   --accent-texte: #ffffff;
-  --perso: #7e22ce;
+  --perso: #6a3db8;
   --travail: #1d4ed8;
-  --projets: #a21caf;
-  --haute: #c2410c;
-  --moyenne: #8f5a07;
-  --basse: #5b6a80;
-  --urgent: #c2410c;   /* groupe Urgent (orange, pas rouge) */
-  --important: #8f5a07;
-  --rapide: #0e7490;
-  --fait: #15803d;   /* ce qui est terminé (vert) */
-  --fait-fond: #f0fdf4;
-  --retard: #c81e1e;   /* en retard : SEULE utilisation du rouge pour une tâche */
-  --retard-fond: #fef2f2;
-  --critique: #a51b1b;   /* badge « En retard » (rouge plein) */
+  --projets: #952a78;      /* prune */
+  --haute: #ad4c0b;        /* priorité haute : orange brûlé, jamais rouge */
+  --moyenne: #80570a;
+  --basse: #6c675f;
+  --urgent: #ad4c0b;
+  --important: #80570a;
+  --rapide: #0c6875;
+  --fait: #2a7349;         /* fait : vert forêt */
+  --fait-fond: #eef5f0;
+  --retard: #b8321f;       /* en retard : SEULE utilisation du rouge (le stylo rouge du prof) */
+  --retard-fond: #fbefec;
+  --critique: #a52c1b;
   --critique-texte: #ffffff;
-  --ombre: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --rayon: 10px;
-  /* Palette des couleurs de tâche (choisies dans le formulaire). Pas de rouge
-     (réservé au retard) ni de vert vif (réservé aux tâches faites). */
-  --c-bleu: #2563eb;
-  --c-turquoise: #0891b2;
-  --c-sauge: #4f8a63;
-  --c-violet: #7c3aed;
-  --c-rose: #db2777;
-  --c-orange: #ea580c;
-  --c-jaune: #ca8a04;
-  --c-ardoise: #64748b;
-  --teinte-couleur: 8%;   /* part de la couleur dans le fond d'une carte colorée */
+  --ombre: none;           /* les cartes n'ont pas d'ombre : des filets suffisent */
+  --ombre-haute: 0 1px 2px rgba(31, 29, 26, 0.06), 0 16px 40px -12px rgba(31, 29, 26, 0.28); /* fenêtres, menus */
+  --rayon: 10px;           /* cartes */
+  --rayon-petit: 7px;      /* boutons, champs */
+  --rayon-grand: 16px;     /* fenêtres */
+  /* Case cochée : coche blanche sur le vert (dessinée en SVG, pour tous les navigateurs). */
+  --coche: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 12.5l3.8 3.8L17.5 8.5'/%3E%3C/svg%3E");
+  --coche-apercu: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23655f56' stroke-opacity='.55' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 12.5l3.8 3.8L17.5 8.5'/%3E%3C/svg%3E");
+  /* Palette des couleurs de tâche (formulaire). Pas de rouge (réservé au retard) ni de
+     vert vif (réservé au « fait ») ; chacune ≥ 3:1 sur le papier. */
+  --c-bleu: #2f62d6;
+  --c-turquoise: #0e8088;
+  --c-sauge: #4a8460;
+  --c-violet: #7350c8;
+  --c-rose: #c4406f;
+  --c-orange: #c8601a;
+  --c-jaune: #a17800;
+  --c-ardoise: #6c675f;
+  --teinte-couleur: 9%;   /* part de la couleur dans le fond d'une tâche colorée (vues calendrier) */
+  --vitesse: 160ms;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --fond: #0b1220;
-    --surface: #111a2e;
-    --surface-2: #1a2540;
-    --texte: #e5ecf6;
-    --texte-doux: #9fb0c8;
-    --bord: #2a3a5a;
-    --accent: #60a5fa;
-    --accent-texte: #0b1220;
-    --perso: #c084fc;
-    --travail: #60a5fa;
-    --projets: #f0abfc;
-    --haute: #fb923c;
-    --moyenne: #facc15;
-    --basse: #94a3b8;
-    --urgent: #fb923c;   /* groupe Urgent (orange, pas rouge) */
-    --important: #facc15;
-    --rapide: #22d3ee;
-    --fait: #4ade80;   /* ce qui est terminé (vert) */
-    --fait-fond: #0f2a1e;
-    --retard: #f87171;   /* en retard : SEULE utilisation du rouge pour une tâche */
-    --retard-fond: #2c1318;
-    --critique: #dc2626;   /* badge « En retard » (rouge plein) */
+    /* « Encre de nuit » : noir chaud (pas de bleu marine), texte crème, bleu éclairci. */
+    --fond: #141311;
+    --surface: #1c1b18;
+    --surface-2: #24221f;
+    --surface-3: #2d2a26;
+    --texte: #ece8df;
+    --texte-doux: #a8a296;
+    --bord: #2f2c27;
+    --bord-fort: #7a756b;
+    --accent: #8fadff;
+    --accent-fort: #a9c1ff;
+    --accent-fond: #1f2640;
+    --accent-texte: #10131c;
+    --perso: #bba2ff;
+    --travail: #8fadff;
+    --projets: #ea93d2;
+    --haute: #f2a057;
+    --moyenne: #e4b452;
+    --basse: #a8a296;
+    --urgent: #f2a057;
+    --important: #e4b452;
+    --rapide: #5cc6d1;
+    --fait: #62c08a;
+    --fait-fond: #17251c;
+    --retard: #ff8a73;
+    --retard-fond: #2b1915;
+    --critique: #d9442c;
     --critique-texte: #ffffff;
     --ombre: none;
-    --c-bleu: #60a5fa;
-    --c-turquoise: #22d3ee;
-    --c-sauge: #86c09a;
-    --c-violet: #a78bfa;
-    --c-rose: #f472b6;
-    --c-orange: #fb923c;
-    --c-jaune: #facc15;
-    --c-ardoise: #94a3b8;
-    --teinte-couleur: 13%;
+    --ombre-haute: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 20px 44px -12px rgba(0, 0, 0, 0.75);
+    --coche: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310131c' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 12.5l3.8 3.8L17.5 8.5'/%3E%3C/svg%3E");
+    --coche-apercu: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a8a296' stroke-opacity='.6' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 12.5l3.8 3.8L17.5 8.5'/%3E%3C/svg%3E");
+    --c-bleu: #7d9dff;
+    --c-turquoise: #3dbfc8;
+    --c-sauge: #7fbf95;
+    --c-violet: #a993f5;
+    --c-rose: #f08cb4;
+    --c-orange: #f39a5a;
+    --c-jaune: #e2bd4f;
+    --c-ardoise: #a49e93;
+    --teinte-couleur: 15%;
   }
 }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--police-texte, system-ui), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 1rem;
   background: var(--fond);
   color: var(--texte);
-  line-height: 1.4;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-synthesis-weight: none; /* jamais de « faux gras » : la police variable a toutes les graisses */
 }
+/* Titres : Fraunces, comme les dates d'un agenda imprimé. */
+h1, h2 {
+  font-family: var(--police-titre, Georgia), Georgia, "Times New Roman", serif;
+  font-weight: 600; letter-spacing: -0.01em; line-height: 1.15;
+  font-optical-sizing: auto;
+}
+/* Les icônes devant les titres des fenêtres étaient décoratives : le mot suffit. */
+:is(dialog, .feuille-bas) h2 > .lucide { display: none; }
+::selection { background: color-mix(in srgb, var(--accent) 22%, transparent); }
 
 .page { max-width: 1240px; margin: 0 auto; padding: 16px; }
 
-/* ---------- Boutons ---------- */
+/* ---------- Boutons ----------
+   Trois niveaux seulement : principal (bleu plein, une action par écran), secondaire
+   (fond papier un peu plus soutenu, sans cadre), discret (icône seule). */
 .btn {
-  font: inherit;
-  border: 1px solid var(--bord);
-  background: var(--surface);
+  font: inherit; font-weight: 500; line-height: 1.2;
+  border: 1px solid transparent;
+  background: var(--surface-2);
   color: var(--texte);
-  padding: 7px 14px;
-  border-radius: 8px;
+  padding: 8px 14px; min-height: 38px;
+  border-radius: var(--rayon-petit);
   cursor: pointer;
+  transition: background-color var(--vitesse), color var(--vitesse), border-color var(--vitesse), transform 80ms;
 }
-.btn:hover { background: var(--surface-2); }
-.btn-principal { background: var(--accent); color: var(--accent-texte); border-color: transparent; font-weight: 600; }
-.btn-principal:hover { background: var(--accent); filter: brightness(1.1); }
-.btn-danger { color: var(--retard); border-color: var(--retard); }
+.btn:hover { background: var(--surface-3); }
+.btn:active { transform: translateY(1px); }
+.btn-principal { background: var(--accent); color: var(--accent-texte); font-weight: 600; }
+.btn-principal:hover { background: var(--accent-fort); }
+.btn-danger { background: transparent; color: var(--retard); border-color: color-mix(in srgb, var(--retard) 55%, transparent); }
+.btn-danger:hover { background: var(--retard-fond); }
 .btn-icone {
-  border: none; background: transparent; cursor: pointer;
-  padding: 4px; border-radius: 6px; font-size: 0.95rem; line-height: 1; opacity: 0.55;
+  border: none; background: transparent; cursor: pointer; color: var(--texte-doux);
+  padding: 6px; border-radius: var(--rayon-petit); font-size: 0.95rem; line-height: 1;
+  transition: background-color var(--vitesse), color var(--vitesse);
 }
-.btn-icone:hover { opacity: 1; background: var(--surface-2); }
+.btn-icone:hover { color: var(--texte); background: var(--surface-2); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ---------- En-tête ---------- */
@@ -149,13 +197,23 @@ body {
 }
 .onglets button.actif { background: var(--accent); color: var(--accent-texte); }
 
-/* ---------- Filtres et champs ---------- */
+/* ---------- Filtres et champs ----------
+   Bord à 3:1 (visible sans être lourd), coins de 7 px ; au focus, le bord passe au bleu
+   avec un halo léger. 16 px minimum : l'iPhone ne zoome pas sur le champ touché. */
 .filtres { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .filtres input, .filtres select,
 .formulaire input, .formulaire select, .formulaire textarea {
   font: inherit; color: var(--texte); background: var(--surface);
-  border: 1px solid var(--bord); border-radius: 8px; padding: 7px 10px;
+  border: 1px solid color-mix(in srgb, var(--bord-fort) 70%, var(--bord)); border-radius: var(--rayon-petit); padding: 8px 10px;
+  min-height: 40px;
+  transition: border-color var(--vitesse), box-shadow var(--vitesse);
 }
+:is(.filtres, .formulaire) :is(input, select, textarea):hover { border-color: var(--bord-fort); }
+:is(.filtres, .formulaire) :is(input, select, textarea):focus-visible {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.formulaire input[type="checkbox"], .formulaire input[type="radio"] { min-height: 0; }
+::placeholder { color: color-mix(in srgb, var(--texte-doux) 80%, transparent); }
 .champ-recherche { flex: 1 1 220px; position: relative; display: flex; }
 .champ-recherche input { flex: 1; min-width: 0; padding-left: 34px; }
 .champ-recherche .lucide {
@@ -305,16 +363,16 @@ body {
 
 /* ---------- Fenêtre de dialogue ---------- */
 dialog {
-  border: none; border-radius: 14px; padding: 0;
+  border: none; border-radius: var(--rayon-grand); padding: 0;
   width: min(520px, calc(100vw - 32px));
   background: var(--surface); color: var(--texte);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--ombre-haute);
 }
-dialog::backdrop { background: rgba(10, 15, 25, 0.5); }
-.formulaire { display: flex; flex-direction: column; gap: 12px; padding: 20px; }
-.formulaire h2 { margin: 0 0 4px; font-size: 1.2rem; }
-.champ { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.champ label { font-size: 0.85rem; font-weight: 500; color: var(--texte-doux); }
+dialog::backdrop { background: rgba(20, 18, 15, 0.42); backdrop-filter: blur(2px); }
+.formulaire { display: flex; flex-direction: column; gap: 14px; padding: 22px 22px 20px; }
+.formulaire h2 { margin: 0 0 2px; font-size: 1.5rem; }
+.champ { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.champ label { font-size: 0.86rem; font-weight: 500; color: var(--texte-doux); }
 .formulaire textarea { resize: vertical; }
 .ligne-champs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .boutons-dialogue { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }

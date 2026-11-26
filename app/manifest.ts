@@ -11,8 +11,9 @@ export default function manifest(): MetadataRoute.Manifest {
     description: SLOGAN,
     start_url: "/",
     display: "standalone",
-    background_color: "#ffffff",
-    theme_color: "#1d4ed8",
+    // Couleur du papier de l'application (écran de démarrage, barre d'état une fois installée).
+    background_color: "#fbfaf7",
+    theme_color: "#fbfaf7",
     lang: "fr",
     icons: [
       { src: "/icone-192.png", sizes: "192x192", type: "image/png" },
