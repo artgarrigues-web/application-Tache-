@@ -53,6 +53,7 @@ export {
   MapPin as IconeLieu,
   Backpack as IconeMateriel,
   ListChecks as IconeChecklist,
+  ListTodo as IconeEtapes,
   Lightbulb as IconeIdee,
   FolderOpen as IconeProjet,
   CalendarClock as IconeCalendrier,

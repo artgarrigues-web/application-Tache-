@@ -5,6 +5,7 @@
 
 import { ajouterJours, aujourdhui, versISO } from "./dates";
 import { JOURS_RATTRAPAGE, validerRecurrence } from "./recurrence";
+import { validerCles, validerEtapes } from "./etapes";
 import {
   CATEGORIES, DUREE_RAPIDE_MAX, estCouleur, GROUPES, JOURS_URGENCE, PRIORITES, RANG_PRIORITE,
   type Categorie, type DonneesTache, type Filtres, type Groupe, type Priorite, type Tache,
@@ -37,6 +38,8 @@ export function validerTaches(donnees: unknown): Tache[] | null {
       lieu: typeof t.lieu === "string" ? t.lieu.slice(0, 200) : "",
       echeance: typeof t.echeance === "string" && /^\d{4}-\d{2}-\d{2}$/.test(t.echeance) ? t.echeance : "",
       materiel: typeof t.materiel === "string" ? t.materiel.slice(0, 2000) : "",
+      etapes: validerEtapes(t.etapes),
+      materielPris: validerCles(t.materielPris),
       categorie: (typeof t.categorie === "string" && t.categorie in CATEGORIES ? t.categorie : "perso") as Categorie,
       priorite: (typeof t.priorite === "string" && t.priorite in PRIORITES ? t.priorite : "moyenne") as Priorite,
       groupe: (typeof t.groupe === "string" && GROUPES.some((g) => g.id === t.groupe) ? t.groupe : null) as Groupe | null,
@@ -75,7 +78,7 @@ export function passeLesFiltres(tache: Tache, f: Filtres): boolean {
   if (f.statut === "afaire" && tache.faite) return false;
   if (f.statut === "faites" && !tache.faite) return false;
   if (f.statut === "retard" && !estEnRetard(tache)) return false;
-  if (f.recherche && !normaliser(`${tache.titre} ${tache.description} ${tache.lieu} ${tache.materiel}`).includes(normaliser(f.recherche))) return false;
+  if (f.recherche && !normaliser(`${tache.titre} ${tache.description} ${tache.lieu} ${tache.materiel} ${(tache.etapes ?? []).map((e) => e.texte).join(" ")}`).includes(normaliser(f.recherche))) return false;
   return true;
 }
 

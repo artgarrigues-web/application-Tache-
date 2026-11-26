@@ -234,3 +234,10 @@ as $$
 $$;
 revoke execute on function public.taches_du_calendrier_v2(uuid) from public;
 grant execute on function public.taches_du_calendrier_v2(uuid) to anon, authenticated;
+
+-- Étapes et matériel cochables (26/11/2026, voir supabase/migration-etapes.sql).
+alter table public.taches
+  add column if not exists etapes jsonb not null default '[]'::jsonb
+    check (jsonb_typeof(etapes) = 'array' and jsonb_array_length(etapes) <= 50),
+  add column if not exists materiel_pris jsonb not null default '[]'::jsonb
+    check (jsonb_typeof(materiel_pris) = 'array');

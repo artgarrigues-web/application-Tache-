@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --import ./tests/chargeur.mjs --test tests/planification.test.ts tests/recurrence.test.ts tests/saisie-rapide.test.ts tests/rappels.test.ts tests/ics-lecture.test.ts"
+    "test": "node --import ./tests/chargeur.mjs --test tests/planification.test.ts tests/recurrence.test.ts tests/saisie-rapide.test.ts tests/rappels.test.ts tests/ics-lecture.test.ts tests/etapes.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

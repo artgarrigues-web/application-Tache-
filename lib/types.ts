@@ -17,6 +17,13 @@ export interface Tache {
   lieu: string;      // "" si non renseigné
   echeance: string;  // "AAAA-MM-JJ" : date limite (sert à la planification automatique), "" si aucune
   materiel: string;  // un élément par ligne, "" si rien
+  /* Sous-tâches (« étapes ») cochables, et éléments du matériel déjà « pris ».
+     Facultatifs (?) : une tâche sans étapes n'a pas besoin du champ, et le code qui crée
+     des tâches ailleurs (saisie rapide, glisser-déposer…) n'a rien à changer.
+     Pour une tâche RÉPÉTÉE, la LISTE (textes) appartient à la série, mais ce qui est coché
+     appartient à chaque jour : voir Recurrence.cases et lib/etapes.ts. */
+  etapes?: Etape[];
+  materielPris?: string[]; // textes des éléments de « materiel » déjà cochés
   categorie: Categorie;
   priorite: Priorite;
   groupe: Groupe | null; // groupe choisi à la main dans le formulaire, null = automatique
@@ -32,6 +39,14 @@ export interface Tache {
      L'id de l'occurrence vaut alors "<serieId>~<date>". */
   occurrence?: { serieId: string; date: string; debutSerie: string };
   supprimeeLe?: string; // date ISO de mise à la corbeille (rempli seulement dans la liste de la corbeille)
+}
+
+/* Une étape (sous-tâche) : un texte et une case. L'id (court, aléatoire) reste le même
+   quand on corrige le texte : c'est grâce à lui qu'une case cochée « suit » son étape. */
+export interface Etape {
+  id: string;
+  texte: string;
+  faite: boolean;
 }
 
 // Les champs saisis dans le formulaire (le reste est généré automatiquement).
@@ -63,6 +78,14 @@ export interface Recurrence {
   fin: FinRecurrence;
   exceptions: string[];    // "AAAA-MM-JJ"
   faites: string[];        // "AAAA-MM-JJ"
+  /* Étapes et matériel cochés, JOUR PAR JOUR (clé "AAAA-MM-JJ") : cocher « Gourde » pour
+     le sport de lundi ne la coche pas pour lundi prochain. Absent = rien de coché. */
+  cases?: Record<string, CasesJour>;
+}
+
+export interface CasesJour {
+  etapes: string[];   // ids des étapes cochées ce jour-là
+  materiel: string[]; // textes des éléments de matériel cochés ce jour-là
 }
 
 export const FREQUENCES: { id: Frequence; libelle: string; unite: [string, string] }[] = [
