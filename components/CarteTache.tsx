@@ -57,12 +57,16 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false,
     <article className={classes} ref={glissable.setNodeRef} {...(glissable.possible ? glissable.listeners : {})}
       inert={fantome || undefined}>
       <Poignee glissable={glissable} libelle={`la tâche « ${tache.titre} »`} />
-      <input
-        type="checkbox"
-        checked={tache.faite}
-        onChange={() => actions.cocher(tache.id)}
-        aria-label={`Marquer « ${tache.titre} » comme ${tache.faite ? "à faire" : "faite"}`}
-      />
+      {/* Le label n'a pas de boîte sur ordinateur (display: contents) ; sur téléphone il
+          agrandit la zone qui réagit au doigt autour de la case (44 px, voir globals.css). */}
+      <label className="zone-case">
+        <input
+          type="checkbox"
+          checked={tache.faite}
+          onChange={() => actions.cocher(tache.id)}
+          aria-label={`Marquer « ${tache.titre} » comme ${tache.faite ? "à faire" : "faite"}`}
+        />
+      </label>
 
       <div
         className="tache-corps"

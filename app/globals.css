@@ -870,11 +870,11 @@ body.glissement-hors-zone, body.glissement-hors-zone * { cursor: no-drop !import
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .titre-depliable {
-  display: inline-flex; align-items: center; gap: 4px; border: none; background: none; padding: 0;
+  min-height: 44px; display: inline-flex; align-items: center; gap: 4px; border: none; background: none; padding: 0;
   font: inherit; font-size: 1.15rem; font-weight: 700; color: var(--texte); cursor: pointer; text-align: left;
 }
 .btn-rond {
-  flex: none; width: 36px; height: 36px; display: grid; place-items: center; padding: 0;
+  flex: none; width: 44px; height: 44px; display: grid; place-items: center; padding: 0;
   border: 1px solid var(--bord); border-radius: 999px; background: var(--surface); color: var(--texte);
   font: inherit; cursor: pointer;
 }
@@ -892,6 +892,14 @@ body.glissement-hors-zone, body.glissement-hors-zone * { cursor: no-drop !import
 body:has(.page.mobile) :is(.badge-cat, [class*="badge-prio-"], .badge-groupe.groupe-urgent, .tache-actions) { display: none; }
 .mobile .tache { padding: 10px 12px; gap: 10px; }
 .mobile .tache input[type="checkbox"] { width: 22px; height: 22px; margin: 0; }
+
+/* Zones de toucher d'au moins 44 px (Apple : 44 pt ; Google : 48 dp ≈ 9 mm).
+   La case garde son dessin de 22 px, mais le label qui l'entoure réagit sur 44 px. */
+.zone-case { display: contents; }
+.mobile .zone-case { display: grid; place-items: center; flex: none; margin: -11px; padding: 11px; cursor: pointer; }
+.mobile .btn-icone { min-width: 44px; min-height: 44px; display: inline-grid; place-items: center; }
+.mobile .pastille-couleur { padding: 8px 0; }
+.mobile .puces-date button, .mobile .grille-vues .btn { min-height: 44px; }
 .mobile .tache-meta { margin-top: 4px; }
 .mobile .colonne-jour > .btn-ajouter { display: none; }   /* le bouton « + » flottant suffit */
 .mobile .haut-case { flex-direction: column; gap: 2px; }   /* le compteur ne chevauche plus le numéro */
@@ -946,7 +954,7 @@ body:has(.page.mobile) :is(.badge-cat, [class*="badge-prio-"], .badge-groupe.gro
 
 /* --- Option B : bandeau de la semaine --- */
 .bandeau-semaine {
-  position: sticky; top: 57px; z-index: 40; margin: -10px -12px 12px; padding: 6px 8px 10px;
+  position: sticky; top: 65px; z-index: 40; margin: -10px -12px 12px; padding: 6px 8px 10px;
   background: var(--fond); border-bottom: 1px solid var(--bord);
 }
 .ruban, .mini-mois { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; touch-action: pan-y; }
@@ -966,6 +974,20 @@ body:has(.page.mobile) :is(.badge-cat, [class*="badge-prio-"], .badge-groupe.gro
 .jour-choisi { margin: 8px 4px 0; font-weight: 600; font-size: 0.95rem; }
 .mobile-b main.vue-jour { touch-action: pan-y; min-height: 50vh; }
 
+/* --- Astuce de balayage (une seule fois) --- */
+.astuce-balayage {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 10px 12px;
+  border-radius: 12px; background: var(--surface-2); border: 1px solid var(--bord); font-size: 0.9rem;
+}
+.astuce-balayage p { margin: 0; flex: 1; }
+.astuce-balayage > .lucide { color: var(--accent); flex: none; }
+.astuce-balayage .btn { min-height: 44px; flex: none; }
+.demo-balayage .balayable-carte { animation: demo-balayage 1.6s ease-in-out 0s 2; }
+.demo-balayage .fond-action.gauche { animation: demo-fond 1.6s ease-in-out 0s 2; }
+@keyframes demo-balayage { 0%, 100% { transform: none; } 35%, 60% { transform: translateX(84px); } }
+@keyframes demo-fond { 0%, 100% { opacity: 0; } 25%, 70% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .demo-balayage .balayable-carte, .demo-balayage .fond-action.gauche { animation: none; } }
+
 /* --- Ligne « En retard » au-dessus de la journée --- */
 .ligne-retard { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
 .titre-retard {
@@ -978,7 +1000,7 @@ body:has(.page.mobile) :is(.badge-cat, [class*="badge-prio-"], .badge-groupe.gro
 /* --- Option C : fil « À venir », balayage, saisie rapide --- */
 .fil-continu { display: flex; flex-direction: column; gap: 14px; }
 .titre-fil {
-  position: sticky; top: 57px; z-index: 30; margin: 0 -12px 6px; padding: 6px 12px;
+  position: sticky; top: 65px; z-index: 30; margin: 0 -12px 6px; padding: 6px 12px;
   background: var(--fond); font-size: 0.95rem;
 }
 .fil-aujourdhui .titre-fil { color: var(--accent); }
