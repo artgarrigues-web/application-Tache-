@@ -14,7 +14,7 @@ function tache(champs: Partial<Tache>): Tache {
   n++;
   return {
     id: `t${n}`, titre: `Tâche ${n}`, description: "", date: "", heure: "", dureeMinutes: null,
-    lieu: "", echeance: "", materiel: "", categorie: "perso", priorite: "moyenne", groupe: null, couleur: null, projetId: null, recurrence: null,
+    lieu: "", echeance: "", materiel: "", categorie: "perso", priorite: "moyenne", groupe: null, couleur: null, projetId: null, recurrence: null, rappelMinutes: null,
     faite: false, creeLe: "2026-11-01T00:00:00Z", ...champs,
   };
 }
@@ -139,4 +139,12 @@ test("« regroupé par lieu » : une tâche urgente sans lieu passe avant un gro
   const p = planifier({ taches, lundi: LUNDI, plages: lundiSeul, maintenant: AVANT }, "lieu");
   assert.equal(p.placements[0].tacheId, "urgent");
   assert.equal(p.placements[0].heure, "08:00");
+});
+
+test("évite les créneaux occupés par un agenda externe (cours, rendez-vous)", () => {
+  const p = planifier({
+    taches: [tache({ id: "a", dureeMinutes: 60 })], lundi: LUNDI, plages: lundiSeul, maintenant: AVANT,
+    occupe: [{ date: LUNDI, debut: "08:00", fin: "10:15" }],
+  }, "echeances");
+  assert.equal(p.placements[0].heure, "10:15");
 });

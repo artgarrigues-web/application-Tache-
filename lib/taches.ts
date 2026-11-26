@@ -43,6 +43,7 @@ export function validerTaches(donnees: unknown): Tache[] | null {
       couleur: estCouleur(t.couleur) ? t.couleur : null,
       recurrence: typeof t.date === "string" && t.date ? validerRecurrence(t.recurrence) : null,
       projetId: null, // un projet d'un autre compte ou supprimé n'aurait pas de sens ici
+      rappelMinutes: typeof t.rappelMinutes === "number" && t.rappelMinutes >= 0 && t.rappelMinutes <= 10080 ? Math.round(t.rappelMinutes) : null,
       faite: Boolean(t.faite),
       creeLe: typeof t.creeLe === "string" ? t.creeLe : new Date().toISOString(),
     }));

@@ -10,6 +10,8 @@ import { aujourdhui, formater, depuisISO, versISO } from "@/lib/dates";
 import { estEnRetard, formaterDuree, groupesDe, heureFin, lienCarte, listeMateriel } from "@/lib/taches";
 import { CATEGORIES, GROUPES, PRIORITES, type Tache } from "@/lib/types";
 import { decrireRecurrence } from "@/lib/recurrence";
+import { libelleRappel } from "@/lib/rappels";
+import { Bell } from "lucide-react";
 import { OrigineGlisser, Poignee, useGlissable } from "./Glisser";
 import { Balayable, ContexteBalayage } from "./Balayable";
 import { IconeChecklist, IconeProjet, IconeRepeter, IconeDuree, IconeEcheance, IconeGroupe, IconeLieu, IconeMateriel, IconeModifier, IconeSupprimer } from "./Icones";
@@ -89,6 +91,11 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false,
           {tache.recurrence && (
             <span className="icone-repetition" title={decrireRecurrence(tache.recurrence, serieDebut(tache))}>
               <IconeRepeter /><span className="visuellement-cache"> (tâche répétée)</span>
+            </span>
+          )}
+          {tache.rappelMinutes !== null && !tache.faite && (
+            <span className="icone-repetition icone-rappel" title={`Rappel : ${libelleRappel(tache.rappelMinutes).toLowerCase()}`}>
+              <Bell aria-hidden="true" /><span className="visuellement-cache"> (rappel {libelleRappel(tache.rappelMinutes).toLowerCase()})</span>
             </span>
           )}
         </div>

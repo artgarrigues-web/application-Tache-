@@ -32,12 +32,22 @@ import { Logo, NomApp } from "./Logo";
 import { IconeAjouter, IconeAnnuler, IconeChecklist, IconeExporter, IconeFermer, IconeImporter, IconePlanifier, IconePrecedent, IconeRecherche, IconeSucces, IconeSuivant, IconeSynchro, IconeSupprimer } from "./Icones";
 import { LogOut } from "lucide-react";
 import {
-  AstuceBalayage, BandeauSemaine, BarreBas, BoutonFlottant, EnteteMobile, FilContinu, LigneRetard, MenuPlus, SaisieRapide, titreCourt, useBalayage,
+  AstuceBalayage, BandeauSemaine, BarreBas, BoutonFlottant, EnteteMobile, FilContinu, InvitationJournee, LigneRetard, MenuPlus, SaisieRapide, titreCourt, useBalayage,
   useVarianteMobile, vueAccueil,
 } from "./Mobile";
 import type { Tache } from "@/lib/types";
 import { ContexteBalayage } from "./Balayable";
 import { estEnRetard } from "@/lib/taches";
+import { Bell, BellRing, CalendarDays, Sunrise } from "lucide-react";
+import * as depot from "@/lib/depot";
+import { corbeilleDisponible, rappelsDisponibles, type ReglagesRappels } from "@/lib/depot";
+import { enregistrerServiceWorker, etatNotifications, mettrePastille, type EtatNotifications } from "@/lib/notifications";
+import { useAgendasExternes } from "@/hooks/useAgendasExternes";
+import { ContexteAgendas } from "./Evenements";
+import { Rappels } from "./Rappels";
+import { Corbeille } from "./Corbeille";
+import { AgendasExternes } from "./AgendasExternes";
+import { MaJournee, journeePrepareeAujourdhui, masquerInvitationAujourdhui } from "./MaJournee";
 
 const CLE_VUE = "agenda-taches-vue"; // simple préférence d'affichage, gardée dans le navigateur
 const CLE_ANNULATION = "agenda-dernier-planning"; // de quoi annuler le dernier planning appliqué
@@ -51,7 +61,8 @@ interface EtatFormulaire { tacheId: string | null; date?: string }
 
 export function Agenda({ utilisateur }: { utilisateur: User }) {
   const { taches, charge, erreur, effacerErreur, ajouter, modifier, supprimer, basculerFaite, effacerTerminees, importer, changerHoraires,
-    supprimerOccurrence, modifierOccurrence, deplacer: deplacerTache, creerDepuis } = useTaches(utilisateur.id);
+    supprimerOccurrence, modifierOccurrence, deplacer: deplacerTache, creerDepuis,
+    listerCorbeille, restaurer, supprimerDefinitivement } = useTaches(utilisateur.id);
   const idees = useIdees(utilisateur.id); // catégorie « Projets » de la Checklist
 
   const [vue, setVue] = useState<Vue>("semaine");
@@ -74,6 +85,40 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   const [plusOuvert, setPlusOuvert] = useState(false);
   const [saisieOuverte, setSaisieOuverte] = useState(false);
   const [moisOuvert, setMoisOuvert] = useState(false); // option B : calendrier du mois déplié
+  /* ---------- Rappels, corbeille, agendas externes, « Ma journée » (26/11/2026) ---------- */
+  const [reglages, setReglages] = useState<ReglagesRappels>({ rappelDefaut: null, resumeMatin: "" });
+  const [etatNotif, setEtatNotif] = useState<EtatNotifications | null>(null);
+  const [rappelsOuvert, setRappelsOuvert] = useState(false);
+  const [corbeilleOuverte, setCorbeilleOuverte] = useState(false);
+  const [agendasOuvert, setAgendasOuvert] = useState(false);
+  const [journeeOuverte, setJourneeOuverte] = useState(false);
+  const [invitationMasquee, setInvitationMasquee] = useState(true);
+  useEffect(() => {
+    depot.lireReglagesRappels().then((r) => { if (r) setReglages(r); });
+    enregistrerServiceWorker().then(() => etatNotifications().then(setEtatNotif));
+    setInvitationMasquee(journeePrepareeAujourdhui());
+  }, [utilisateur.id]);
+  async function enregistrerReglages(r: ReglagesRappels): Promise<boolean> {
+    setReglages(r);
+    try { await depot.enregistrerReglagesRappels(r); return true; } catch { return false; }
+  }
+  /* Ouvrir l'application depuis une notification : « ?jour=AAAA-MM-JJ » montre ce jour,
+     « ?ma-journee=1 » ouvre la préparation de la journée. Si AgendIA était déjà ouvert,
+     le service worker envoie la même adresse par message (sans recharger la page). */
+  useEffect(() => {
+    function ouvrir(adresse: string) {
+      const p = new URL(adresse, location.origin).searchParams;
+      const jour = p.get("jour");
+      if (jour && /^\d{4}-\d{2}-\d{2}$/.test(jour)) { setDateRef(depuisISO(jour)); setVue("jour"); }
+      if (p.get("ma-journee")) setJourneeOuverte(true);
+      if (jour || p.get("ma-journee")) history.replaceState(null, "", location.pathname);
+    }
+    ouvrir(location.href);
+    const auMessage = (e: MessageEvent) => { if (e.data?.type === "agendia-ouvrir") ouvrir(e.data.url); };
+    navigator.serviceWorker?.addEventListener("message", auMessage);
+    return () => navigator.serviceWorker?.removeEventListener("message", auMessage);
+  }, []);
+
   // En passant sur une option téléphone, on arrive sur son écran d'accueil (comme les apps mobiles).
   useEffect(() => { if (mobile) setVue(vueAccueil(mobile)); }, [mobile]);
 
@@ -115,6 +160,15 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
     return plage ?? { debut: isoAujourdhui, fin: isoAujourdhui };
   }, [vue, dateRef, plage?.debut, plage?.fin, isoAujourdhui]); // eslint-disable-line react-hooks/exhaustive-deps
   const courantes = useMemo(() => entreesCourantes(taches, isoAujourdhui), [taches, isoAujourdhui]);
+  const agendas = useAgendasExternes(utilisateur.id, grille.debut, grille.fin);
+  const infosAgendas = useMemo(() => new Map(agendas.agendas.map((a) => [a.id, { nom: a.nom, couleur: a.couleur }])), [agendas.agendas]);
+  // Créneaux occupés par les agendas externes (ni « toute la journée », ni marqués « disponible »).
+  const occupe = useMemo(() => agendas.evenements.filter((e) => !e.journee && !e.libre).map((e) => ({ date: e.date, debut: e.heure, fin: e.fin })), [agendas.evenements]);
+  const enRetard = useMemo(() => courantes.filter(estEnRetard), [courantes]);
+  // Pastille sur l'icône de l'application installée : tâches encore à faire aujourd'hui.
+  useEffect(() => {
+    if (charge) mettrePastille(developper(taches, isoAujourdhui, isoAujourdhui).filter((t) => t.date === isoAujourdhui && !t.faite).length);
+  }, [charge, taches, isoAujourdhui]);
   const listeCalendrier = useMemo(
     () => developper(taches, grille.debut, grille.fin).filter((t) => passeLesFiltres(t, filtres)).sort(comparer),
     [taches, grille, filtres],
@@ -149,7 +203,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
       if (occ) {
         const serie = taches.find((t) => t.id === occ.serieId);
         if (serie) setSuppressionOccurrence({ ...occ, titre: serie.titre });
-      } else confirmerSuppression(id);
+      } else mettreALaCorbeille(id);
     },
     ajouterLe: (iso) => setFormulaire({ tacheId: null, date: iso }),
     allerAuJour: (iso) => { setDateRef(depuisISO(iso)); setVue("jour"); },
@@ -183,7 +237,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
       titre: premiereLigne, description: texte !== premiereLigne ? texte : "",
       date: c.date, heure: c.heure ?? "", dureeMinutes: null, lieu: "", echeance: "", materiel: "",
       categorie: "projets", priorite: "moyenne", groupe: null, couleur: null, recurrence: null,
-      projetId: projet?.id ?? null,
+      projetId: projet?.id ?? null, rappelMinutes: c.heure ? reglages.rappelDefaut : null,
     });
     if (annuler) afficherDepot(
       `${g.type === "projet" ? "Projet" : "Idée"} « ${premiereLigne} » ajouté${g.type === "idee" ? "e" : ""} ${c.date ? `à l'agenda : ${lieu}` : "à la Checklist (sans date)"}.`,
@@ -208,10 +262,28 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
     setMessageDepot(ok ? { texte: "C'est annulé : tout est revenu comme avant.", annuler: null, cle: Date.now() } : null);
   }
 
-  async function confirmerSuppression(id: string): Promise<boolean> {
+  /* Supprimer = mettre à la corbeille, sans fenêtre « Êtes-vous sûr ? » : un message
+     propose « Annuler » pendant 8 s, et la tâche reste 30 jours dans la corbeille.
+     (Une confirmation à chaque fois finit par être validée sans être lue ; l'annulation
+     protège mieux : NN/g, « Confirmation Dialogs », 2018.) */
+  async function mettreALaCorbeille(id: string): Promise<boolean> {
     const tache = taches.find((t) => t.id === id);
-    if (!tache || !confirm(`Supprimer la tâche « ${tache.titre} » ?`)) return false;
-    return supprimer(id);
+    if (!tache) return false;
+    if (!corbeilleDisponible() && !confirm(`Supprimer définitivement la tâche « ${tache.titre} » ?`)) return false;
+    const r = await supprimer(id);
+    if (r) annoncerSuppression(`« ${tache.titre} » ${r.enCorbeille ? "mise à la corbeille" : "supprimée"}.`, r);
+    return r !== null;
+  }
+  function annoncerSuppression(texte: string, r: { annuler: () => Promise<boolean>; enCorbeille: boolean }) {
+    setMessageDepot({ texte, detail: r.enCorbeille ? "Récupérable 30 jours dans la corbeille." : undefined,
+      annuler: r.enCorbeille ? r.annuler : null, cle: Date.now() });
+  }
+  async function supprimerUneOccurrence(serieId: string, date: string, portee: Portee): Promise<boolean> {
+    const titre = taches.find((t) => t.id === serieId)?.titre ?? "";
+    const r = await supprimerOccurrence(serieId, date, portee);
+    const textes = { occurrence: `Ce jour de « ${titre} » est supprimé.`, suivantes: `« ${titre} » : ce jour et les suivants sont supprimés.`, serie: `La série « ${titre} » est mise à la corbeille.` };
+    if (r) annoncerSuppression(textes[portee], { ...r, enCorbeille: portee === "serie" ? r.enCorbeille && corbeilleDisponible() : true });
+    return r !== null;
   }
 
   async function enregistrer(d: DonneesTache, portee: Portee): Promise<boolean> {
@@ -270,7 +342,9 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   async function effacerFaites() {
     const n = taches.filter((t) => t.faite).length;
     if (n === 0) return alert("Aucune tâche terminée à effacer.");
-    if (confirm(`Supprimer définitivement ${n} tâche(s) terminée(s) ?`)) await effacerTerminees();
+    if (!confirm(corbeilleDisponible() ? `Mettre ${n} tâche(s) terminée(s) à la corbeille ?` : `Supprimer définitivement ${n} tâche(s) terminée(s) ?`)) return;
+    const r = await effacerTerminees();
+    if (r) annoncerSuppression(`${n} tâche(s) terminée(s) ${r.enCorbeille ? "mise(s) à la corbeille" : "supprimée(s)"}.`, r);
   }
 
   function exporter() {
@@ -310,7 +384,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
     const ok = await ajouter({
       titre, description: "", date, heure, dureeMinutes: null, lieu: "", echeance: "", materiel: "",
       categorie: filtres.categorie !== "toutes" ? filtres.categorie : "perso", priorite: "moyenne", groupe: null,
-      couleur: null, recurrence: null, projetId: null,
+      couleur: null, recurrence: null, projetId: null, rappelMinutes: heure ? reglages.rappelDefaut : null,
     });
     if (ok) setMessageDepot({ texte: `« ${titre} » ajoutée${date ? "" : " à la Checklist"}.`, annuler: null, cle: Date.now() });
     return ok;
@@ -322,7 +396,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   /* ---------- Raccourcis clavier ---------- */
   useEffect(() => {
     function auClavier(e: KeyboardEvent) {
-      if (formulaire || synchroOuverte || planifOuverte || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (formulaire || synchroOuverte || planifOuverte || journeeOuverte || rappelsOuvert || corbeilleOuverte || agendasOuvert || e.ctrlKey || e.metaKey || e.altKey) return;
       // Pendant un glissement au clavier, les flèches choisissent la zone de dépôt (pas la période).
       if (e.defaultPrevented || document.body.classList.contains("glissement-en-cours")) return;
       const cible = e.target as HTMLElement;
@@ -334,10 +408,12 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
     }
     document.addEventListener("keydown", auClavier);
     return () => document.removeEventListener("keydown", auClavier);
-  }, [formulaire, synchroOuverte, planifOuverte, vue, navigable]);
+  }, [formulaire, synchroOuverte, planifOuverte, journeeOuverte, rappelsOuvert, corbeilleOuverte, agendasOuvert, vue, navigable]);
 
   /* ---------- Affichage ---------- */
-  const propsVue = { dateRef, liste, actions };
+  const propsVue = { dateRef, liste, actions, evenements: agendas.parDate };
+  const suggestionsJournee = useMemo(() => taches.filter((t) => !t.faite && t.date === "").length, [taches]);
+  const notifActives = etatNotif === "actives";
   // Pour une occurrence (id "serie~date"), le formulaire reçoit la SÉRIE + la date de l'occurrence.
   const occEnEdition = formulaire?.tacheId ? analyserId(formulaire.tacheId) : null;
   const tacheEnEdition = formulaire?.tacheId
@@ -345,10 +421,8 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
 
   async function supprimerDepuisFormulaire(portee: Portee): Promise<boolean> {
     if (!formulaire?.tacheId) return false;
-    if (!occEnEdition) return confirmerSuppression(formulaire.tacheId);
-    const textes = { occurrence: "ce jour de la série", suivantes: "ce jour et les suivants de la série", serie: "toute la série" };
-    if (!confirm(`Supprimer ${textes[portee]} « ${tacheEnEdition?.titre ?? ""} » ?`)) return false;
-    return supprimerOccurrence(occEnEdition.serieId, occEnEdition.date, portee);
+    if (!occEnEdition) return mettreALaCorbeille(formulaire.tacheId);
+    return supprimerUneOccurrence(occEnEdition.serieId, occEnEdition.date, portee);
   }
 
   return (
@@ -373,6 +447,16 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
       <header className="entete">
         <h1 className="titre-app"><Logo /> <NomApp /></h1>
         <Compteurs taches={courantes} tachesPeriode={tachesPeriode} plage={plage} />
+        <div className="actions-entete">
+        <button type="button" className={`btn-icone btn-cloche${notifActives ? " active" : ""}`} onClick={() => setRappelsOuvert(true)}
+          aria-label={notifActives ? "Rappels activés : réglages" : "Activer les rappels"} title={notifActives ? "Rappels activés" : "Activer les rappels"}>
+          {notifActives ? <BellRing aria-hidden="true" /> : <Bell aria-hidden="true" />}
+          {!notifActives && etatNotif && etatNotif !== "indisponible" && <span className="point-cloche" aria-hidden="true" />}
+        </button>
+        <button type="button" className="btn btn-journee" title="Préparer ma journée : retards, choix, planning"
+          onClick={() => setJourneeOuverte(true)}>
+          <Sunrise aria-hidden="true" /> Ma journée
+        </button>
         <button type="button" className="btn" title="Placer automatiquement les tâches de la Checklist dans la semaine"
           onClick={() => setPlanifOuverte(true)}>
           <IconePlanifier /> Planifier ma semaine
@@ -381,6 +465,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           onClick={() => setFormulaire({ tacheId: null })}>
           <IconeAjouter /> Nouvelle tâche
         </button>
+        </div>
       </header>
       )}
 
@@ -461,10 +546,15 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
 
       {ecranB && (
         <BandeauSemaine dateRef={dateRef} onChoisir={setDateRef} taches={taches} filtres={filtres}
-          moisOuvert={moisOuvert} onFermerMois={() => setMoisOuvert(false)} />
+          moisOuvert={moisOuvert} onFermerMois={() => setMoisOuvert(false)} evenements={agendas.parDate} />
       )}
 
+      <ContexteAgendas.Provider value={infosAgendas}>
       <ContexteBalayage.Provider value={mobile ? reporter : null}>
+      {ecranB && charge && !invitationMasquee && versISO(dateRef) === versISO(aujourdhui()) && (
+        <InvitationJournee enRetard={enRetard.length} suggestions={suggestionsJournee} onOuvrir={() => setJourneeOuverte(true)}
+          onMasquer={() => { masquerInvitationAujourdhui(); setInvitationMasquee(true); }} />
+      )}
       {ecranB && charge && versISO(dateRef) === versISO(aujourdhui()) && (
         <LigneRetard taches={listeCourante.filter(estEnRetard)} actions={actions} />
       )}
@@ -480,6 +570,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           : <VueListe {...propsVue} />}
       </main>
       </ContexteBalayage.Provider>
+      </ContexteAgendas.Provider>
 
       {/* Sous les vues calendrier (Jour, Semaine, Mois), la Checklist est aussi affichée
           en bas de page : on y arrive en faisant défiler. Même composant et mêmes données
@@ -493,6 +584,8 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
 
       <footer className="pied">
         <button type="button" className="btn btn-principal" onClick={() => setSynchroOuverte(true)}><IconeSynchro /> Synchroniser mon calendrier</button>
+        <button type="button" className="btn" onClick={() => setAgendasOuvert(true)}><CalendarDays aria-hidden="true" /> Mes agendas (Google, Outlook){agendas.agendas.length > 0 ? ` · ${agendas.agendas.length}` : ""}</button>
+        <button type="button" className="btn" onClick={() => setCorbeilleOuverte(true)}><IconeSupprimer /> Corbeille</button>
         <button type="button" className="btn" onClick={exporter}><IconeExporter /> Exporter (JSON)</button>
         <button type="button" className="btn" onClick={() => champFichier.current?.click()}><IconeImporter /> Importer</button>
         <input ref={champFichier} type="file" accept="application/json,.json" hidden onChange={importerFichier} />
@@ -514,13 +607,19 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
       )}
       {plusOuvert && mobile && (
         <MenuPlus vue={vue} onVue={setVue} onFermer={() => setPlusOuvert(false)}
+          raccourcis={[
+            { libelle: "Ma journée", detail: enRetard.length ? `${enRetard.length} en retard à trier` : "Préparer aujourd'hui", icone: <Sunrise aria-hidden="true" />, onClick: () => setJourneeOuverte(true), accent: true },
+            { libelle: "Rappels", detail: notifActives ? "Activés ici" : "À activer", icone: notifActives ? <BellRing aria-hidden="true" /> : <Bell aria-hidden="true" />, onClick: () => setRappelsOuvert(true) },
+            { libelle: "Mes agendas", detail: agendas.agendas.length ? `${agendas.agendas.length} branché${agendas.agendas.length > 1 ? "s" : ""}` : "Google, Outlook", icone: <CalendarDays aria-hidden="true" />, onClick: () => setAgendasOuvert(true) },
+            { libelle: "Corbeille", detail: "30 jours pour récupérer", icone: <IconeSupprimer />, onClick: () => setCorbeilleOuverte(true) },
+          ]}
           compteurs={<Compteurs taches={courantes} tachesPeriode={tachesPeriode} plage={plage} />}
           actions={[
             { libelle: "Planifier ma semaine", icone: <IconePlanifier />, onClick: () => setPlanifOuverte(true) },
             { libelle: "Synchroniser mon calendrier", icone: <IconeSynchro />, onClick: () => setSynchroOuverte(true) },
             { libelle: "Exporter (JSON)", icone: <IconeExporter />, onClick: exporter },
             { libelle: "Importer", icone: <IconeImporter />, onClick: () => champFichier.current?.click() },
-            { libelle: "Effacer les tâches terminées", icone: <IconeSupprimer />, onClick: effacerFaites, danger: true },
+            { libelle: "Effacer les tâches terminées", detail: "vers la corbeille", icone: <IconeSupprimer />, onClick: effacerFaites, danger: true },
             { libelle: `Se déconnecter (${utilisateur.email ?? ""})`, icone: <LogOut aria-hidden="true" />, onClick: () => supabase().auth.signOut() },
           ]} />
       )}
@@ -541,16 +640,30 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           onEnregistrer={enregistrer}
           onSupprimer={supprimerDepuisFormulaire}
           onFermer={() => setFormulaire(null)}
+          rappelDefaut={reglages.rappelDefaut}
+          notificationsActives={notifActives}
+          onReglerRappels={() => setRappelsOuvert(true)}
         />
       )}
 
       {synchroOuverte && <SynchroCalendrier onFermer={() => setSynchroOuverte(false)} />}
       {suppressionOccurrence && (
         <ChoixPortee titre={suppressionOccurrence.titre} date={suppressionOccurrence.date}
-          onChoisir={(p) => supprimerOccurrence(suppressionOccurrence.serieId, suppressionOccurrence.date, p)}
+          onChoisir={(p) => supprimerUneOccurrence(suppressionOccurrence.serieId, suppressionOccurrence.date, p)}
           onFermer={() => setSuppressionOccurrence(null)} />
       )}
-      {planifOuverte && <Planificateur taches={tachesPlanif} onAppliquer={appliquerPlanning} onFermer={() => setPlanifOuverte(false)} />}
+      {planifOuverte && <Planificateur taches={tachesPlanif} onAppliquer={appliquerPlanning} onFermer={() => setPlanifOuverte(false)}
+        occupe={occupe} nbAgendas={agendas.agendas.length} onAgendas={() => { setPlanifOuverte(false); setAgendasOuvert(true); }} />}
+      {rappelsOuvert && <Rappels reglages={reglages} disponibles={rappelsDisponibles()} onReglages={enregistrerReglages} onEtat={setEtatNotif} onFermer={() => setRappelsOuvert(false)} />}
+      {corbeilleOuverte && <Corbeille lister={listerCorbeille} restaurer={restaurer} supprimerDefinitivement={supprimerDefinitivement}
+        disponible={corbeilleDisponible()} onFermer={() => setCorbeilleOuverte(false)} />}
+      {agendasOuvert && <AgendasExternes donnees={agendas} onFermer={() => setAgendasOuvert(false)} />}
+      {journeeOuverte && (
+        <MaJournee taches={taches} enRetard={enRetard} evenements={agendas.parDate.get(isoAujourdhui) ?? []}
+          deplacer={deplacerTache} cocher={basculerFaite} appliquer={changerHoraires}
+          onTermine={(texte, annuler) => { setInvitationMasquee(true); setDateRef(aujourdhui()); if (!mobile) setVue("jour"); setMessageDepot({ texte, annuler, cle: Date.now() }); }}
+          onFermer={() => setJourneeOuverte(false)} />
+      )}
 
       {messageDepot && (
         <div key={messageDepot.cle} className="toast-depot" role="status">

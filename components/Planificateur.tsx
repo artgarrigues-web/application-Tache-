@@ -24,9 +24,12 @@ interface Props {
   taches: Tache[];
   onAppliquer: (planning: Planning) => Promise<boolean>;
   onFermer: () => void;
+  occupe?: { date: string; debut: string; fin: string }[]; // événements Google / Outlook à éviter
+  nbAgendas?: number;
+  onAgendas?: () => void; // ouvre « Mes agendas »
 }
 
-export function Planificateur({ taches, onAppliquer, onFermer }: Props) {
+export function Planificateur({ taches, onAppliquer, onFermer, occupe = [], nbAgendas = 0, onAgendas }: Props) {
   const dialogue = useRef<HTMLDialogElement>(null);
   const [etape, setEtape] = useState<"reglages" | "choix">("reglages");
   const [plages, setPlages] = useState<PlageDispo[]>(PLAGES_PAR_DEFAUT);
@@ -61,8 +64,8 @@ export function Planificateur({ taches, onAppliquer, onFermer }: Props) {
 
   // useMemo : les 3 calculs ne sont refaits que si les tâches, la semaine ou les plages changent.
   const plannings = useMemo(
-    () => (etape === "choix" ? proposerPlannings({ taches, lundi: lundiVise, plages, maintenant: new Date() }) : []),
-    [etape, taches, lundiVise, plages],
+    () => (etape === "choix" ? proposerPlannings({ taches, lundi: lundiVise, plages, maintenant: new Date(), occupe }) : []),
+    [etape, taches, lundiVise, plages, occupe],
   );
   const planning = plannings.find((p) => p.id === choisi);
 
@@ -122,6 +125,13 @@ export function Planificateur({ taches, onAppliquer, onFermer }: Props) {
               {aPlacer.length === 0
                 ? "Ta Checklist est vide : il n'y a aucune tâche sans date à placer."
                 : <>{aPlacer.length} tâche(s) de la Checklist à placer. Les créneaux déjà pris par tes tâches datées <strong>avec heure</strong> sont évités. Rien n&apos;est modifié avant que tu choisisses un planning.</>}
+            </p>
+
+            <p className={`note-agendas${nbAgendas ? " branche" : ""}`}>
+              {nbAgendas
+                ? <><IconeSucces /> {occupe.filter((o) => o.date >= lundiVise && o.date <= decalerISO(lundiVise, 6)).length} événement(s) de tes agendas (Google, Outlook…) seront aussi évités cette semaine-là.</>
+                : <><IconeAlerte /> Tes cours et rendez-vous de Google / Outlook ne sont pas encore visibles par AgendIA.{" "}
+                  {onAgendas && <button type="button" className="lien" onClick={onAgendas}>Brancher mon agenda</button>}</>}
             </p>
 
             <div className="ligne-semaine">
