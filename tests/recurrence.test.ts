@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import {
   ajouterException, analyserId, arreterAvant, basculerFaite, decrireRecurrence, developper, entreesCourantes,
   idOccurrence, nombreAvant, normaliserRecurrence, occurrencesEntre, premiereOccurrence, recurrenceParDefaut,
-  validerRecurrence,
+  resumerRecurrence, validerRecurrence,
 } from "../lib/recurrence.ts";
 import { regleRRULE } from "../lib/ics-recurrence.ts";
 import type { Recurrence, Tache } from "../lib/types.ts";
@@ -146,4 +146,18 @@ test("export iCalendar : RRULE équivalente à l'affichage", () => {
   assert.equal(regleRRULE(regle({ frequence: "jour", fin: { type: "date", date: "2026-12-31" } }), "2026-11-24", null), "FREQ=DAILY;UNTIL=20261231");
   assert.equal(regleRRULE(regle({ frequence: "jour", fin: { type: "date", date: "2026-12-31" } }), "2026-11-24", "14:00"), "FREQ=DAILY;UNTIL=20261231T225959Z");
   assert.equal(regleRRULE(regle({ frequence: "jour", fin: { type: "date", date: "2027-07-01" } }), "2026-11-24", "14:00"), "FREQ=DAILY;UNTIL=20270701T215959Z");
+});
+
+test("résumé court de la répétition, affiché sur les cartes", () => {
+  assert.equal(resumerRecurrence(regle({ frequence: "jour" })), "chaque jour");
+  assert.equal(resumerRecurrence(regle({ frequence: "jour", intervalle: 3 })), "tous les 3 jours");
+  assert.equal(resumerRecurrence(regle({ frequence: "semaine", joursSemaine: [3] })), "chaque jeudi");
+  assert.equal(resumerRecurrence(regle({ frequence: "semaine", joursSemaine: [3, 0] })), "chaque lundi et jeudi");
+  assert.equal(resumerRecurrence(regle({ frequence: "semaine", joursSemaine: [4, 0, 2] })), "chaque lun., mer. et ven.");
+  assert.equal(resumerRecurrence(regle({ frequence: "semaine", joursSemaine: [0, 1, 2, 3, 4] })), "en semaine");
+  assert.equal(resumerRecurrence(regle({ frequence: "semaine", joursSemaine: [0, 1, 2, 3, 4, 5, 6] })), "chaque jour");
+  assert.equal(resumerRecurrence(regle({ frequence: "semaine", intervalle: 2, joursSemaine: [0] })), "toutes les 2 semaines");
+  assert.equal(resumerRecurrence(regle({ frequence: "mois" })), "chaque mois");
+  assert.equal(resumerRecurrence(regle({ frequence: "annee" })), "chaque année");
+  assert.equal(resumerRecurrence(regle({ frequence: "annee", intervalle: 3 })), "tous les 3 ans");
 });

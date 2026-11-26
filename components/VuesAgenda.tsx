@@ -182,7 +182,7 @@ export function VueTri({ liste, actions }: Props) {
             )}
             <div className="liste-taches">
               {groupes[g.id].length === 0 && <p className="vide">Rien ici.</p>}
-              {groupes[g.id].map((t) => <CarteTache key={t.id} tache={t} actions={actions} avecDate />)}
+              {groupes[g.id].map((t) => <CarteTache key={t.id} tache={t} actions={actions} avecDate colonneTri={g.id} />)}
             </div>
           </section>
         ))}
