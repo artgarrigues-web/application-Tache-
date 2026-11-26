@@ -15,9 +15,10 @@ function tablesAbsentes(message: string): boolean {
 }
 
 export function useIdees(userId: string) {
-  const [projets, setProjets] = useState<ProjetIdees[]>([]);
-  const [idees, setIdees] = useState<Idee[]>([]);
-  const [charge, setCharge] = useState(false);
+  // Comme pour les tâches : premier affichage depuis la copie gardée sur l'appareil.
+  const [projets, setProjets] = useState<ProjetIdees[]>(() => depot.projetsEtIdeesEnCopie().projets);
+  const [idees, setIdees] = useState<Idee[]>(() => depot.projetsEtIdeesEnCopie().idees);
+  const [charge, setCharge] = useState(() => depot.projetsEtIdeesEnCopie().projets.length > 0);
   const [erreur, setErreur] = useState<string | null>(null);
   const [migrationManquante, setMigrationManquante] = useState(false);
 
@@ -50,7 +51,11 @@ export function useIdees(userId: string) {
   useEffect(() => {
     const auRetour = () => { if (document.visibilityState === "visible") recharger(); };
     document.addEventListener("visibilitychange", auRetour);
-    return () => document.removeEventListener("visibilitychange", auRetour);
+    window.addEventListener("agendia-synchro", recharger);
+    return () => {
+      document.removeEventListener("visibilitychange", auRetour);
+      window.removeEventListener("agendia-synchro", recharger);
+    };
   }, [recharger]);
 
   // Renvoie le projet créé (pour l'ouvrir tout de suite), ou null en cas d'échec.
