@@ -32,10 +32,12 @@ import { Logo, NomApp } from "./Logo";
 import { IconeAjouter, IconeAnnuler, IconeChecklist, IconeExporter, IconeFermer, IconeImporter, IconePlanifier, IconePrecedent, IconeRecherche, IconeSucces, IconeSuivant, IconeSynchro, IconeSupprimer } from "./Icones";
 import { LogOut } from "lucide-react";
 import {
-  BandeauSemaine, BarreBas, BoutonFlottant, EnteteMobile, FilContinu, MenuPlus, SaisieRapide, titreCourt, useBalayage,
+  BandeauSemaine, BarreBas, BoutonFlottant, EnteteMobile, FilContinu, LigneRetard, MenuPlus, SaisieRapide, titreCourt, useBalayage,
   useVarianteMobile, vueAccueil,
 } from "./Mobile";
 import type { Tache } from "@/lib/types";
+import { ContexteBalayage } from "./Balayable";
+import { estEnRetard } from "@/lib/taches";
 
 const CLE_VUE = "agenda-taches-vue"; // simple préférence d'affichage, gardée dans le navigateur
 const CLE_ANNULATION = "agenda-dernier-planning"; // de quoi annuler le dernier planning appliqué
@@ -296,7 +298,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
   }
 
   /* ---------- Prototype téléphone ---------- */
-  // Option C, balayage ←: une tâche en retard revient à aujourd'hui, les autres passent au lendemain.
+  // Balayage ← d'une carte (téléphone) : une tâche en retard revient à aujourd'hui, les autres passent au lendemain.
   async function reporter(t: Tache) {
     const iso = versISO(aujourdhui());
     const cible = t.date < iso ? iso : versISO(ajouterJours(depuisISO(t.date), 1));
@@ -461,9 +463,13 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           moisOuvert={moisOuvert} onFermerMois={() => setMoisOuvert(false)} />
       )}
 
+      <ContexteBalayage.Provider value={mobile ? reporter : null}>
+      {ecranB && charge && versISO(dateRef) === versISO(aujourdhui()) && (
+        <LigneRetard taches={listeCourante.filter(estEnRetard)} actions={actions} />
+      )}
       <main className={`vue vue-${vue}`} {...(ecranB ? balayageJour : {})}>
         {!charge ? <p className="vide">Chargement des tâches…</p>
-          : ecranC ? <FilContinu taches={taches} filtres={filtres} actions={actions} onReporter={reporter} />
+          : ecranC ? <FilContinu taches={taches} filtres={filtres} actions={actions} />
           : vue === "jour" ? <VueJour {...propsVue} />
           : vue === "semaine" ? <VueSemaine {...propsVue} />
           : vue === "mois" ? <VueMois {...propsVue} />
@@ -471,6 +477,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
           : vue === "checklist" ? <VueChecklist {...propsVue} idees={idees} />
           : <VueListe {...propsVue} />}
       </main>
+      </ContexteBalayage.Provider>
 
       {/* Sous les vues calendrier (Jour, Semaine, Mois), la Checklist est aussi affichée
           en bas de page : on y arrive en faisant défiler. Même composant et mêmes données
@@ -503,7 +510,7 @@ export function Agenda({ utilisateur }: { utilisateur: User }) {
         </>
       )}
       {plusOuvert && mobile && (
-        <MenuPlus variante={mobile} vue={vue} onVue={setVue} onFermer={() => setPlusOuvert(false)}
+        <MenuPlus vue={vue} onVue={setVue} onFermer={() => setPlusOuvert(false)}
           compteurs={<Compteurs taches={courantes} tachesPeriode={tachesPeriode} plage={plage} />}
           actions={[
             { libelle: "Planifier ma semaine", icone: <IconePlanifier />, onClick: () => setPlanifOuverte(true) },

@@ -11,6 +11,7 @@ import { estEnRetard, formaterDuree, groupesDe, heureFin, lienCarte, listeMateri
 import { CATEGORIES, GROUPES, PRIORITES, type Tache } from "@/lib/types";
 import { decrireRecurrence } from "@/lib/recurrence";
 import { OrigineGlisser, Poignee, useGlissable } from "./Glisser";
+import { Balayable, ContexteBalayage } from "./Balayable";
 import { IconeChecklist, IconeProjet, IconeRepeter, IconeDuree, IconeEcheance, IconeGroupe, IconeLieu, IconeMateriel, IconeModifier, IconeSupprimer } from "./Icones";
 
 // Les actions possibles depuis une vue de l'agenda, fournies par le composant Agenda.
@@ -49,7 +50,10 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false,
     tache.id.startsWith("provisoire-") && "provisoire", // en cours d'enregistrement (après un dépôt)
   ].filter(Boolean).join(" ");
 
-  return (
+  // Sur téléphone, une carte complète peut être balayée (→ cocher, ← reporter) : voir Balayable.tsx.
+  const reporter = useContext(ContexteBalayage);
+
+  const carte = (
     <article className={classes} ref={glissable.setNodeRef} {...(glissable.possible ? glissable.listeners : {})}
       inert={fantome || undefined}>
       <Poignee glissable={glissable} libelle={`la tâche « ${tache.titre} »`} />
@@ -141,6 +145,10 @@ export function CarteTache({ tache, actions, compacte = false, avecDate = false,
       )}
     </article>
   );
+  if (reporter && !fantome && !compacte) {
+    return <Balayable tache={tache} onCocher={() => actions.cocher(tache.id)} onReporter={reporter}>{carte}</Balayable>;
+  }
+  return carte;
 }
 
 // Date de début de la série d'une occurrence (pour la phrase « le 4e mardi », « le 24 »…).

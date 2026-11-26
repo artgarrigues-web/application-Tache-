@@ -1,22 +1,25 @@
 "use client";
 
 /* =====================================================================
-   PROTOTYPE — ergonomie sur téléphone (25/11/2026)
-   Trois façons d'organiser l'application sur un petit écran, à comparer
-   avant d'en garder une. Rien ne change sur ordinateur, ni sur téléphone
-   tant qu'on n'a pas choisi une option dans l'adresse :
-     ?mobile=a  barre d'onglets en bas + bouton « + » (Google Agenda, TickTick)
-     ?mobile=b  bandeau de la semaine + journée détaillée (Apple Calendrier, Fantastical)
-     ?mobile=c  fil « À venir » continu + gestes de balayage + saisie rapide (Todoist, Things)
-     ?mobile=aucune  revient à l'affichage actuel
-   Le choix est mémorisé dans le navigateur (localStorage) : inutile de le
-   remettre dans l'adresse à chaque visite.
+   Ergonomie sur téléphone (choisie par Arthur le 26/11/2026 : option B
+   « bandeau de la semaine », avec les gestes de l'option C).
 
-   Socle commun aux trois options (voir « .mobile » dans globals.css) :
-   en-tête sur une seule ligne, filtres repliés derrière la loupe, cartes
-   allégées (badges « Priorité moyenne » et catégorie retirés, le bord coloré
-   suffit), formulaire en « feuille » qui monte du bas de l'écran, et les
-   actions rares (synchro, export, déconnexion…) rangées dans « Plus ».
+   Sur un écran de 640 px ou moins :
+   - en-tête sur une seule ligne, filtres repliés derrière la loupe ;
+   - cartes allégées (badges catégorie, priorité et « Urgent » retirés) ;
+   - bouton « + » flottant, barre d'onglets en bas, menu « Plus » ;
+   - fenêtres en « feuille » qui monte du bas de l'écran ;
+   - Agenda = bandeau de la semaine (un point par tâche) + journée choisie,
+     mois dépliable en touchant son nom, ligne « En retard » sur aujourd'hui ;
+   - balayage des cartes : → cocher, ← reporter (components/Balayable.tsx).
+   Sur ordinateur, rien ne change.
+
+   Les deux autres options du prototype restent disponibles pour essai, via
+   l'adresse (le choix est mémorisé dans le navigateur) :
+     ?mobile=a  barre d'onglets en bas avec les vues habituelles (Google Agenda)
+     ?mobile=c  fil « À venir » continu + saisie rapide (Todoist, Things)
+     ?mobile=b  revient à l'affichage par défaut
+     ?mobile=aucune  ancien affichage téléphone (celui d'avant le 26/11)
    ===================================================================== */
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent as EvPointeur, type ReactNode } from "react";
@@ -29,27 +32,28 @@ import { JOURS_COURTS, VUES, type Filtres, type Tache, type Vue } from "@/lib/ty
 import { CarteTache, type ActionsAgenda } from "./CarteTache";
 import { Logo } from "./Logo";
 import {
-  IconeAjouter, IconeChecklist, IconeFermer, IconePrecedent, IconeRecherche, IconeSuivant, IconeValide,
-  IconeContinuer, IconeDeplier, IconeBravo,
+  IconeAjouter, IconeChecklist, IconeFermer, IconePrecedent, IconeRecherche, IconeSuivant,
+  IconeDeplier, IconeBravo, IconeAlerte,
 } from "./Icones";
 
 export type VarianteMobile = "a" | "b" | "c";
 const CLE_VARIANTE = "agendia-ergonomie-mobile";
 const LARGEUR_TELEPHONE = "(max-width: 640px)";
 
-/* L'option active : null sur ordinateur, ou tant qu'aucune option n'a été choisie. */
+/* L'option active : null sur ordinateur (ou si l'ancien affichage a été demandé). */
 export function useVarianteMobile(): VarianteMobile | null {
   const [variante, setVariante] = useState<VarianteMobile | null>(null);
   useEffect(() => {
     const demandee = new URLSearchParams(location.search).get("mobile");
     let choisie: string | null = demandee;
     try {
-      if (demandee === "aucune") localStorage.removeItem(CLE_VARIANTE);
-      else if (demandee) localStorage.setItem(CLE_VARIANTE, demandee);
+      if (demandee) localStorage.setItem(CLE_VARIANTE, demandee);
       choisie = localStorage.getItem(CLE_VARIANTE);
     } catch { /* navigateur privé : seule l'adresse compte */ }
+    // Par défaut (rien de choisi) : option B.
+    const v: VarianteMobile | null = choisie === "aucune" ? null : choisie === "a" || choisie === "c" ? choisie : "b";
     const ecran = matchMedia(LARGEUR_TELEPHONE);
-    const maj = () => setVariante(ecran.matches && (choisie === "a" || choisie === "b" || choisie === "c") ? choisie : null);
+    const maj = () => setVariante(ecran.matches ? v : null);
     maj();
     ecran.addEventListener("change", maj);
     return () => ecran.removeEventListener("change", maj);
@@ -175,8 +179,8 @@ export function FeuilleBas({ titre, onFermer, children, className = "" }: { titr
 }
 
 /* Menu « Plus » : compteurs, autres vues, actions rares, et (prototype) choix de l'option. */
-export function MenuPlus({ variante, vue, compteurs, onVue, actions, onFermer }: {
-  variante: VarianteMobile; vue: Vue; compteurs: ReactNode; onVue: (v: Vue) => void; onFermer: () => void;
+export function MenuPlus({ vue, compteurs, onVue, actions, onFermer }: {
+  vue: Vue; compteurs: ReactNode; onVue: (v: Vue) => void; onFermer: () => void;
   actions: { libelle: string; icone: ReactNode; onClick: () => void; danger?: boolean }[];
 }) {
   const fermerPuis = (f: () => void) => () => { onFermer(); f(); };
@@ -195,14 +199,6 @@ export function MenuPlus({ variante, vue, compteurs, onVue, actions, onFermer }:
           <button key={a.libelle} type="button" className={`ligne-action${a.danger ? " danger" : ""}`} onClick={fermerPuis(a.onClick)}>
             {a.icone}<span>{a.libelle}</span>
           </button>
-        ))}
-      </div>
-      <h3 className="feuille-sous-titre">Prototype : option d&apos;ergonomie</h3>
-      <div className="grille-vues">
-        {(["a", "b", "c", "aucune"] as const).map((o) => (
-          <a key={o} className={`btn${variante === o ? " btn-principal" : ""}`} href={`?mobile=${o}`}>
-            {o === "aucune" ? "Actuelle" : `Option ${o.toUpperCase()}`}
-          </a>
         ))}
       </div>
     </FeuilleBas>
@@ -227,6 +223,25 @@ export function useBalayage(onGauche: () => void, onDroite: () => void, seuil = 
     },
     onPointerCancel: () => { depart.current = null; },
   };
+}
+
+/* ---------- Ligne « En retard » (au-dessus de la journée d'aujourd'hui) ---------- */
+export function LigneRetard({ taches, actions }: { taches: Tache[]; actions: ActionsAgenda }) {
+  const [ouverte, setOuverte] = useState(true);
+  if (taches.length === 0) return null;
+  return (
+    <section className="ligne-retard" aria-label="Tâches en retard">
+      <button type="button" className="titre-retard" aria-expanded={ouverte} onClick={() => setOuverte((o) => !o)}>
+        <IconeAlerte /> {taches.length} tâche{taches.length > 1 ? "s" : ""} en retard
+        <span className="indice-retard">{ouverte ? "Masquer" : "Afficher"}</span>
+      </button>
+      {ouverte && (
+        <div className="liste-taches">
+          {taches.map((t) => <CarteTache key={t.id} tache={t} actions={actions} avecDate />)}
+        </div>
+      )}
+    </section>
+  );
 }
 
 /* ---------- Option B : bandeau de la semaine + calendrier du mois dépliable ---------- */
@@ -297,59 +312,9 @@ export function BandeauSemaine({ dateRef, onChoisir, taches, filtres, moisOuvert
   );
 }
 
-/* ---------- Option C : carte qu'on balaie (→ fait, ← reporter) ---------- */
-const SEUIL_ACTION = 90; // px à parcourir pour déclencher l'action
-
-function CarteBalayable({ tache, actions, avecDate, onReporter }: {
-  tache: Tache; actions: ActionsAgenda; avecDate?: boolean; onReporter: (t: Tache) => void;
-}) {
-  const [dx, setDx] = useState(0);
-  const depart = useRef<{ x: number; y: number; horizontal: boolean | null } | null>(null);
-  const aBouge = useRef(false);
-  const retard = !!tache.date && tache.date < versISO(aujourdhui());
-
-  const bas = (e: EvPointeur) => { depart.current = { x: e.clientX, y: e.clientY, horizontal: null }; aBouge.current = false; };
-  const deplace = (e: EvPointeur) => {
-    const d = depart.current;
-    if (!d) return;
-    const mx = e.clientX - d.x, my = e.clientY - d.y;
-    if (d.horizontal === null && Math.hypot(mx, my) > 8) d.horizontal = Math.abs(mx) > Math.abs(my);
-    if (d.horizontal) {
-      aBouge.current = true;
-      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-      setDx(Math.max(-140, Math.min(140, mx)));
-    }
-  };
-  const haut = () => {
-    if (dx > SEUIL_ACTION) actions.cocher(tache.id);
-    else if (dx < -SEUIL_ACTION && tache.date) onReporter(tache);
-    depart.current = null;
-    setDx(0);
-  };
-
-  return (
-    <div className={`balayable${dx ? " en-cours" : ""}`}
-      onPointerDown={bas} onPointerMove={deplace} onPointerUp={haut} onPointerCancel={haut}
-      // Après un balayage, le « clic » qui suit ne doit pas ouvrir le formulaire.
-      onClickCapture={(e) => { if (aBouge.current) { e.stopPropagation(); e.preventDefault(); aBouge.current = false; } }}>
-      <div className={`fond-action gauche${dx > SEUIL_ACTION ? " pret" : ""}`} style={{ opacity: dx > 0 ? 1 : 0 }}>
-        <IconeValide /> {tache.faite ? "À refaire" : "Fait"}
-      </div>
-      <div className={`fond-action droite${dx < -SEUIL_ACTION ? " pret" : ""}`} style={{ opacity: dx < 0 ? 1 : 0 }}>
-        {tache.date ? (retard ? "Aujourd'hui" : "Demain") : "—"} <IconeContinuer />
-      </div>
-      <div className="balayable-carte" style={{ transform: dx ? `translateX(${dx}px)` : undefined }}>
-        <CarteTache tache={tache} actions={actions} avecDate={avecDate} />
-      </div>
-    </div>
-  );
-}
-
 const JOURS_A_VENIR = 14;
 
-export function FilContinu({ taches, filtres, actions, onReporter }: {
-  taches: Tache[]; filtres: Filtres; actions: ActionsAgenda; onReporter: (t: Tache) => void;
-}) {
+export function FilContinu({ taches, filtres, actions }: { taches: Tache[]; filtres: Filtres; actions: ActionsAgenda }) {
   const auj = aujourdhui();
   const isoAuj = versISO(auj);
   const fin = versISO(ajouterJours(auj, JOURS_A_VENIR - 1));
@@ -378,7 +343,7 @@ export function FilContinu({ taches, filtres, actions, onReporter }: {
       <h3 className="titre-fil">{titre}</h3>
       {t.length === 0 && options.vide}
       <div className="liste-taches">
-        {t.map((x) => <CarteBalayable key={x.id} tache={x} actions={actions} avecDate={options.avecDate} onReporter={onReporter} />)}
+        {t.map((x) => <CarteTache key={x.id} tache={x} actions={actions} avecDate={options.avecDate} />)}
       </div>
       {options.iso && (
         <button type="button" className="lien-ajout-fil" onClick={() => actions.ajouterLe(options.iso!)}><IconeAjouter /> Ajouter</button>

@@ -854,9 +854,9 @@ body.glissement-hors-zone, body.glissement-hors-zone * { cursor: no-drop !import
 }
 
 /* =====================================================================
-   PROTOTYPE — ergonomie téléphone (components/Mobile.tsx)
-   Tout est préfixé par .mobile : ces règles ne s'appliquent que si une
-   option (?mobile=a|b|c) est choisie ET que l'écran fait ≤ 640 px.
+   Ergonomie téléphone (components/Mobile.tsx, choisie le 26/11/2026)
+   Tout est préfixé par .mobile : ces règles ne s'appliquent que sur un
+   écran de 640 px ou moins (jamais sur ordinateur).
    ===================================================================== */
 
 /* --- Socle commun --- */
@@ -887,9 +887,9 @@ body.glissement-hors-zone, body.glissement-hors-zone * { cursor: no-drop !import
 .mobile .filtres select { flex: 1 1 30%; min-width: 0; font-size: 0.85rem; }
 
 /* Cartes allégées : la bande colorée dit déjà la catégorie, le point avant le titre la priorité,
-   et « Urgent » (= aujourd'hui ou demain) répète ce que dit déjà la date dans un agenda. */
-.mobile .badge-cat, .mobile [class*="badge-prio-"], .mobile .badge-groupe.groupe-urgent,
-.mobile .tache-actions { display: none; }
+   et « Urgent » (= aujourd'hui ou demain) répète ce que dit déjà la date dans un agenda.
+   body:has(.mobile) couvre aussi la carte « fantôme » du glisser-déposer, affichée hors de .page. */
+body:has(.page.mobile) :is(.badge-cat, [class*="badge-prio-"], .badge-groupe.groupe-urgent, .tache-actions) { display: none; }
 .mobile .tache { padding: 10px 12px; gap: 10px; }
 .mobile .tache input[type="checkbox"] { width: 22px; height: 22px; margin: 0; }
 .mobile .tache-meta { margin-top: 4px; }
@@ -965,6 +965,15 @@ body.glissement-hors-zone, body.glissement-hors-zone * { cursor: no-drop !import
 .points-jour i.fait { opacity: 0.3; }
 .jour-choisi { margin: 8px 4px 0; font-weight: 600; font-size: 0.95rem; }
 .mobile-b main.vue-jour { touch-action: pan-y; min-height: 50vh; }
+
+/* --- Ligne « En retard » au-dessus de la journée --- */
+.ligne-retard { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.titre-retard {
+  display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 10px;
+  border: 1px solid var(--retard); background: var(--retard-fond); color: var(--retard);
+  font: inherit; font-weight: 600; cursor: pointer; text-align: left;
+}
+.indice-retard { margin-left: auto; font-weight: 500; font-size: 0.8rem; }
 
 /* --- Option C : fil « À venir », balayage, saisie rapide --- */
 .fil-continu { display: flex; flex-direction: column; gap: 14px; }
