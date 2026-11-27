@@ -12,4 +12,3 @@ export const SLOGAN = "Tes tâches et tes projets, organisés jour après jour."
    logo blanc sur ce bleu clair serait trop peu contrasté.
    Si tu changes --accent, change aussi cette valeur, app/icon.svg et les PNG. */
 export const COULEUR_LOGO = "#1d4ed8";
-export const COULEUR_ETINCELLE = "#fcd34d"; // l'étincelle de l'IA (ambre, contraste 5,8:1 sur le bleu)

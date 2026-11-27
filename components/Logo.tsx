@@ -1,20 +1,22 @@
-/* Logo d'AgendIA : un calendrier coché (les tâches) et une petite étincelle
-   ambre (l'IA à venir), sur un carré arrondi du bleu principal du site.
+/* Logo d'AgendIA : un calendrier coché (les tâches), blanc, sur un carré arrondi
+   du bleu principal du site. Plus d'étincelle « IA » (retirée le 27/11/2026, à la
+   demande d'Arthur) : le calendrier est recentré dans le carré.
    Même dessin que le favicon app/icon.svg, en SVG intégré pour rester net à
    toutes les tailles. "aria-hidden" : le nom écrit juste à côté suffit aux
    lecteurs d'écran. */
 
-import { COULEUR_ETINCELLE, COULEUR_LOGO, NOM_APP } from "@/lib/marque";
+import { COULEUR_LOGO, NOM_APP } from "@/lib/marque";
 
 export function Logo({ taille = 32 }: { taille?: number }) {
   return (
     <svg className="logo" width={taille} height={taille} viewBox="0 0 64 64" aria-hidden="true" focusable="false">
       <rect width="64" height="64" rx="14" fill={COULEUR_LOGO} />
-      <rect x="13" y="17" width="34" height="32" rx="6" fill="none" stroke="#fff" strokeWidth="4" />
-      <path d="M13 27h34" stroke="#fff" strokeWidth="4" />
-      <path d="M22 12v9M38 12v9" stroke="#fff" strokeWidth="4" strokeLinecap="round" />
-      <path d="M21.5 37.5l5 5 9-10" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M51 6c.9 4.3 2.7 6.1 7 7-4.3.9-6.1 2.7-7 7-.9-4.3-2.7-6.1-7-7 4.3-.9 6.1-2.7 7-7z" fill={COULEUR_ETINCELLE} />
+      <g transform="translate(2 1)" fill="none" stroke="#fff" strokeWidth="4">
+        <rect x="13" y="17" width="34" height="32" rx="6" />
+        <path d="M13 27h34" />
+        <path d="M22 12v9M38 12v9" strokeLinecap="round" />
+        <path d="M21.5 37.5l5 5 9-10" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
     </svg>
   );
 }
