@@ -1,9 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Favicon d'AgendIA : fond = bleu principal du site (#1d4ed8), étincelle ambre (#fcd34d). -->
+  <!-- Favicon d'AgendIA : un calendrier coché, blanc, sur le bleu principal du site (#1d4ed8).
+       Même dessin que components/Logo.tsx ; les icônes PNG (app/apple-icon.png,
+       public/icone-192.png, public/icone-512.png, public/badge-96.png) en sont tirées. -->
   <rect width="64" height="64" rx="14" fill="#1d4ed8"/>
-  <rect x="13" y="17" width="34" height="32" rx="6" fill="none" stroke="#fff" stroke-width="4"/>
-  <path d="M13 27h34" stroke="#fff" stroke-width="4"/>
-  <path d="M22 12v9M38 12v9" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
-  <path d="M21.5 37.5l5 5 9-10" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M51 6c.9 4.3 2.7 6.1 7 7-4.3.9-6.1 2.7-7 7-.9-4.3-2.7-6.1-7-7 4.3-.9 6.1-2.7 7-7z" fill="#fcd34d"/>
+  <g transform="translate(2 1)" fill="none" stroke="#fff" stroke-width="4">
+    <rect x="13" y="17" width="34" height="32" rx="6"/>
+    <path d="M13 27h34"/>
+    <path d="M22 12v9M38 12v9" stroke-linecap="round"/>
+    <path d="M21.5 37.5l5 5 9-10" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
 </svg>
